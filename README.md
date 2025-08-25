@@ -11,12 +11,12 @@ Developed by **Youssef KAABECHI** at the **Sectoral Training Center in Telecommu
 
 - Features
 - User Roles
+- Screenshots & Previews
 - System Architecture & Diagrams
 - Tech Stack
 - Prerequisites
 - Installation
 - Usage
-- Screenshots & Previews
 - Future Perspectives
 - Contributing
 - License
@@ -49,6 +49,22 @@ The application is designed to serve four distinct user roles, each with specifi
 2.  **Teacher** — Uses the platform for daily pedagogical tasks. Can manage their personal profile, create reservations for rooms and equipment, and upload/manage course documents for students.
 3.  **Student** — Primarily a consumer of information. Can manage their profile, and is able to consult and download educational resources shared by their teachers.
 4.  **Lab Manager** — A specialized manager for specific resources. This role is responsible for validating, approving, or rejecting reservation requests for laboratories and their associated equipment.
+
+---
+
+## 🖼️ Screenshots
+
+Here are some screenshots of the application:
+
+| Feature              | Screenshot                                           |
+| -------------------- | ---------------------------------------------------- |
+| Login Page           | ![Login Page](docs/login-screenshot.png)             |
+| Dashboard            | ![Dashboard](docs/dashboard-screenshot.png)          |
+| Room Reservation     | ![Room Reservation](docs/reservation-screenshot.png) |
+| Calendar             | ![Calendar](docs/calendar-screenshot.png)            |
+| Profile              | ![Profile](docs/profile-screenshot.png)              |
+| Role Management      | ![Role Management](docs/role-screenshot.png)         |
+| Document Single_page | ![Role Management](docs/document-single.png)         |
 
 ---
 
@@ -152,22 +168,6 @@ Once the installation is complete and both servers are running:
 3.  Explore the dashboard and available features, which will differ based on the user's assigned role.
 4.  Administrators can begin by creating rooms, equipment, and other users.
 5.  Teachers can create new reservations via the reservation management module.
-
----
-
-## 🖼️ Screenshots
-
-Here are some screenshots of the application:
-
-| Feature              | Screenshot                                           |
-| -------------------- | ---------------------------------------------------- |
-| Login Page           | ![Login Page](docs/login-screenshot.png)             |
-| Dashboard            | ![Dashboard](docs/dashboard-screenshot.png)          |
-| Room Reservation     | ![Room Reservation](docs/reservation-screenshot.png) |
-| Calendar             | ![Calendar](docs/calendar-screenshot.png)            |
-| Profile              | ![Profile](docs/profile-screenshot.png)              |
-| Role Management      | ![Role Management](docs/role-screenshot.png)         |
-| Document Single_page | ![Role Management](docs/document-single.png)         |
 
 ---
 
