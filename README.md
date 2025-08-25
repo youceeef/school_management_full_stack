@@ -3,7 +3,7 @@
 `EduSpace (ES)` is a **full-stack web application** developed as a Final Formation Project for the **2025/2026** academic year, created to obtain the diploma of **Advanced Technician in Marketing and Multimedia**.
 It modernizes the administrative and resource management processes within educational institutions in **Tunisia**, providing a **centralized platform** for managing classrooms, equipment, reservations, and documents—replacing inefficient, traditional manual methods.
 
-Developed by **Youssef KAABECHI** and **Noussair MEKNI** at the **Sectoral Training Center in Telecommunications (CSFT)** in partnership with **TSE Consultant INT**.
+Developed by **Youssef KAABECHI** at the **Sectoral Training Center in Telecommunications (CSFT)** in partnership with **TSE Consultant INT**.
 
 ---
 
@@ -159,12 +159,15 @@ Once the installation is complete and both servers are running:
 
 Here are some screenshots of the application:
 
-| Feature          | Screenshot                                              |
-| ---------------- | ------------------------------------------------------- |
-| Login Page       | ![Login Page](path/to/login-screenshot.png)             |
-| Dashboard        | ![Dashboard](path/to/dashboard-screenshot.png)          |
-| Room Reservation | ![Room Reservation](path/to/reservation-screenshot.png) |
-| Role Management  | ![Role Management](path/to/roles-screenshot.png)        |
+| Feature              | Screenshot                                           |
+| -------------------- | ---------------------------------------------------- |
+| Login Page           | ![Login Page](docs/login-screenshot.png)             |
+| Dashboard            | ![Dashboard](docs/dashboard-screenshot.png)          |
+| Room Reservation     | ![Room Reservation](docs/reservation-screenshot.png) |
+| Calendar             | ![Calendar](docs/calendar-screenshot.png)            |
+| Profile              | ![Profile](docs/profile-screenshot.png)              |
+| Role Management      | ![Role Management](docs/role-screenshot.png)         |
+| Document Single_page | ![Role Management](docs/document-single.png)         |
 
 ---
 
