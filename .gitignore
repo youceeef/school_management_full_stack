@@ -1,0 +1,19 @@
+# General
+.DS_Store
+Thumbs.db
+
+# Backend (Laravel)
+/backend/node_modules
+/backend/vendor
+/backend/public/storage
+/backend/storage/*.key
+/backend/.env
+/backend/.env.backup
+/backend/.phpunit.result.cache
+
+# Frontend (Next.js)
+/front/node_modules
+/front/.next
+/front/out
+/front/.env.local
+/front/.env*.local

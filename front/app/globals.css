@@ -1,0 +1,181 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base transitions for all elements */
+* {
+  transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out, color 0.5s ease-in-out, box-shadow 0.5s ease-in-out, transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #333333;
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --card-bg: #1e293b;
+  --card-border: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #e2e8f0;
+  --text-muted: #94a3b8;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+/* Enhanced transitions for specific elements */
+.dashboard-card,
+.btn-primary,
+.btn-secondary,
+header,
+aside,
+.stats-card {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Theme toggle animation */
+.theme-toggle-icon {
+  transform-origin: center;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-in-out;
+}
+
+.theme-toggle-icon.active {
+  transform: rotate(360deg);
+}
+
+/* Hide scrollbars but keep functionality */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Custom dashboard styles */
+.dashboard-card {
+  @apply bg-white dark:bg-dark-card rounded-lg shadow-sm hover:shadow-md dark:shadow-dark-border/10;
+}
+
+/* Dark mode text styles with smooth transitions */
+.dark .text-gray-800 {
+  @apply text-gray-100;
+}
+
+.dark .text-gray-700 {
+  @apply text-gray-200;
+}
+
+.dark .text-gray-600 {
+  @apply text-gray-300;
+}
+
+.dark .text-gray-500 {
+  @apply text-gray-400;
+}
+
+/* Dark mode background styles with enhanced transitions */
+.dark .bg-white {
+  @apply bg-dark-card;
+}
+
+.dark .bg-gray-100 {
+  @apply bg-dark-border/20;
+}
+
+.dark .bg-gray-50 {
+  @apply bg-dark-bg;
+}
+
+/* Dark mode hover styles with smooth transitions */
+.dark .hover\:bg-gray-100:hover {
+  @apply hover:bg-dark-border/30;
+}
+
+.dark .hover\:bg-gray-50:hover {
+  @apply hover:bg-dark-border/20;
+}
+
+/* Form and input styles for dark mode */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark input[type="search"],
+.dark input[type="tel"],
+.dark input[type="url"],
+.dark input[type="date"],
+.dark input[type="datetime-local"],
+.dark input[type="month"],
+.dark input[type="week"],
+.dark input[type="time"],
+.dark select,
+.dark textarea {
+  @apply bg-dark-card border-dark-border text-dark-text placeholder:text-dark-muted focus:border-primary-500 focus:ring-primary-500/20;
+}
+
+/* Search input specific styles */
+.dark .search-input {
+  @apply bg-dark-card border-dark-border text-dark-text placeholder:text-dark-muted;
+}
+
+/* Stats card styles for dark mode */
+.dark .stats-card {
+  @apply bg-gradient-to-br from-dark-card to-dark-card/90 border border-dark-border/50 shadow-dark-border/5;
+}
+
+/* Stats overview section styles */
+.stats-overview {
+  @apply transition-all duration-300;
+}
+
+.dark .stats-overview .stats-icon-container {
+  @apply bg-dark-border/20 text-primary-300;
+}
+
+.dark .stats-value {
+  @apply text-dark-text;
+}
+
+.dark .stats-title {
+  @apply text-dark-muted;
+}
+
+/* Button styles in dark mode */
+.dark .btn-primary {
+  @apply bg-primary-600 hover:bg-primary-700 text-white;
+}
+
+.dark .btn-secondary {
+  @apply bg-dark-border hover:bg-dark-border/80 text-dark-text;
+}
+
+/* Table styles in dark mode */
+.dark table thead th {
+  @apply bg-dark-card/80 text-dark-muted border-dark-border/50;
+}
+
+.dark table tbody td {
+  @apply border-dark-border/30;
+}
+
+.dark table tbody tr:hover {
+  @apply bg-dark-border/10;
+}
