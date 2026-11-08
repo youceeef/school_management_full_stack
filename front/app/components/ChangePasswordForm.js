@@ -11,7 +11,7 @@ import { isStrongPassword, PASSWORD_REQUIREMENTS } from "../utils/password";
 
 export default function ChangePasswordForm() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, clearAuth } = useAuth();
   const [formData, setFormData] = useState({
     email: user?.email || "",
     current_password: "",
@@ -46,12 +46,8 @@ export default function ChangePasswordForm() {
 
       await changePassword({ ...formData, email: user?.email });
       setSuccess("Mot de passe modifié avec succès !");
-
-      // Wait a moment to show the success message before logging out
-      setTimeout(async () => {
-        await logout();
-        router.push("/login");
-      }, 2000);
+      clearAuth();
+      router.push("/login");
     } catch (err) {
       setError(err.message || "Une erreur est survenue lors du changement de mot de passe");
       setLoading(false);

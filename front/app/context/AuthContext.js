@@ -83,15 +83,20 @@ export const AuthProvider = ({ children }) => {
       throw error.response?.data || { message: "Erreur de connexion" };
     }
   };
+
+  const clearAuth = () => {
+    Cookies.remove("token");
+    setUser(null);
+    setPermissions([]);
+  };
+
   const logout = async () => {
     try {
       await axiosInstance.post("/api/logout");
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      Cookies.remove("token");
-      setUser(null);
-      setPermissions([]);
+      clearAuth();
     }
   };
   const registerTeacher = async (userData) => {
@@ -190,6 +195,7 @@ export const AuthProvider = ({ children }) => {
         registerLabManager,
         registerAdmin,
         logout,
+        clearAuth,
         checkAuth,
         updateUser,
         hasPermission,
