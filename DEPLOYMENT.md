@@ -8,7 +8,7 @@ The prepared free-tier architecture is:
 - **Files:** two Neon Object Storage buckets
   - a public bucket for profile pictures
   - a private bucket for protected documents
-- **Transactional email:** Resend Free SMTP on port 2587
+- **Transactional email:** Mailjet Free SMTP on port 2525
 
 This is appropriate for a personal/educational deployment. Render Free sleeps
 after 15 minutes without traffic, so the first API request after an idle period
@@ -52,9 +52,9 @@ prepared Render configuration enables it.
    it if Vercel assigns a different URL.
 5. Use the Neon Object Storage values for both sets of S3 credentials. Set
    `PROFILE_AWS_URL` to the public profile bucket URL.
-6. Verify a sending domain in Resend, create an API key, and use it as the SMTP
-   password with username `resend`. Render Free blocks common SMTP ports but
-   allows Resend's STARTTLS port 2587.
+6. Activate a Mailjet sender address and generate the primary API/secret keys.
+   Use the API key as the SMTP username and the secret key as the SMTP password.
+   Render Free blocks common SMTP ports but allows Mailjet's STARTTLS port 2525.
 7. Wait for `/` on the generated `onrender.com` URL to return:
    `{"application":"EduSpace","status":"ok"}`.
 
