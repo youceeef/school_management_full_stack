@@ -80,13 +80,13 @@ services:
       - key: MAIL_MAILER
         value: smtp
       - key: MAIL_HOST
-        value: smtp-relay.brevo.com
+        value: smtp.resend.com
       - key: MAIL_PORT
-        value: "2525"
+        value: "2587"
       - key: MAIL_ENCRYPTION
         value: tls
       - key: MAIL_USERNAME
-        sync: false
+        value: resend
       - key: MAIL_PASSWORD
         sync: false
       - key: MAIL_FROM_ADDRESS

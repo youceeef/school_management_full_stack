@@ -8,7 +8,7 @@ The prepared free-tier architecture is:
 - **Files:** two Neon Object Storage buckets
   - a public bucket for profile pictures
   - a private bucket for protected documents
-- **Transactional email:** Brevo Free SMTP on port 2525
+- **Transactional email:** Resend Free SMTP on port 2587
 
 This is appropriate for a personal/educational deployment. Render Free sleeps
 after 15 minutes without traffic, so the first API request after an idle period
@@ -52,8 +52,9 @@ prepared Render configuration enables it.
    it if Vercel assigns a different URL.
 5. Use the Neon Object Storage values for both sets of S3 credentials. Set
    `PROFILE_AWS_URL` to the public profile bucket URL.
-6. Create a Brevo SMTP key and provide its login, key, and a verified sender
-   address. Render Free blocks common SMTP ports but allows Brevo's port 2525.
+6. Verify a sending domain in Resend, create an API key, and use it as the SMTP
+   password with username `resend`. Render Free blocks common SMTP ports but
+   allows Resend's STARTTLS port 2587.
 7. Wait for `/` on the generated `onrender.com` URL to return:
    `{"application":"EduSpace","status":"ok"}`.
 
