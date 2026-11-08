@@ -1,0 +1,22 @@
+{
+  "name": "eduspace",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "front"
+  ],
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "npm --prefix front run dev -- --hostname 0.0.0.0",
+    "build": "npm --prefix front run build",
+    "start": "npm --prefix front run start -- --hostname 0.0.0.0",
+    "lint": "npm --prefix front run lint"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.5"
+    }
+  }
+}

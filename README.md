@@ -180,6 +180,26 @@ npm audit
 See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the prepared Vercel + Render + Neon
 deployment and its required secrets.
 
+## Google AI Studio development preview
+
+The repository root is a Bun/npm workspace that delegates to the Next.js app
+in `front/`. Google AI Studio can install and start it directly from the root:
+
+```bash
+bun install
+bun run dev
+```
+
+Configure these public environment variables in AI Studio:
+
+```text
+NEXT_PUBLIC_API_URL=https://eduspace-api-dhn4.onrender.com
+NEXT_PUBLIC_STORAGE_URL=https://br-still-boat-b929783z.storage.c-7.eu-central-1.aws.neon.tech/eduspace-profiles
+```
+
+Development responses allow AI Studio's embedded preview and React debugging.
+Production builds continue to deny framing and omit development-only CSP rules.
+
 ---
 
 ## 🚀 Usage
