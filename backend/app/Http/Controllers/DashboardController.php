@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Salle;
-use App\Models\Equipement;
 use App\Models\Document;
+use App\Models\Equipement;
 use App\Models\Reservation;
-use Illuminate\Http\Request;
+use App\Models\Salle;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -20,30 +20,34 @@ class DashboardController extends Controller
     public function getUserCount()
     {
         $count = User::count();
+
         return response()->json(['count' => $count]);
     }
 
     public function getSalleCount()
     {
         $count = Salle::count();
+
         return response()->json(['count' => $count]);
     }
 
     public function getEquipementCount()
     {
         $count = Equipement::count();
+
         return response()->json(['count' => $count]);
     }
 
     public function getDocumentCount()
     {
         $count = Document::count();
+
         return response()->json(['count' => $count]);
     }
 
     public function getRecentReservations(Request $request)
     {
-        $limit = $request->query('limit', 5);
+        $limit = min(max((int) $request->query('limit', 5), 1), 20);
 
         $reservations = Reservation::with(['salle', 'user'])
             ->orderBy('created_at', 'desc')
@@ -53,7 +57,7 @@ class DashboardController extends Controller
                 return [
                     'room' => $reservation->salle->name,
                     'status' => $reservation->status,
-                    'professor' => $reservation->user->first_name . ' ' . $reservation->user->last_name,
+                    'professor' => $reservation->user->first_name.' '.$reservation->user->last_name,
                     'date' => Carbon::parse($reservation->start_time)->format('d M Y'),
                 ];
             });
@@ -68,7 +72,7 @@ class DashboardController extends Controller
             'approved' => 'En cours',
             'scheduled' => 'Planifié',
             'rejected' => 'Rejeté',
-            'completed' => 'Terminé'
+            'completed' => 'Terminé',
         ];
 
         return $translations[$status] ?? $status;

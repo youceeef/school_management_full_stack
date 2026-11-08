@@ -37,7 +37,7 @@ class ReservationSubmitted extends Notification
             'salle_name' => $salle->name,
             'start_time' => $this->reservation->start_time->toDateTimeString(),
             'message' => "Nouvelle demande de réservation de {$creator->name} pour la salle {$salle->name}.",
-            'action_url' => '/admin/reservations/' . $this->reservation->id, // Adjust to your admin panel route
+            'action_url' => '/admin/reservations/'.$this->reservation->id, // Adjust to your admin panel route
         ];
     }
 }

@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
+use RuntimeException;
 
 class AdminSeeder extends Seeder
 {
@@ -13,36 +15,46 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        $adminUser = User::create([
-            'first_name' => 'Admin',
-            'last_name' => 'User',
-            'email' => 'admin@example.com',
-            'password' => bcrypt('admin@example.com'),
-        ]);
+        $email = config('initial-admin.email');
+        $password = config('initial-admin.password');
 
-        // $teacherUser = User::create([
-        //     'first_name' => 'Teacher',
-        //     'last_name' => 'User',
-        //     'email' => 'teacher@example.com',
-        //     'password' => bcrypt('teacher@example.com'),
-        // ]);
-        // $manager = User::create([
-        //     'first_name' => 'responsable',
-        //     'last_name' => 'User',
-        //     'email' => 'responsable@example.com',
-        //     'password' => bcrypt('responsable@example.com'),
-        // ]);
-        // $eleve = User::create([
-        //     'first_name' => 'eleve',
-        //     'last_name' => 'User',
-        //     'email' => 'eleve@example.com',
-        //     'password' => bcrypt('eleve@example.com'),
-        // ]);
+        if (! $email || ! $password) {
+            $this->command?->warn('ADMIN_EMAIL and ADMIN_PASSWORD are not set; initial admin creation was skipped.');
 
-        //     // Assign roles to the users
-        $adminUser->assignRole('admin');
-        // $teacherUser->assignRole('enseignant');
-        // $manager->assignRole('responsable_laboratoire');
-        // $eleve->assignRole(roles: 'eleve');
+            return;
+        }
+
+        $validator = Validator::make(
+            ['email' => $email, 'password' => $password],
+            [
+                'email' => ['required', 'email'],
+                'password' => ['required', Password::defaults()],
+            ]
+        );
+
+        if ($validator->fails()) {
+            throw new RuntimeException(
+                'The initial administrator credentials do not satisfy the production validation rules.'
+            );
+        }
+
+        $adminUser = User::withTrashed()->where('email', $email)->first();
+
+        if ($adminUser?->trashed()) {
+            $this->command?->warn('The configured initial administrator is deleted; it was not restored automatically.');
+
+            return;
+        }
+
+        if (! $adminUser) {
+            $adminUser = User::create([
+                'first_name' => config('initial-admin.first_name'),
+                'last_name' => config('initial-admin.last_name'),
+                'email' => $email,
+                'password' => $password,
+            ]);
+        }
+
+        $adminUser->syncRoles(['admin']);
     }
 }

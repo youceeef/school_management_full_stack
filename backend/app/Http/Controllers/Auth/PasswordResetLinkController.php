@@ -13,7 +13,7 @@ class PasswordResetLinkController extends Controller
     /**
      * Handle an incoming password reset link request.
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function store(Request $request): JsonResponse
     {
@@ -28,12 +28,10 @@ class PasswordResetLinkController extends Controller
             $request->only('email')
         );
 
-        if ($status != Password::RESET_LINK_SENT) {
-            throw ValidationException::withMessages([
-                'email' => [__($status)],
-            ]);
-        }
-
-        return response()->json(['status' => __($status)]);
+        // Return the same response for known and unknown addresses to avoid
+        // exposing which users are registered.
+        return response()->json([
+            'status' => __('If an account exists for this address, a password reset link has been sent.'),
+        ]);
     }
 }

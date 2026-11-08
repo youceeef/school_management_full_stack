@@ -2,21 +2,20 @@
 
 namespace App\Providers;
 
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
-use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use App\Events\ReservationApprovedEvent;
+use App\Events\ReservationRejectedEvent;
+use App\Events\ReservationSubmittedEvent;
 // Remove: use Illuminate\Support\Facades\Event; // Not directly used here for defining listeners
 
 // Your existing listener for Registered event
-use App\Listeners\SendWelcomeNotification;
-
-// Import your NEW Reservation events and listeners
-use App\Events\ReservationSubmittedEvent;
 use App\Listeners\NotifyManagersOnReservationSubmitted;
-use App\Events\ReservationApprovedEvent;
+// Import your NEW Reservation events and listeners
 use App\Listeners\NotifyUserOnReservationApproved;
-use App\Events\ReservationRejectedEvent;
 use App\Listeners\NotifyUserOnReservationRejected;
+use App\Listeners\SendWelcomeNotification;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
 {

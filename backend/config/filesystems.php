@@ -15,6 +15,15 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    // User-uploaded documents and profile pictures can use local storage in
+    // development and an S3-compatible service in production.
+    'uploads_disk' => env('UPLOADS_DISK', 'public'),
+
+    // Documents are permission-protected and should not be placed on a
+    // publicly readable disk. Use the private local disk in development and
+    // a private S3-compatible bucket in production.
+    'documents_disk' => env('DOCUMENTS_DISK', 'local'),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
@@ -54,6 +63,31 @@ return [
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
+        ],
+
+        'profile_s3' => [
+            'driver' => 's3',
+            'key' => env('PROFILE_AWS_ACCESS_KEY_ID'),
+            'secret' => env('PROFILE_AWS_SECRET_ACCESS_KEY'),
+            'region' => env('PROFILE_AWS_DEFAULT_REGION', 'auto'),
+            'bucket' => env('PROFILE_AWS_BUCKET'),
+            'url' => env('PROFILE_AWS_URL'),
+            'endpoint' => env('PROFILE_AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('PROFILE_AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'public',
+            'throw' => true,
+        ],
+
+        'documents_s3' => [
+            'driver' => 's3',
+            'key' => env('DOCUMENTS_AWS_ACCESS_KEY_ID'),
+            'secret' => env('DOCUMENTS_AWS_SECRET_ACCESS_KEY'),
+            'region' => env('DOCUMENTS_AWS_DEFAULT_REGION', 'auto'),
+            'bucket' => env('DOCUMENTS_AWS_BUCKET'),
+            'endpoint' => env('DOCUMENTS_AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('DOCUMENTS_AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'private',
+            'throw' => true,
         ],
 
     ],

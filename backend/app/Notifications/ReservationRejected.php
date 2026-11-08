@@ -33,7 +33,7 @@ class ReservationRejected extends Notification
             'rejected_by_name' => $rejector ? $rejector->name : 'l\'administration',
             'rejection_reason' => $this->reservation->rejection_reason,
             'message' => "Votre réservation pour la salle {$salle->name} a été rejetée.",
-            'action_url' => '/my-reservations/' . $this->reservation->id,
+            'action_url' => '/my-reservations/'.$this->reservation->id,
         ];
     }
 }

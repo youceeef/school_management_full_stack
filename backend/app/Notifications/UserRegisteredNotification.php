@@ -42,9 +42,9 @@ class UserRegisteredNotification extends Notification implements ShouldQueue
         return [
             'event' => 'user_registered',
             'user_id' => $this->user->id,
-            'user_name' => $this->user->first_name . ' ' . $this->user->last_name,
+            'user_name' => $this->user->first_name.' '.$this->user->last_name,
             'role' => $this->user->getRoleNames()->first() ?? 'user',
-            'message' => 'Bienvenue ! Votre compte en tant que ' . ($this->user->getRoleNames()->first() ?? 'utilisateur') . ' a été créé.',
+            'message' => 'Bienvenue ! Votre compte en tant que '.($this->user->getRoleNames()->first() ?? 'utilisateur').' a été créé.',
             'action_url' => '/profile',
         ];
     }

@@ -1,5 +1,7 @@
 <?php
+
 // app/Http/Resources/ReservationCollection.php
+
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;

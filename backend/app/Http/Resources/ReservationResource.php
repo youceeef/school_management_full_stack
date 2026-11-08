@@ -1,13 +1,16 @@
 <?php
+
 // app/Http/Resources/ReservationResource.php
+
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+
 // Import other resources we will create or might exist
-use App\Http\Resources\UserResource; // Assuming you might have/want a UserResource
-use App\Http\Resources\SalleResource; // Assuming you might have/want a SalleResource
-use App\Http\Resources\EquipementPivotedResource; // A specific resource for equipment in reservation
+// Assuming you might have/want a UserResource
+// Assuming you might have/want a SalleResource
+// A specific resource for equipment in reservation
 
 class ReservationResource extends JsonResource
 {
@@ -29,7 +32,7 @@ class ReservationResource extends JsonResource
             'rejection_reason' => $this->when($this->status === 'rejected', $this->rejection_reason), // Only include if rejected
             'approved_at' => $this->when(
                 in_array($this->status, ['approved', 'in_progress', 'completed']) && $this->approved_at,
-                fn() => $this->approved_at->toDateTimeString()
+                fn () => $this->approved_at->toDateTimeString()
             ), // Only if approved and date exists
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
@@ -51,7 +54,7 @@ class ReservationResource extends JsonResource
 
     private function getStatusLabel(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'pending' => 'En attente',
             'approved' => 'Approuvée',
             'rejected' => 'Rejetée',

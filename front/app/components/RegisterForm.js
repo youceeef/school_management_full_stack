@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import toast from "../utils/toast";
 import { useAuth } from "../context/AuthContext";
 import ThemeToggle from "./ThemeToggle";
+import { isStrongPassword, PASSWORD_REQUIREMENTS } from "../utils/password";
 
 export default function RegisterForm({ userType, returnPath = "/login" }) {
   const [formData, setFormData] = useState({
@@ -41,9 +42,8 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
         return;
       }
 
-      // Vérification de la longueur du mot de passe
-      if (formData.password.length < 6) {
-        toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      if (!isStrongPassword(formData.password)) {
+        toast.error(PASSWORD_REQUIREMENTS);
         return;
       }
 
@@ -169,8 +169,10 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="••••••••"
+              minLength={12}
               required
             />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{PASSWORD_REQUIREMENTS}</p>
           </div>
 
           <div>
@@ -185,6 +187,7 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="••••••••"
+              minLength={12}
               required
             />
           </div>

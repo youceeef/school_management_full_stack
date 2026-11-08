@@ -6,9 +6,7 @@ use App\Models\Equipement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class EquipementController extends Controller
 {
@@ -24,15 +22,20 @@ class EquipementController extends Controller
 
         // Filtering & Sorting
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->query('search') . '%');
+            $query->where('name', 'like', '%'.$request->query('search').'%');
         }
+        $sortBy = $request->query('sortBy', 'name');
+        $sortDir = $request->query('sortDir', 'asc');
+        $allowedSorts = ['name', 'quantity_available', 'created_at'];
+
         $query->orderBy(
-            $request->query('sortBy', 'name'),
-            $request->query('sortDir', 'asc')
+            in_array($sortBy, $allowedSorts, true) ? $sortBy : 'name',
+            in_array($sortDir, ['asc', 'desc'], true) ? $sortDir : 'asc'
         );
 
         // Pagination
-        $equipements = $query->paginate($request->query('per_page', 15));
+        $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+        $equipements = $query->paginate($perPage);
 
         return response()->json($equipements);
     }
@@ -54,7 +57,7 @@ class EquipementController extends Controller
 
         return response()->json([
             'message' => 'Équipement créé avec succès.',
-            'equipement' => $equipement->load('createdBy:id,first_name,last_name')
+            'equipement' => $equipement->load('createdBy:id,first_name,last_name'),
         ], 201);
     }
 
@@ -88,7 +91,7 @@ class EquipementController extends Controller
 
         return response()->json([
             'message' => 'Équipement mis à jour avec succès.',
-            'equipement' => $equipement->load('createdBy:id,first_name,last_name')
+            'equipement' => $equipement->load('createdBy:id,first_name,last_name'),
         ]);
     }
 
@@ -105,11 +108,11 @@ class EquipementController extends Controller
         return response()->json(['message' => 'Équipement supprimé avec succès.']);
     }
 
-
     public function indexEquipements()
     {
         // $this->authorize('viewAny', Salle::class);
         $salles = DB::table('equipements')->get();
+
         return response()->json($salles);
     }
 }

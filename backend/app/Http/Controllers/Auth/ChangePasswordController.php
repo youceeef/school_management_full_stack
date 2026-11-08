@@ -14,25 +14,18 @@ class ChangePasswordController extends Controller
     /**
      * Handle an incoming password change request.
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'email' => ['required', 'email'],
             'current_password' => ['required'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $user = \App\Models\User::where('email', $request->email)->first();
+        $user = $request->user();
 
-        if (!$user) {
-            throw ValidationException::withMessages([
-                'email' => ['User not found.'],
-            ]);
-        }
-
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             throw ValidationException::withMessages([
                 'current_password' => ['The current password is incorrect.'],
             ]);
@@ -42,8 +35,12 @@ class ChangePasswordController extends Controller
             'password' => Hash::make($request->password),
         ])->save();
 
+        // A password change invalidates every existing session, including the
+        // current token. The frontend then returns the user to the login page.
+        $user->tokens()->delete();
+
         return response()->json([
-            'message' => 'Password changed successfully.'
+            'message' => 'Password changed successfully.',
         ]);
     }
 }

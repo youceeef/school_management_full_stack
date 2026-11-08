@@ -3,32 +3,26 @@
 namespace App\Http\Controllers;
 
 // Requests & Resources
-use App\Http\Requests\StoreReservationRequest;
-use App\Http\Requests\RejectReservationRequest;
-use App\Http\Resources\ReservationResource;
-use App\Http\Resources\ReservationCollection;
-
-// Models
-use App\Models\Reservation;
-use App\Models\Equipement;
-use App\Models\User;
-
-// Laravel Facades & Helpers
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Http\JsonResponse;
-use Throwable;
-
-// Import your NEW Reservation Events
-use App\Events\ReservationSubmittedEvent;
 use App\Events\ReservationApprovedEvent;
 use App\Events\ReservationRejectedEvent;
+use App\Exceptions\EquipmentNotAvailableException;
+use App\Exceptions\RoomNotAvailableException;
+// Models
+use App\Http\Requests\RejectReservationRequest;
+use App\Http\Requests\StoreReservationRequest;
+// Laravel Facades & Helpers
+use App\Http\Resources\ReservationCollection;
+use App\Http\Resources\ReservationResource;
+use App\Models\Reservation;
+use App\Models\User;
+// Import your NEW Reservation Events
+use App\Services\ReservationService;
+use Illuminate\Http\JsonResponse;
 // We are removing ReservationCancelledEvent for now
 
-use App\Services\ReservationService;
-use App\Exceptions\RoomNotAvailableException;
-use App\Exceptions\EquipmentNotAvailableException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Throwable;
 
 class ReservationController extends Controller
 {
@@ -58,6 +52,7 @@ class ReservationController extends Controller
             return response()->json(['message' => 'You are not authorized to list reservations.'], 403);
         }
         $reservations = $query->latest()->paginate(15);
+
         return new ReservationCollection($reservations);
     }
 
@@ -67,52 +62,32 @@ class ReservationController extends Controller
         $validated = $request->validated();
 
         try {
-            // Check room availability
-            if (!$this->reservationService->checkSalleAvailability(
-                $validated['salle_id'],
-                $validated['start_time'],
-                $validated['end_time']
-            )) {
-                throw new RoomNotAvailableException(errors: [
-                    'salle_id' => ['Cette salle n\'est pas disponible pour la période demandée.']
-                ]);
-            }
+            $reservation = $this->reservationService->createAvailableReservation(
+                $validated,
+                Auth::id()
+            );
 
-            // Check equipment availability if equipment is requested
-            if (!empty($validated['equipements'])) {
-                $equipmentErrors = $this->reservationService->validateEquipmentAvailability(
-                    collect($validated['equipements']),
-                    $validated['start_time'],
-                    $validated['end_time']
-                );
-
-                if (!empty($equipmentErrors)) {
-                    throw new EquipmentNotAvailableException(errors: $equipmentErrors);
-                }
-            }
-
-            // Create the reservation
-            $reservation = $this->reservationService->createReservation($validated, Auth::id());
-
-            return new ReservationResource($reservation);
+            return (new ReservationResource($reservation))
+                ->response()
+                ->setStatusCode(201);
         } catch (RoomNotAvailableException $e) {
             return response()->json([
                 'message' => $e->getMessage(),
-                'errors' => $e->getErrors()
+                'errors' => $e->getErrors(),
             ], 422);
         } catch (EquipmentNotAvailableException $e) {
             return response()->json([
                 'message' => $e->getMessage(),
-                'errors' => $e->getErrors()
+                'errors' => $e->getErrors(),
             ], 422);
         } catch (Throwable $e) {
             report($e);
+
             return response()->json([
-                'message' => 'Une erreur est survenue. Veuillez réessayer.'
+                'message' => 'Une erreur est survenue. Veuillez réessayer.',
             ], 500);
         }
     }
-
 
     public function approve(Reservation $reservation): ReservationResource|JsonResponse
     {
@@ -168,13 +143,14 @@ class ReservationController extends Controller
         return response()->json(['message' => 'Réservation annulée avec succès.'], 200);
     }
 
-
     public function show(Reservation $reservation): ReservationResource
     {
         $this->authorize('view', $reservation);
         $reservation->load(['salle', 'user', 'equipements', 'approver']);
+
         return new ReservationResource($reservation);
     }
+
     public function myReservations(Request $request): ReservationCollection|JsonResponse
     {
         $user = $request->user();
@@ -188,8 +164,10 @@ class ReservationController extends Controller
         }
 
         $reservations = $query->latest()->paginate(15);
+
         return new ReservationCollection($reservations);
     }
+
     public function myReservationSingle(Reservation $reservation): ReservationResource|JsonResponse
     {
         $user = request()->user();
@@ -197,7 +175,7 @@ class ReservationController extends Controller
         // Check if the reservation belongs to the authenticated user
         if ($reservation->user_id !== $user->id) {
             return response()->json([
-                'message' => 'You are not authorized to view this reservation.'
+                'message' => 'You are not authorized to view this reservation.',
             ], 403);
         }
 
@@ -208,6 +186,7 @@ class ReservationController extends Controller
 
         return new ReservationResource($reservation);
     }
+
     public function cancelMyReservation(Reservation $reservation): JsonResponse
     {
         $user = request()->user();
@@ -215,7 +194,7 @@ class ReservationController extends Controller
         // Check if the reservation belongs to the authenticated user
         if ($reservation->user_id !== $user->id) {
             return response()->json([
-                'message' => 'You are not authorized to cancel this reservation.'
+                'message' => 'You are not authorized to cancel this reservation.',
             ], 403);
         }
 
@@ -223,14 +202,14 @@ class ReservationController extends Controller
         if ($reservation->status !== 'pending') {
             return response()->json([
                 'message' => 'Seules les réservations en attente peuvent être annulées.',
-                'current_status' => $reservation->status
+                'current_status' => $reservation->status,
             ], 422);
         }
 
         $reservation->delete();
 
         return response()->json([
-            'message' => 'Réservation annulée avec succès.'
+            'message' => 'Réservation annulée avec succès.',
         ], 200);
     }
 
@@ -239,12 +218,12 @@ class ReservationController extends Controller
      */
     public function getCalendarReservations(Request $request): JsonResponse
     {
-        // $this->authorize('viewCalendarReservations', Reservation::class);
+        $this->authorize('viewCalendarReservations', Reservation::class);
         $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'salle_ids' => 'nullable|array',
-            'salle_ids.*' => 'exists:salles,id'
+            'salle_ids.*' => 'exists:salles,id',
         ]);
 
         // First, get only laboratoire and amphitheatre salles
@@ -254,28 +233,28 @@ class ReservationController extends Controller
             ->whereHas('salle', function ($query) use ($validSalleTypes) {
                 $query->whereIn('type', $validSalleTypes);
             })
-            ->where(function($query) use ($request) {
-                $query->where(function($q) use ($request) {
+            ->where(function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
                     // Reservations that start within the date range
                     $q->whereBetween('start_time', [
                         $request->start_date,
-                        $request->end_date
+                        $request->end_date,
                     ]);
-                })->orWhere(function($q) use ($request) {
+                })->orWhere(function ($q) use ($request) {
                     // Reservations that end within the date range
                     $q->whereBetween('end_time', [
                         $request->start_date,
-                        $request->end_date
+                        $request->end_date,
                     ]);
-                })->orWhere(function($q) use ($request) {
+                })->orWhere(function ($q) use ($request) {
                     // Reservations that span across the entire date range
                     $q->where('start_time', '<=', $request->start_date)
-                      ->where('end_time', '>=', $request->end_date);
+                        ->where('end_time', '>=', $request->end_date);
                 });
             })
             ->whereIn('status', ['approved', 'in_progress', 'completed']);
 
-        if ($request->filled('salle_ids') && !empty($request->salle_ids)) {
+        if ($request->filled('salle_ids') && ! empty($request->salle_ids)) {
             $query->whereIn('salle_id', $request->salle_ids);
         }
 
@@ -288,7 +267,7 @@ class ReservationController extends Controller
                 'end_time' => $reservation->end_time,
                 'status' => $reservation->status,
                 'approved_at' => $reservation->approved_at ? $reservation->approved_at->toDateTimeString() : null,
-                'status_label' => match($reservation->status) {
+                'status_label' => match ($reservation->status) {
                     'approved' => 'Approuvée',
                     'in_progress' => 'En cours',
                     'completed' => 'Terminée',
@@ -297,31 +276,29 @@ class ReservationController extends Controller
                 'salle' => [
                     'id' => $reservation->salle->id,
                     'name' => $reservation->salle->name,
-                    'type' => $reservation->salle->type
+                    'type' => $reservation->salle->type,
                 ],
                 'user' => [
                     'id' => $reservation->user->id,
                     'first_name' => $reservation->user->first_name,
                     'last_name' => $reservation->user->last_name,
-                    'email' => $reservation->user->email,
-                    'role' => $reservation->user->role
                 ],
                 'equipements' => $reservation->equipements->map(function ($equipement) {
                     return [
                         'id' => $equipement->id,
                         'name' => $equipement->name,
                         'pivot' => [
-                            'quantity' => $equipement->pivot->quantity
-                        ]
+                            'quantity' => $equipement->pivot->quantity,
+                        ],
                     ];
-                })
+                }),
             ];
         });
 
         return response()->json([
             'success' => true,
             'data' => $reservations,
-            'message' => 'Reservations retrieved successfully'
+            'message' => 'Reservations retrieved successfully',
         ]);
     }
 
@@ -334,7 +311,7 @@ class ReservationController extends Controller
         $request->validate([
             'date' => 'required|date',
             'salle_ids' => 'nullable|array',
-            'salle_ids.*' => 'exists:salles,id'
+            'salle_ids.*' => 'exists:salles,id',
         ]);
 
         $validSalleTypes = ['laboratoire', 'amphitheatre'];
@@ -346,7 +323,7 @@ class ReservationController extends Controller
             ->whereDate('start_time', $request->date)
             ->where('status', 'approved');
 
-        if ($request->filled('salle_ids') && !empty($request->salle_ids)) {
+        if ($request->filled('salle_ids') && ! empty($request->salle_ids)) {
             $query->whereIn('salle_id', $request->salle_ids);
         }
 
@@ -355,7 +332,7 @@ class ReservationController extends Controller
         return response()->json([
             'success' => true,
             'data' => $reservations,
-            'message' => 'Daily reservations retrieved successfully'
+            'message' => 'Daily reservations retrieved successfully',
         ]);
     }
 }

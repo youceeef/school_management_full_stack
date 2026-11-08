@@ -4,43 +4,53 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
-use Illuminate\Http\JsonResponse;
-use Spatie\Permission\Models\Role;
-use Illuminate\Auth\Access\AuthorizationException;
 
 class RegisteredUserController extends Controller
 {
     /**
      * Handle common registration logic
      */
-    private function createUser(Request $request, array $validationRules, string $role): JsonResponse
-    {
+    private function createUser(
+        Request $request,
+        array $validationRules,
+        string $role,
+        bool $issueToken = true
+    ): JsonResponse {
         $validated = $request->validate($validationRules);
 
-        $user = User::create(array_merge([
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-        ]));
+        $user = DB::transaction(function () use ($validated, $role) {
+            $user = User::create([
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+            ]);
 
-        $user->assignRole($role);
+            $user->assignRole($role);
+
+            return $user;
+        });
 
         event(new Registered($user));
 
-        $token = $user->createToken('api_token')->plainTextToken;
-
-        return response()->json([
+        $response = [
             'message' => "$role enregistré avec succès",
-            'token' => $token,
-            'user' => $user->load('roles')
-        ], 201);
+            'user' => $user->load('roles'),
+        ];
+
+        if ($issueToken) {
+            $response['token'] = $user->createToken('registration-token')->plainTextToken;
+        }
+
+        return response()->json($response, 201);
     }
 
     /**
@@ -93,9 +103,11 @@ class RegisteredUserController extends Controller
                 'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
             ],
-            'responsable_laboratoire'
+            'responsable_laboratoire',
+            false
         );
     }
+
     /**
      * Admin Registration
      */
@@ -112,7 +124,8 @@ class RegisteredUserController extends Controller
                 'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
             ],
-            'admin'
+            'admin',
+            false
         );
     }
 }

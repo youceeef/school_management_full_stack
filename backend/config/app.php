@@ -1,5 +1,9 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\AuthServiceProvider;
+use App\Providers\EventServiceProvider;
+use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
 
@@ -59,8 +63,6 @@ return [
 
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
 
-    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
-
     'asset_url' => env('ASSET_URL'),
 
     /*
@@ -74,7 +76,7 @@ return [
     |
     */
 
-    'timezone' => 'Africa/Tunis',
+    'timezone' => env('APP_TIMEZONE', 'Africa/Tunis'),
 
     /*
     |--------------------------------------------------------------------------
@@ -167,11 +169,11 @@ return [
         /*
          * Application Service Providers...
          */
-        App\Providers\AppServiceProvider::class,
-        App\Providers\AuthServiceProvider::class,
+        AppServiceProvider::class,
+        AuthServiceProvider::class,
         // App\Providers\BroadcastServiceProvider::class,
-        App\Providers\EventServiceProvider::class,
-        App\Providers\RouteServiceProvider::class,
+        EventServiceProvider::class,
+        RouteServiceProvider::class,
     ])->toArray(),
 
     /*

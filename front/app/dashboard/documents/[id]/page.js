@@ -4,18 +4,12 @@ import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "../../../utils/toast";
-import axios from "../../../config/axios";
 import Button from "../../../components/Button";
 import FormInput from "../../../components/FormInput";
 import FormTextArea from "../../../components/FormTextArea";
 import { FaDownload, FaEdit, FaTrash, FaTimes, FaSpinner, FaPlus } from "react-icons/fa";
-import { Document, Page, pdfjs } from "react-pdf";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
-import "react-pdf/dist/esm/Page/TextLayer.css";
 import Image from "next/image";
 import { getDocument, updateDocument, deleteDocument, downloadDocument } from "../../../services/documentService";
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 export default function DocumentDetailPage({ params }) {
   const router = useRouter();
@@ -25,6 +19,7 @@ export default function DocumentDetailPage({ params }) {
 
   // État pour stocker les informations du document
   const [documentData, setDocumentData] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   // État pour le chargement
   const [isLoading, setIsLoading] = useState(true);
@@ -40,16 +35,26 @@ export default function DocumentDetailPage({ params }) {
 
   // Charger les données du document
   useEffect(() => {
+    let objectUrl;
+    let cancelled = false;
+
     const fetchDocument = async () => {
       setIsLoading(true);
 
       try {
         const data = await getDocument(documentId);
+        if (cancelled) return;
         setDocumentData(data);
         setFormData({
           title: data.title || "",
           description: data.description || "",
         });
+
+        if (data.file_type?.startsWith("image/")) {
+          const blob = await downloadDocument(documentId);
+          objectUrl = window.URL.createObjectURL(blob);
+          if (!cancelled) setPreviewUrl(objectUrl);
+        }
       } catch (error) {
         console.error("Erreur lors du chargement du document:", error);
         toast.error(error.message || "Impossible de charger les informations du document");
@@ -59,6 +64,11 @@ export default function DocumentDetailPage({ params }) {
     };
 
     fetchDocument();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) window.URL.revokeObjectURL(objectUrl);
+    };
   }, [documentId]);
 
   // Gérer le téléchargement
@@ -260,10 +270,11 @@ export default function DocumentDetailPage({ params }) {
             ) : fileType === "JPG" || fileType === "PNG" ? (
               <div className="text-center">
                 <Image
-                  src={`${axios.defaults.baseURL}/storage/${documentData.file_path}`}
+                  src={previewUrl || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="}
                   alt={documentData.title}
                   width={500}
                   height={300}
+                  unoptimized
                   className="max-h-full max-w-full object-contain"
                   onError={(e) => {
                     e.target.onerror = null;

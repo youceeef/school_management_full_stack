@@ -1,0 +1,91 @@
+services:
+  - type: web
+    name: eduspace-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    healthCheckPath: /
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: APP_NAME
+        value: EduSpace
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        fromService:
+          name: eduspace-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: FRONTEND_URL
+        sync: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DATABASE_URL
+        sync: false
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: warning
+      - key: CACHE_DRIVER
+        value: file
+      - key: SESSION_DRIVER
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: SANCTUM_TOKEN_EXPIRATION
+        value: "1440"
+      - key: UPLOADS_DISK
+        value: profile_s3
+      - key: DOCUMENTS_DISK
+        value: documents_s3
+      - key: PROFILE_AWS_ACCESS_KEY_ID
+        sync: false
+      - key: PROFILE_AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: PROFILE_AWS_DEFAULT_REGION
+        value: auto
+      - key: PROFILE_AWS_BUCKET
+        sync: false
+      - key: PROFILE_AWS_URL
+        sync: false
+      - key: PROFILE_AWS_ENDPOINT
+        sync: false
+      - key: DOCUMENTS_AWS_ACCESS_KEY_ID
+        sync: false
+      - key: DOCUMENTS_AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: DOCUMENTS_AWS_DEFAULT_REGION
+        value: auto
+      - key: DOCUMENTS_AWS_BUCKET
+        sync: false
+      - key: DOCUMENTS_AWS_ENDPOINT
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_FIRST_NAME
+        value: Admin
+      - key: ADMIN_LAST_NAME
+        value: User
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp-relay.brevo.com
+      - key: MAIL_PORT
+        value: "2525"
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM_ADDRESS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: EduSpace

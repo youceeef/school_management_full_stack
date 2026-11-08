@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\User;
 use App\Http\Resources\UserResource;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -32,26 +32,33 @@ class UserController extends Controller
                 'roles' => $user->roles->pluck('name'),
             ];
         });
+
         return response()->json($usersWithRoles);
     }
+
     public function show($id)
     {
         $user = User::find($id);
+
         return response()->json($user);
     }
+
     public function showProfile()
     {
         try {
             $user = Auth::user()->load('roles');
+
             return response()->json([
                 'message' => 'Profile fetched successfully',
-                'user' => new UserResource($user)
+                'user' => new UserResource($user),
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching user profile: ' . $e->getMessage());
+            Log::error('Error fetching user profile: '.$e->getMessage());
+
             return response()->json(['message' => 'Error fetching profile'], 500);
         }
     }
+
     public function updateProfile(Request $request)
     {
         try {
@@ -65,7 +72,9 @@ class UserController extends Controller
                 $pictureUploaded = false;
                 if ($request->hasFile('picture')) {
                     $pictureResult = $this->handleProfilePicture($request, $user);
-                    if (!$pictureResult['success']) {
+                    if (! $pictureResult['success']) {
+                        DB::rollBack();
+
                         return response()->json(['message' => $pictureResult['message']], 500);
                     }
                     $pictureUploaded = true;
@@ -83,13 +92,14 @@ class UserController extends Controller
 
                     return response()->json([
                         'message' => 'Profile updated successfully',
-                        'user' => new UserResource($user)
+                        'user' => new UserResource($user),
                     ]);
                 } else {
                     DB::commit();
+
                     return response()->json([
                         'message' => 'No changes detected in the profile data',
-                        'user' => new UserResource($user)
+                        'user' => new UserResource($user),
                     ]);
                 }
             } catch (\Exception $e) {
@@ -97,10 +107,12 @@ class UserController extends Controller
                 throw $e;
             }
         } catch (\Exception $e) {
-            Log::error('Error updating user profile: ' . $e->getMessage());
+            Log::error('Error updating user profile: '.$e->getMessage());
+
             return response()->json(['message' => 'Error updating profile'], 500);
         }
     }
+
     private function validateProfileData(Request $request)
     {
         $rules = [
@@ -124,76 +136,85 @@ class UserController extends Controller
 
         return $request->validate($rules);
     }
+
     private function handleProfilePicture(Request $request, User $user)
     {
         try {
+            $diskName = config('filesystems.uploads_disk');
+            $disk = Storage::disk($diskName);
+
             // Verify the file is valid
-            if (!$request->file('picture')->isValid()) {
+            if (! $request->file('picture')->isValid()) {
                 return [
                     'success' => false,
-                    'message' => 'The uploaded file is not valid'
+                    'message' => 'The uploaded file is not valid',
                 ];
             }
 
             // Delete old picture if exists
-            if ($user->picture && Storage::disk('public')->exists($user->picture)) {
-                Storage::disk('public')->delete($user->picture);
+            if ($user->picture && $disk->exists($user->picture)) {
+                $disk->delete($user->picture);
             }
 
             // Create the directory if it doesn't exist
             $directory = 'profile_pictures';
-            if (!Storage::disk('public')->exists($directory)) {
-                Storage::disk('public')->makeDirectory($directory);
+            if (! $disk->exists($directory)) {
+                $disk->makeDirectory($directory);
             }
 
             // Store with unique filename
-            $fileName = time() . '_' . uniqid() . '.' . $request->file('picture')->getClientOriginalExtension();
-            $path = $request->file('picture')->storeAs($directory, $fileName, 'public');
+            $fileName = time().'_'.uniqid().'.'.$request->file('picture')->getClientOriginalExtension();
+            $path = $request->file('picture')->storeAs($directory, $fileName, $diskName);
 
-            if (!$path) {
+            if (! $path) {
                 return [
                     'success' => false,
-                    'message' => 'Failed to store the uploaded file'
+                    'message' => 'Failed to store the uploaded file',
                 ];
             }
 
             $user->picture = $path;
+
             return ['success' => true];
         } catch (\Exception $e) {
-            Log::error('File Upload Failed: ' . $e->getMessage());
+            Log::error('File Upload Failed: '.$e->getMessage());
+
             return [
                 'success' => false,
-                'message' => 'Failed to upload profile picture'
+                'message' => 'Failed to upload profile picture',
             ];
         }
     }
-
 
     public function deleteProfilePicture()
     {
         try {
             $user = Auth::user();
 
-            if (!$user->picture) {
+            if (! $user->picture) {
                 return response()->json(['message' => 'No profile picture to delete'], 404);
             }
 
-            if (Storage::disk('public')->exists($user->picture)) {
-                Storage::disk('public')->delete($user->picture);
-                $user->picture = null;
-                $user->save();
-
-                return response()->json([
-                    'message' => 'Profile picture deleted successfully'
-                ]);
+            $disk = Storage::disk(config('filesystems.uploads_disk'));
+            if ($disk->exists($user->picture)) {
+                $disk->delete($user->picture);
             }
 
-            return response()->json(['message' => 'Profile picture not found'], 404);
+            // Clear stale database paths even if an ephemeral filesystem already
+            // removed the underlying file.
+            $user->picture = null;
+            $user->save();
+
+            return response()->json([
+                'message' => 'Profile picture deleted successfully',
+            ]);
         } catch (\Exception $e) {
-            Log::error('Error deleting profile picture: ' . $e->getMessage());
+            Log::error('Error deleting profile picture: '.$e->getMessage());
+
             return response()->json(['message' => 'Error deleting profile picture'], 500);
         }
     }
+
     private function updateUserFields(User $user, array $validatedData)
     {
         $fields = ['first_name', 'last_name', 'address', 'phone', 'bio'];
@@ -215,32 +236,49 @@ class UserController extends Controller
     public function deleteProfile()
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
         $picturePath = $user->picture;
 
+        $user->tokens()->delete();
+
         if ($user->delete()) {
             // If user deletion is successful, then delete the profile picture
-            if ($picturePath && Storage::disk('public')->exists($picturePath)) {
+            $disk = Storage::disk(config('filesystems.uploads_disk'));
+            if ($picturePath && $disk->exists($picturePath)) {
                 try {
-                    Storage::disk('public')->delete($picturePath);
+                    $disk->delete($picturePath);
                 } catch (\Exception $e) {
-                    Log::error("Failed to delete profile picture: " . $e->getMessage());
+                    Log::error('Failed to delete profile picture: '.$e->getMessage());
                 }
             }
+
             return response()->json(['message' => 'Your profile has been deleted successfully.']);
         } else {
             return response()->json(['message' => 'Failed to delete profile from the database.'], 500);
         }
     }
-    public function deleteUserByAdmin(Request $request)
+
+    public function deleteUserByAdmin(Request $request, $userId)
     {
         $this->authorize('deleteUser', User::class);
-        // Find the user by the given ID
-        $user = User::findOrFail($request->id);
-        // Delete the user and return a success message
+        $user = User::with('roles')->findOrFail($userId);
+
+        if ($request->user()->is($user)) {
+            return response()->json([
+                'message' => 'You cannot delete your own administrator account.',
+            ], 422);
+        }
+
+        if ($user->hasRole('admin') && User::role('admin')->count() <= 1) {
+            return response()->json([
+                'message' => 'The last administrator account cannot be deleted.',
+            ], 422);
+        }
+
+        $user->tokens()->delete();
         $user->delete();
 
         return response()->json(['message' => 'User deleted successfully']);
@@ -249,6 +287,7 @@ class UserController extends Controller
     public function getCurrentUser()
     {
         $user = Auth::user()->load('roles');
+
         return response()->json([
             'user' => [
                 'id' => $user->id,
@@ -256,15 +295,16 @@ class UserController extends Controller
                 'first_name' => $user->first_name,
                 'last_name' => $user->last_name,
                 'roles' => $user->roles->pluck('name'),
-            ]
+            ],
         ]);
     }
 
     public function getPermissions()
     {
         $user = Auth::user();
+
         return response()->json([
-            'permissions' => $user->getAllPermissions()->pluck('name')
+            'permissions' => $user->getAllPermissions()->pluck('name'),
         ]);
     }
 }

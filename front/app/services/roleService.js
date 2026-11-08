@@ -59,9 +59,11 @@ export const assignPermissionsToRole = async (roleId, permissions) => {
 };
 
 // Assign role to user
-export const assignRoleToUser = async (userId, roleId) => {
+export const assignRoleToUser = async (userId, roleName) => {
   try {
-    const response = await axiosInstance.post(`/api/roles/users/${userId}/roles`, { roleId });
+    const response = await axiosInstance.post(`/api/roles/users/${userId}`, {
+      role_name: roleName,
+    });
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: "Erreur lors de l'assignation du rôle" };
@@ -71,7 +73,7 @@ export const assignRoleToUser = async (userId, roleId) => {
 // Assign role to user by name
 export const assignRoleToUserByName = async (userId, roleName) => {
   try {
-    const response = await axiosInstance.post(`/api/roles/users/${userId}/`, {
+    const response = await axiosInstance.post(`/api/roles/users/${userId}`, {
       role_name: roleName,
     });
     return response.data;

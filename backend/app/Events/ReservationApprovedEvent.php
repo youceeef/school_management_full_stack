@@ -9,7 +9,9 @@ use Illuminate\Queue\SerializesModels;
 class ReservationApprovedEvent
 {
     use Dispatchable, SerializesModels;
+
     public Reservation $reservation;
+
     public function __construct(Reservation $reservation)
     {
         $this->reservation = $reservation;

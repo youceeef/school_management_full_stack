@@ -1,22 +1,20 @@
 <?php
 
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EquipementController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\RoleController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalleController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Models\Reservation;
-use App\Models\User;
-use App\Http\Controllers\DashboardController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,15 +23,18 @@ use App\Http\Controllers\DashboardController;
 | Routes accessible to all visitors.
 */
 
-Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->middleware('guest')->name('password.email');
-Route::post('/reset-password', [NewPasswordController::class, 'store'])->middleware('guest')->name('password.update');
-Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
+    ->middleware(['guest', 'throttle:password-reset'])
+    ->name('password.email');
+Route::post('/reset-password', [NewPasswordController::class, 'store'])
+    ->middleware(['guest', 'throttle:password-reset'])
+    ->name('password.update');
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+    ->middleware('throttle:login');
 
-Route::prefix('register')->group(function () {
+Route::prefix('register')->middleware('throttle:registration')->group(function () {
     Route::post('/eleve', [RegisteredUserController::class, 'registerStudent']);
     Route::post('/enseignant', [RegisteredUserController::class, 'registerTeacher']);
-    Route::post('/responsable_labo', [RegisteredUserController::class, 'registerManager']);
-    Route::post('/admin', [RegisteredUserController::class, 'registerAdmin']);
 });
 
 /*
@@ -43,6 +44,18 @@ Route::prefix('register')->group(function () {
 | Routes requiring authentication via Sanctum.
 */
 Route::middleware(['auth:sanctum'])->group(function () {
+
+    // Privileged accounts may only be created by an authenticated administrator.
+    Route::prefix('register')->middleware('role:admin')->group(function () {
+        Route::post('/responsable_labo', [RegisteredUserController::class, 'registerManager']);
+        Route::post('/admin', [RegisteredUserController::class, 'registerAdmin']);
+    });
+
+    // Dashboard count routes must be declared before resource parameter routes.
+    Route::get('/users/count', [DashboardController::class, 'getUserCount']);
+    Route::get('/salles/count', [DashboardController::class, 'getSalleCount']);
+    Route::get('/equipements/count', [DashboardController::class, 'getEquipementCount']);
+    Route::get('/documents/count', [DashboardController::class, 'getDocumentCount']);
 
     // --- Documents ---
     Route::prefix('documents')->group(function () {
@@ -54,12 +67,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{documentId}', [DocumentController::class, 'delete']);
         Route::put('/{documentId}', [DocumentController::class, 'update']);
     });
-    // --- Dashboard Stats ---
-    Route::get('/users/count', [DashboardController::class, 'getUserCount']);
-    Route::get('/salles/count', [DashboardController::class, 'getSalleCount']);
-    Route::get('/equipements/count', [DashboardController::class, 'getEquipementCount']);
-    Route::get('/documents/count', [DashboardController::class, 'getDocumentCount']);
-
     // --- Salles ---
     Route::prefix('salles')->group(function () {
         Route::get('/', [SalleController::class, 'index']);

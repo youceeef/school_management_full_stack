@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
+    private const SYSTEM_ROLES = ['admin', 'enseignant', 'responsable_laboratoire', 'eleve'];
 
     public function listRoles()
     {
@@ -23,12 +24,15 @@ class RoleController extends Controller
                 'permissions' => $role->permissions->pluck('name'),
             ];
         });
+
         return response()->json($rolesWithPermissions);
     }
+
     public function listPermissions()
     {
         $this->authorize('listPermissions', Role::class);
         $permissions = Permission::all();
+
         return response()->json($permissions);
     }
 
@@ -50,16 +54,16 @@ class RoleController extends Controller
         // Étape 1 : Créer le rôle
         $role = Role::create([
             'name' => $validated['role_name'],
-            'guard_name' => 'sanctum',
+            'guard_name' => config('auth.defaults.guard', 'web'),
         ]);
 
         // Étape 2 : Attribuer les permissions au rôle
-        if (!empty($validated['permissions'])) {
+        if (! empty($validated['permissions'])) {
             $role->givePermissionTo($validated['permissions']);
         }
 
         // Étape 3 : Attribuer le rôle à un utilisateur si un user_id est fourni
-        if (!empty($validated['user_id'])) {
+        if (! empty($validated['user_id'])) {
             $user = User::findOrFail($validated['user_id']);
             $user->assignRole($role);
         }
@@ -68,7 +72,7 @@ class RoleController extends Controller
             'message' => 'Role created successfully',
             'role' => $role->only('id', 'name'),
             'permissions' => $role->permissions->pluck('name'),
-            'user' => !empty($validated['user_id']) ? $user
+            'user' => ! empty($validated['user_id']) ? $user
                 ->only(['id', 'first_name']) : null,
         ], 201);
     }
@@ -119,6 +123,13 @@ class RoleController extends Controller
         // Find the role by name
         $role = Role::findByName($validated['role_name']);
 
+        if ($role->name === 'admin'
+            && ($request->user()->is($user) || User::role('admin')->count() <= 1)) {
+            return response()->json([
+                'message' => 'The current or last administrator cannot lose the admin role.',
+            ], 422);
+        }
+
         // Remove the role from the user if they have it
         if ($user->hasRole($role)) {
             $user->removeRole($role);
@@ -137,7 +148,6 @@ class RoleController extends Controller
         ], 404);
     }
 
-
     /**
      * Assign permissions to an existing role.
      */
@@ -154,6 +164,7 @@ class RoleController extends Controller
 
         // Assign the permissions to the role
         $role->givePermissionTo($validated['permissions']);
+
         return response()->json([
             'message' => 'Permissions assigned to role successfully.',
             'role' => $role->only('id', 'name'),
@@ -161,25 +172,23 @@ class RoleController extends Controller
         ]);
     }
 
-
-
     // get all the roles
     public function getAllRoles()
     {
         $this->authorize('getAllRoles', Role::class);
         $roles = Role::all();
+
         return response()->json($roles);
     }
-
 
     // get a role by id
     public function getRoleById($id)
     {
         $this->authorize('getRoleById', Role::class);
         $role = Role::findOrFail($id);
+
         return response()->json($role);
     }
-
 
     // update a role by id
     public function updateRole(Request $request, $id)
@@ -188,13 +197,19 @@ class RoleController extends Controller
 
         // Validate the input data
         $validated = $request->validate([
-            'name' => 'sometimes|string|unique:roles,name,' . $id,
+            'name' => 'sometimes|string|unique:roles,name,'.$id,
             'permissions' => 'sometimes|array',
             'permissions.*' => 'exists:permissions,name',
         ]);
 
         // Find the role
         $role = Role::findOrFail($id);
+
+        if (in_array($role->name, self::SYSTEM_ROLES, true) && isset($validated['name'])) {
+            return response()->json([
+                'message' => 'Built-in roles cannot be renamed.',
+            ], 422);
+        }
 
         // Update role name if provided
         if (isset($validated['name'])) {
@@ -218,7 +233,15 @@ class RoleController extends Controller
     {
         $this->authorize('deleteRole', Role::class);
         $role = Role::findOrFail($id);
+
+        if (in_array($role->name, self::SYSTEM_ROLES, true)) {
+            return response()->json([
+                'message' => 'Built-in roles cannot be deleted.',
+            ], 422);
+        }
+
         $role->delete();
+
         return response()->json(['message' => 'Role deleted successfully']);
     }
 }

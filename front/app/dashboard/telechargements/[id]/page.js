@@ -6,7 +6,6 @@ import Link from "next/link";
 import toast from "../../../utils/toast";
 import Image from "next/image";
 import { getDocument, downloadDocument } from "../../../services/documentService";
-import axiosInstance from "../../../config/axios"; // Still needed for image preview URL
 // Button, FormInput, FormTextArea removed as they are for editing
 
 export default function TelechargementDetailPage({ params }) {
@@ -17,18 +16,29 @@ export default function TelechargementDetailPage({ params }) {
 
   // État pour stocker les informations du document
   const [documentData, setDocumentData] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   // État pour le chargement
   const [isLoading, setIsLoading] = useState(true);
 
   // Charger les données du document
   useEffect(() => {
+    let objectUrl;
+    let cancelled = false;
+
     const fetchDocument = async () => {
       setIsLoading(true);
 
       try {
         const data = await getDocument(documentId);
+        if (cancelled) return;
         setDocumentData(data);
+
+        if (data.file_type?.startsWith("image/")) {
+          const blob = await downloadDocument(documentId);
+          objectUrl = window.URL.createObjectURL(blob);
+          if (!cancelled) setPreviewUrl(objectUrl);
+        }
       } catch (error) {
         console.error("Erreur lors du chargement du document:", error);
         toast.error(error.message || "Impossible de charger les informations du document");
@@ -38,6 +48,11 @@ export default function TelechargementDetailPage({ params }) {
     };
 
     fetchDocument();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) window.URL.revokeObjectURL(objectUrl);
+    };
   }, [documentId]);
 
   // Gérer le téléchargement
@@ -170,10 +185,11 @@ export default function TelechargementDetailPage({ params }) {
             ) : fileType === "JPG" || fileType === "PNG" ? (
               <div className="text-center">
                 <Image
-                  src={`${axiosInstance.defaults.baseURL}/storage/${documentData.file_path}`}
+                  src={previewUrl || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="}
                   alt={documentData.title}
                   width={500}
                   height={300}
+                  unoptimized
                   className="max-h-full max-w-full object-contain"
                   onError={(e) => {
                     e.target.onerror = null;

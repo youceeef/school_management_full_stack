@@ -96,16 +96,16 @@ The project is built with modern, robust, and scalable technologies for both the
 
 ### Backend
 
-- PHP ^8.1
-- Laravel ^10.10
-- Laravel Sanctum ^3.3 (For API Authentication)
+- PHP ^8.2
+- Laravel ^12
+- Laravel Sanctum ^4 (expiring bearer-token authentication)
 - Spatie/laravel-permission ^6.17
 - Composer
 
 ### Frontend
 
-- Next.js 15.3.2
-- React
+- Next.js 16.4
+- React 19.3
 - Tailwind CSS ^3.4.1
 - Axios ^1.9.0 (For API requests)
 - React Context (For global state management)
@@ -113,13 +113,13 @@ The project is built with modern, robust, and scalable technologies for both the
 
 ### Database
 
-- MySQL
+- MySQL, PostgreSQL, or SQLite for local tests
 
 ---
 
 ## ⚙️ Prerequisites
 
-- PHP >= 8.1
+- PHP >= 8.2
 - Composer
 - Node.js & NPM
 - MySQL
@@ -143,18 +143,42 @@ The project is built with modern, robust, and scalable technologies for both the
     cp .env.example .env
     # Configure your .env file with database credentials
     php artisan key:generate
-    php artisan migrate
+    php artisan migrate --seed
     php artisan serve
     ```
 
 3.  **Frontend setup**
-    `bash
+
+    ```bash
     cd ../front
-    npm install
+    npm ci
     cp .env.example .env.local
-    # Set the backend API URL (e.g., NEXT_PUBLIC_API_BASE_URL) in .env.local
+    # Set NEXT_PUBLIC_API_URL in .env.local
     npm run dev
-    `The frontend will run at:`http://localhost:3000`
+    ```
+
+    The frontend runs at `http://localhost:3000`.
+
+## Quality checks
+
+```bash
+# Backend
+cd backend
+php artisan test
+vendor/bin/pint --test
+composer audit --locked
+
+# Frontend
+cd ../front
+npm run lint
+npm run build
+npm audit
+```
+
+## Deployment
+
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the prepared Vercel + Render + Neon +
+Cloudflare R2 deployment and its required secrets.
 
 ---
 

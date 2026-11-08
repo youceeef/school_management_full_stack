@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Builder;
 
 class Salle extends Model
 {
@@ -15,9 +15,10 @@ class Salle extends Model
 
     // --- Constants for Type ---
     public const TYPE_CLASSROOM = 'salle de classe';
-    public const TYPE_LABORATORY = 'laboratoire';
-    public const TYPE_AMPHITHEATER = 'amphitheatre';
 
+    public const TYPE_LABORATORY = 'laboratoire';
+
+    public const TYPE_AMPHITHEATER = 'amphitheatre';
 
     protected $fillable = [
         'name',
@@ -76,7 +77,7 @@ class Salle extends Model
             $query->where('id', '!=', $excludeReservationId);
         }
 
-        return !$query->exists();
+        return ! $query->exists();
     }
 
     public function getUpcomingReservations(int $limit = 5)
@@ -110,6 +111,6 @@ class Salle extends Model
 
     public function validateCapacity(?int $requestedCapacity): bool
     {
-        return !$requestedCapacity || $this->capacity >= $requestedCapacity;
+        return ! $requestedCapacity || $this->capacity >= $requestedCapacity;
     }
 }

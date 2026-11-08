@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
-use Carbon\Carbon;
 
 class Reservation extends Model
 {
@@ -13,9 +13,13 @@ class Reservation extends Model
 
     // Status Constants
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
+
     public const STATUS_IN_PROGRESS = 'in_progress';
+
     public const STATUS_COMPLETED = 'completed';
 
     protected $fillable = [
@@ -27,13 +31,15 @@ class Reservation extends Model
         'status',
         'approved_by',
         'rejection_reason',
-        'approved_at'
+        'approved_at',
     ];
+
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
         'approved_at' => 'datetime',
     ];
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -55,7 +61,6 @@ class Reservation extends Model
             ->withPivot('quantity')
             ->withTimestamps();
     }
-
 
     public function scopeOverlapping(Builder $query, string $startTime, string $endTime): Builder
     {
@@ -113,6 +118,7 @@ class Reservation extends Model
     public function getIsOngoingAttribute(): bool
     {
         $now = now();
+
         return $this->start_time->isPast() && $this->end_time->isFuture();
     }
 

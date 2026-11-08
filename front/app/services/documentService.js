@@ -57,36 +57,10 @@ export const deleteDocument = async (id) => {
 // Download document
 export const downloadDocument = async (id) => {
   try {
-    // Get token from cookies
-    let token = null;
-    const cookies = document.cookie || "";
-    if (cookies) {
-      const tokenCookie = cookies.split("; ").find((row) => row.startsWith("token="));
-      if (tokenCookie) {
-        token = tokenCookie.split("=")[1];
-      }
-    }
-
-    // Prepare headers
-    const headers = {};
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    // Get the download URL
-    const downloadUrl = `${axiosInstance.defaults.baseURL}/api/documents/${id}/download`;
-
-    // Make the request
-    const response = await fetch(downloadUrl, { headers });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error("Vous devez être connecté pour télécharger ce document");
-      }
-      throw new Error(`Erreur HTTP: ${response.status}`);
-    }
-
-    return await response.blob();
+    const response = await axiosInstance.get(`/api/documents/${id}/download`, {
+      responseType: "blob",
+    });
+    return response.data;
   } catch (error) {
     throw error.response?.data || { message: "Erreur lors du téléchargement du document" };
   }

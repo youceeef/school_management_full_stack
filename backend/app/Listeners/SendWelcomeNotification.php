@@ -3,17 +3,13 @@
 namespace App\Listeners;
 
 use App\Models\User;
-use App\Notifications\UserRegisteredNotification;
 use App\Notifications\NewUserForAdminNotification;
+use App\Notifications\UserRegisteredNotification;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Notification as NotificationFacade; // For sending to multiple users
 
 class SendWelcomeNotification
 {
-
-
     /**
      * Create the event listener.
      */

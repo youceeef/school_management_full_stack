@@ -4,14 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Document;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
     public function upload(Request $request)
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
         $this->authorize('create', Document::class);
@@ -23,7 +23,7 @@ class DocumentController extends Controller
         ]);
 
         $file = $request->file('file');
-        $filePath = $file->store('documents', 'public');
+        $filePath = $file->store('documents', config('filesystems.documents_disk'));
 
         $document = Document::create([
             'title' => $request->title,
@@ -35,7 +35,7 @@ class DocumentController extends Controller
 
         return response()->json([
             'message' => 'Document téléversé avec succès',
-            'document' => $document
+            'document' => $document,
         ], 201);
     }
 
@@ -43,50 +43,52 @@ class DocumentController extends Controller
     {
         $this->authorize('view', Document::class);
 
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
         $documents = Document::with('user:id,first_name,last_name')->get();
+
         return response()->json($documents);
     }
 
     public function telechargements()
     {
         $this->authorize('telechargements', Document::class);
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
         $telechargements = Document::with('user:id,first_name,last_name')->get();
+
         return response()->json($telechargements);
     }
 
-
     public function download($documentId)
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
         $document = Document::findOrFail($documentId);
         $this->authorize('download', $document);
 
-        return response()->download(storage_path("app/public/{$document->file_path}"));
+        return Storage::disk(config('filesystems.documents_disk'))
+            ->download($document->file_path, $document->title);
     }
 
     public function delete($documentId)
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
         $document = Document::find($documentId);
 
-        if (!$document) {
+        if (! $document) {
             return response()->json(['message' => 'Document not found.'], 404);
         }
 
         $this->authorize('delete', $document);
 
-        Storage::disk('public')->delete($document->file_path);
+        Storage::disk(config('filesystems.documents_disk'))->delete($document->file_path);
         $document->delete();
 
         return response()->json(['message' => 'Document supprimé avec succès']);
@@ -96,7 +98,7 @@ class DocumentController extends Controller
     {
         $document = Document::with('user')->find($documentId);
 
-        if (!$document) {
+        if (! $document) {
             return response()->json(['message' => 'Document introuvable'], 404);
         }
 
@@ -104,10 +106,11 @@ class DocumentController extends Controller
 
         // Add user data to the response
         $documentData = $document->toArray();
-        $documentData['user_name'] = $document->user ? $document->user->first_name . ' ' . $document->user->last_name : null;
+        $documentData['user_name'] = $document->user ? $document->user->first_name.' '.$document->user->last_name : null;
 
         return response()->json($documentData);
     }
+
     public function update(Request $request, $documentId)
     {
         $document = Document::findOrFail($documentId);

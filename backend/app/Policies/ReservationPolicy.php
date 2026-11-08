@@ -1,5 +1,7 @@
 <?php
+
 // app/Policies/ReservationPolicy.php
+
 namespace App\Policies;
 
 use App\Models\Reservation;
@@ -28,12 +30,13 @@ class ReservationPolicy
 
     public function view(User $user, Reservation $reservation): bool
     {
-        if (!$user->can('view reservation detail')) {
+        if (! $user->can('view reservation detail')) {
             return false;
         }
         if ($user->can('list all reservations')) {
             return true;
         }
+
         return $user->can('list own reservations') && $user->id === $reservation->user_id;
     }
 
@@ -49,13 +52,27 @@ class ReservationPolicy
 
     public function delete(User $user, Reservation $reservation): bool // For cancelling
     {
-        if ($user->can('cancel any reservation')) return true;
+        if ($user->can('cancel any reservation')) {
+            return true;
+        }
+
         return $user->can('cancel own reservation') &&
             $user->id === $reservation->user_id &&
             in_array($reservation->status, ['pending', 'approved']);
     }
+
     public function viewMyReservations(User $user): bool
     {
         return $user->can('list own reservations');
+    }
+
+    public function viewCalendarReservations(User $user): bool
+    {
+        return $user->can('view_calendar_reservations');
+    }
+
+    public function viewDailyReservations(User $user): bool
+    {
+        return $user->can('view_daily_reservations');
     }
 }

@@ -1,5 +1,7 @@
 <?php
+
 // app/Http/Resources/SalleResource.php
+
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;

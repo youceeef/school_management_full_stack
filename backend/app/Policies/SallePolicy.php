@@ -2,16 +2,15 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Salle;
-use Illuminate\Auth\Access\Response;
+use App\Models\User;
 
 class SallePolicy
 {
     /**
      * Perform pre-authorization checks.
      */
-    public function before(User $user, string $ability): bool|null
+    public function before(User $user, string $ability): ?bool
     {
         if ($user->hasRole('admin')) {
             return true;

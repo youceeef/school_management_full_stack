@@ -20,10 +20,6 @@ export default function Register() {
             Inscription Professeur
           </Link>
 
-          <Link href="/register/responsable" className="block w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-medium rounded-md text-center transition duration-200">
-            Inscription Responsable Laboratoire
-          </Link>
-
           <Link href="/register/eleve" className="block w-full py-3 px-4 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white font-medium rounded-md text-center transition duration-200">
             Inscription Élève
           </Link>

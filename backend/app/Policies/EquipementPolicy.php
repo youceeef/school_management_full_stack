@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Equipement;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class EquipementPolicy
 {
@@ -12,7 +11,7 @@ class EquipementPolicy
      * Perform pre-authorization checks.
      * This grants 'admin' users all permissions, bypassing other checks.
      */
-    public function before(User $user, string $ability): bool|null
+    public function before(User $user, string $ability): ?bool
     {
         if ($user->hasRole('admin')) {
             return true;

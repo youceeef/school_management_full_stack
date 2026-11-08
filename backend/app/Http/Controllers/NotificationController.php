@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 
 class NotificationController extends Controller
@@ -15,7 +14,7 @@ class NotificationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $limit = $request->query('limit', 15);
+        $limit = min(max((int) $request->query('limit', 15), 1), 100);
 
         $notifications = $user->notifications()->latest()->paginate($limit);
 
@@ -28,7 +27,7 @@ class NotificationController extends Controller
     public function unreadCount(Request $request): JsonResponse
     {
         return response()->json([
-            'count' => $request->user()->unreadNotifications->count(),
+            'count' => $request->user()->unreadNotifications()->count(),
         ]);
     }
 
@@ -68,6 +67,7 @@ class NotificationController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
         $notification->delete();
+
         return response()->json(['message' => 'Notification deleted.']);
     }
 }

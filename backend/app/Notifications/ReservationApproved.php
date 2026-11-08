@@ -32,7 +32,7 @@ class ReservationApproved extends Notification
             'start_time' => $this->reservation->start_time->toDateTimeString(),
             'approved_by_name' => $approver ? $approver->name : 'l\'administration',
             'message' => "Votre réservation pour la salle {$salle->name} a été approuvée.",
-            'action_url' => '/my-reservations/' . $this->reservation->id, // Adjust to teacher's reservation view route
+            'action_url' => '/my-reservations/'.$this->reservation->id, // Adjust to teacher's reservation view route
         ];
     }
 }

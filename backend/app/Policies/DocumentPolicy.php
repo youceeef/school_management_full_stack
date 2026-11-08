@@ -31,6 +31,7 @@ class DocumentPolicy
     {
         return $user->id === $document->user_id || $user->can('view_document');
     }
+
     public function update(User $user, Document $document)
     {
         return $user->id === $document->user_id || $user->can('update_documents');

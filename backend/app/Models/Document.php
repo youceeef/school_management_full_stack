@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class Document extends Model
 {
     use HasFactory;
+
     protected $fillable = ['title', 'file_path', 'file_type', 'user_id', 'description'];
+
+    protected $hidden = ['file_path'];
 
     public function user()
     {

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 
 class Equipement extends Model
 {
@@ -73,7 +73,7 @@ class Equipement extends Model
         }
 
         if ($requestedQuantity <= 0) {
-            $errors[] = "La quantité demandée doit être supérieure à 0";
+            $errors[] = 'La quantité demandée doit être supérieure à 0';
         }
 
         return $errors;

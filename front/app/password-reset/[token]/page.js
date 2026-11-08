@@ -6,6 +6,7 @@ import { resetPassword } from '../../services/authService';
 import toast from '../../utils/toast';
 import ThemeToggle from '../../components/ThemeToggle';
 import { use } from 'react';
+import { isStrongPassword, PASSWORD_REQUIREMENTS } from '../../utils/password';
 
 export default function ResetPassword({ params }) {
   const [password, setPassword] = useState('');
@@ -21,9 +22,8 @@ export default function ResetPassword({ params }) {
     setLoading(true);
 
     try {
-      // Validate password
-      if (password.length < 8) {
-        throw new Error('Le mot de passe doit contenir au moins 8 caractères');
+      if (!isStrongPassword(password)) {
+        throw new Error(PASSWORD_REQUIREMENTS);
       }
 
       if (password !== passwordConfirmation) {
@@ -83,6 +83,7 @@ export default function ResetPassword({ params }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={12}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               placeholder="••••••••"
             />
@@ -98,6 +99,7 @@ export default function ResetPassword({ params }) {
               value={passwordConfirmation}
               onChange={(e) => setPasswordConfirmation(e.target.value)}
               required
+              minLength={12}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               placeholder="••••••••"
             />
@@ -114,4 +116,4 @@ export default function ResetPassword({ params }) {
       </div>
     </div>
   );
-} 
+}

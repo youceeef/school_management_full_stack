@@ -1,5 +1,7 @@
 <?php
+
 // app/Http/Requests/StoreReservationRequest.php
+
 namespace App\Http\Requests;
 
 use App\Models\Reservation;
@@ -21,8 +23,7 @@ class StoreReservationRequest extends FormRequest
                 'required',
                 'integer',
                 Rule::exists('salles', 'id')->where(
-                    fn($query) =>
-                    $query->whereIn('type', [Salle::TYPE_LABORATORY, Salle::TYPE_AMPHITHEATER])
+                    fn ($query) => $query->whereIn('type', [Salle::TYPE_LABORATORY, Salle::TYPE_AMPHITHEATER])
                 ),
             ],
             'start_time' => 'required|date_format:Y-m-d H:i:s|after_or_equal:now',

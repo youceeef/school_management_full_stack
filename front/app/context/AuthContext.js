@@ -7,6 +7,14 @@ import { getUserProfile } from "../services/userProfileService";
 
 const AuthContext = createContext();
 
+const storeToken = (token) => {
+  Cookies.set("token", token, {
+    expires: 1,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -58,15 +66,13 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      await axiosInstance.get("/sanctum/csrf-cookie");
-
       const response = await axiosInstance.post("/api/login", {
         email,
         password,
       });
 
       if (response.data.token) {
-        Cookies.set("token", response.data.token);
+        storeToken(response.data.token);
         // Obtenir les données utilisateur complètes après la connexion
         const userData = await getUserProfile();
         setUser(userData);
@@ -90,11 +96,10 @@ export const AuthProvider = ({ children }) => {
   };
   const registerTeacher = async (userData) => {
     try {
-      await axiosInstance.get("/sanctum/csrf-cookie");
       const response = await axiosInstance.post("/api/register/enseignant", userData);
 
       if (response.data.token) {
-        Cookies.set("token", response.data.token);
+        storeToken(response.data.token);
         // Get complete user data after registration
         const profileData = await getUserProfile();
         setUser(profileData);
@@ -107,11 +112,10 @@ export const AuthProvider = ({ children }) => {
 
   const registerStudent = async (userData) => {
     try {
-      await axiosInstance.get("/sanctum/csrf-cookie");
       const response = await axiosInstance.post("/api/register/eleve", userData);
 
       if (response.data.token) {
-        Cookies.set("token", response.data.token);
+        storeToken(response.data.token);
         // Get complete user data after registration
         const profileData = await getUserProfile();
         setUser(profileData);
@@ -124,15 +128,7 @@ export const AuthProvider = ({ children }) => {
 
   const registerLabManager = async (userData) => {
     try {
-      await axiosInstance.get("/sanctum/csrf-cookie");
       const response = await axiosInstance.post("/api/register/responsable_labo", userData);
-
-      if (response.data.token) {
-        Cookies.set("token", response.data.token);
-        // Get complete user data after registration
-        const profileData = await getUserProfile();
-        setUser(profileData);
-      }
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: "Erreur lors de l'inscription" };
@@ -141,15 +137,7 @@ export const AuthProvider = ({ children }) => {
 
   const registerAdmin = async (userData) => {
     try {
-      await axiosInstance.get("/sanctum/csrf-cookie");
       const response = await axiosInstance.post("/api/register/admin", userData);
-
-      if (response.data.token) {
-        Cookies.set("token", response.data.token);
-        // Get complete user data after registration
-        const profileData = await getUserProfile();
-        setUser(profileData);
-      }
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: "Erreur lors de l'inscription" };

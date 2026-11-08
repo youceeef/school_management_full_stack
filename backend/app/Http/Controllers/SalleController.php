@@ -6,21 +6,17 @@ use App\Models\Salle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Log;
 
 class SalleController extends Controller
 {
-
-
-
-
-
     public function indexCalendar()
     {
         // $this->authorize('viewAny', Salle::class);
         $salles = DB::table('salles')->get();
+
         return response()->json($salles);
     }
 
@@ -42,19 +38,20 @@ class SalleController extends Controller
             $query->where('capacity', '>=', $request->query('min_capacity'));
         }
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->query('search') . '%');
+            $query->where('name', 'like', '%'.$request->query('search').'%');
         }
 
         // Sorting
         $sortBy = $request->query('sortBy', 'created_at');
         $sortDir = $request->query('sortDir', 'desc');
-        if (in_array($sortBy, ['name', 'capacity', 'type', 'created_at'])) {
+        if (in_array($sortBy, ['name', 'capacity', 'type', 'created_at'], true)
+            && in_array($sortDir, ['asc', 'desc'], true)) {
             $query->orderBy($sortBy, $sortDir);
         }
 
         // Pagination
-        $perPage = $request->query('per_page', 15);
-        $salles = $query->paginate((int)$perPage);
+        $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+        $salles = $query->paginate($perPage);
 
         return response()->json($salles);
     }
@@ -77,12 +74,13 @@ class SalleController extends Controller
 
             return response()->json([
                 'message' => 'Salle créée avec succès.',
-                'salle' => $salle->load('user:id,first_name,last_name')
+                'salle' => $salle->load('user:id,first_name,last_name'),
             ], 201);
         } catch (ValidationException $e) {
             return response()->json(['message' => 'Validation failed.', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('salle creation failed: ' . $e->getMessage());
+            Log::error('salle creation failed: '.$e->getMessage());
+
             return response()->json(['message' => 'An error occurred while creating the salle.'], 500);
         }
     }
@@ -119,12 +117,13 @@ class SalleController extends Controller
 
             return response()->json([
                 'message' => 'Salle mise à jour avec succès.',
-                'salle' => $salle->load('user:id,first_name,last_name')
+                'salle' => $salle->load('user:id,first_name,last_name'),
             ]);
         } catch (ValidationException $e) {
             return response()->json(['message' => 'Validation failed.', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('salle update failed: ' . $e->getMessage());
+            Log::error('salle update failed: '.$e->getMessage());
+
             return response()->json(['message' => 'An error occurred while updating the salle.'], 500);
         }
     }

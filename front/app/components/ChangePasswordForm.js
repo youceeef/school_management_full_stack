@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import FormInput from "./FormInput";
 import Button from "./Button";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { isStrongPassword, PASSWORD_REQUIREMENTS } from "../utils/password";
 
 export default function ChangePasswordForm() {
   const router = useRouter();
@@ -39,6 +40,10 @@ export default function ChangePasswordForm() {
     setLoading(true);
 
     try {
+      if (!isStrongPassword(formData.password)) {
+        throw new Error(PASSWORD_REQUIREMENTS);
+      }
+
       await changePassword({ ...formData, email: user?.email });
       setSuccess("Mot de passe modifié avec succès !");
 
@@ -88,6 +93,7 @@ export default function ChangePasswordForm() {
               value={formData.current_password}
               onChange={handleChange}
               required
+              minLength={12}
               className="mt-1 block w-full px-4 py-2.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 pr-12"
             />
             <button
@@ -112,6 +118,7 @@ export default function ChangePasswordForm() {
               value={formData.password}
               onChange={handleChange}
               required
+              minLength={12}
               className="mt-1 block w-full px-4 py-2.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 pr-12"
             />
             <button

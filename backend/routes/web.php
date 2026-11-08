@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return ['Laravel' => app()->version()];
+    return [
+        'application' => config('app.name'),
+        'status' => 'ok',
+    ];
 });
-
-require __DIR__ . '/auth.php';

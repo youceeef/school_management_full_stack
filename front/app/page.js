@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { AcademicCapIcon, ArrowRightStartOnRectangleIcon, UserPlusIcon, SunIcon, MoonIcon } from "@heroicons/react/24/outline";
+import { AcademicCapIcon, UserPlusIcon } from "@heroicons/react/24/outline";
 import ThemeToggle from "./components/ThemeToggle";
 
 export default function Home() {
@@ -12,8 +12,8 @@ export default function Home() {
         <div className="container mx-auto px-4 flex justify-between items-center">
           {" "}
           <div className="flex items-center">
-            <Image src="/logo.png" alt="EDUSPACE Logo" width={60} height={60} className="mr-2 dark:hidden" />
-            <Image src="/logo_var.png" alt="EDUSPACE Logo" width={60} height={60} className="mr-2 hidden dark:block" />
+            <Image src="/logo.png" alt="EDUSPACE Logo" width={60} height={54} className="mr-2 dark:hidden" />
+            <Image src="/logo_var.png" alt="EDUSPACE Logo" width={60} height={54} className="mr-2 hidden dark:block" />
             <h2 className="text-xl font-bold text-[#1F2937] dark:text-white">EDUSPACE</h2>
           </div>
           <div className="flex items-center space-x-4">
@@ -28,8 +28,9 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24 flex flex-col md:flex-row items-center">
+      <main>
+        {/* Hero Section */}
+        <section className="container mx-auto px-4 py-16 md:py-24 flex flex-col md:flex-row items-center">
         <div className="md:w-1/2 mb-10 md:mb-0 p-6">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-6">
             Gestion Scolaire <span className="text-indigo-600 dark:text-indigo-400">Simplifiée</span>
@@ -61,10 +62,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+        </section>
 
-      {/* Fonctionnalités Clés */}
-      <section className="bg-indigo-100 dark:bg-indigo-900 py-16">
+        {/* Fonctionnalités Clés */}
+        <section className="bg-indigo-100 dark:bg-indigo-900 py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12 text-gray-800 dark:text-white">Fonctionnalités Clés</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 p-6">
@@ -98,7 +99,8 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+        </section>
+      </main>
 
       {/* Footer */}
       <footer className="bg-indigo-700 dark:bg-gray-900 text-white py-8">

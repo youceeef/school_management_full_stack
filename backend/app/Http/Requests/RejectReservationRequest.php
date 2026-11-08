@@ -1,8 +1,11 @@
 <?php
+
 // app/Http/Requests/RejectReservationRequest.php
+
 namespace App\Http\Requests;
 
 use App\Models\Reservation; // Import Reservation model
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RejectReservationRequest extends FormRequest
@@ -23,7 +26,7 @@ class RejectReservationRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
+     * @return array<string, ValidationRule|array|string>
      */
     public function rules(): array
     {
