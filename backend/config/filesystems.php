@@ -74,7 +74,6 @@ return [
             'url' => env('PROFILE_AWS_URL'),
             'endpoint' => env('PROFILE_AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('PROFILE_AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'visibility' => 'public',
             'throw' => true,
         ],
 
@@ -86,7 +85,6 @@ return [
             'bucket' => env('DOCUMENTS_AWS_BUCKET'),
             'endpoint' => env('DOCUMENTS_AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('DOCUMENTS_AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'visibility' => 'private',
             'throw' => true,
         ],
 

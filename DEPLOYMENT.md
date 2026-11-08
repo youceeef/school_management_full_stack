@@ -5,7 +5,7 @@ The prepared free-tier architecture is:
 - **Frontend:** Vercel Hobby (`front/`)
 - **API:** Render Free Web Service (`backend/Dockerfile`)
 - **Database:** Neon Free Postgres
-- **Files:** two Cloudflare R2 buckets
+- **Files:** two Neon Object Storage buckets
   - a public bucket for profile pictures
   - a private bucket for protected documents
 - **Transactional email:** Brevo Free SMTP on port 2525
@@ -32,16 +32,16 @@ upper- and lowercase letters, numbers, and symbols. Never commit either value.
 2. Copy its pooled Postgres connection string.
 3. Use the complete string as Render's `DATABASE_URL` secret.
 
-## 3. Cloudflare R2
+## 3. Neon Object Storage
 
-Create two Standard-storage buckets:
+In the same Neon project, create two buckets:
 
 1. `eduspace-profiles`: enable public access and copy its public URL.
 2. `eduspace-documents`: keep public access disabled.
 
-Create an R2 S3 API token that can read and write both buckets. Record the
-access-key ID, secret, account endpoint, and both bucket names. The endpoint is
-usually `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
+Use **Connect → Storage** to create an S3 credential. Record its access-key ID,
+secret, endpoint, and region. Neon requires path-style S3 addressing; the
+prepared Render configuration enables it.
 
 ## 4. Render API
 
@@ -50,7 +50,7 @@ usually `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
 3. Set `APP_KEY` to the complete `base64:...` value generated earlier.
 4. Initially set `FRONTEND_URL` to the expected Vercel production URL. Update
    it if Vercel assigns a different URL.
-5. Use the R2 values for both sets of S3 credentials. Set
+5. Use the Neon Object Storage values for both sets of S3 credentials. Set
    `PROFILE_AWS_URL` to the public profile bucket URL.
 6. Create a Brevo SMTP key and provide its login, key, and a verified sender
    address. Render Free blocks common SMTP ports but allows Brevo's port 2525.
@@ -65,7 +65,7 @@ and administrator seeding, Laravel optimization, and then the API server.
 1. Import the same repository into Vercel.
 2. Set the project root directory to `front`.
 3. Set `NEXT_PUBLIC_API_URL` to the Render API URL without a trailing slash.
-4. Set `NEXT_PUBLIC_STORAGE_URL` to the public R2 profile bucket URL.
+4. Set `NEXT_PUBLIC_STORAGE_URL` to the public Neon profile bucket URL.
 5. Deploy and copy the final production URL.
 6. Update Render's `FRONTEND_URL` to that exact origin and redeploy the API.
 
@@ -87,4 +87,4 @@ After deployment:
 
 See `backend/.env.example`, `render.yaml`, and `front/.env.example`. In
 production, always keep `APP_DEBUG=false`, use HTTPS origins, and never commit
-database, administrator, mail, or R2 credentials.
+database, administrator, mail, or object-storage credentials.

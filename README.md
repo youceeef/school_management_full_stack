@@ -177,8 +177,8 @@ npm audit
 
 ## Deployment
 
-See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the prepared Vercel + Render + Neon +
-Cloudflare R2 deployment and its required secrets.
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the prepared Vercel + Render + Neon
+deployment and its required secrets.
 
 ---
 
