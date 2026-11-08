@@ -35,7 +35,7 @@ const PageHeader = ({ title, description, actions, breadcrumbs = [], className =
         {actions && (
           <div className="flex items-center space-x-3">
             {actions.map((action, index) => {
-              const { children, variant, onClick, loading, size, className: btnClassName, permission } = action;
+              const { children, variant, onClick, loading, disabled, size, className: btnClassName, permission } = action;
               
               const button = (
                 <Button
@@ -43,6 +43,7 @@ const PageHeader = ({ title, description, actions, breadcrumbs = [], className =
                   variant={variant}
                   onClick={onClick}
                   loading={loading}
+                  disabled={disabled}
                   size={size}
                   className={btnClassName}
                 >

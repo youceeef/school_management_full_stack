@@ -146,14 +146,8 @@ function RolesPage() {
     toast.confirmDelete(
       `Êtes-vous sûr de vouloir supprimer le rôle "${roleToDelete.name}" ?`,
       async () => {
-        try {
-          await deleteRole(roleId);
-          await fetchRoles();
-          toast.success(`Le rôle ${roleToDelete.name} a été supprimé`);
-        } catch (error) {
-          console.error("Error deleting role:", error);
-          toast.error(`Erreur lors de la suppression du rôle ${roleToDelete.name}`);
-        }
+        await deleteRole(roleId);
+        await fetchRoles();
       },
       {
         loading: "Suppression du rôle en cours...",

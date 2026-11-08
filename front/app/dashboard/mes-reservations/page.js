@@ -2,14 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FaPlus, FaClock, FaChalkboardTeacher, FaTools } from "react-icons/fa";
 import ReservationForm from "../../components/reservation/ReservationForm";
 import { getMyReservations } from "../../services/reservationService";
-import toast from "react-hot-toast";
+import toast from "../../utils/toast";
 import { Card, DataTable, StatsCard, PageHeader } from "../../components/ui";
 import Button from "../../components/Button";
 
 export default function MesReservationsPage() {
+  const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [reservations, setReservations] = useState([]);
@@ -20,6 +22,10 @@ export default function MesReservationsPage() {
   useEffect(() => {
     fetchReservations();
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get("new") === "1") setShowForm(true);
+  }, [searchParams]);
 
   const fetchReservations = async () => {
     try {
@@ -35,9 +41,9 @@ export default function MesReservationsPage() {
     }
   };
 
-  const handleCloseForm = () => {
+  const handleCloseForm = async () => {
     if (hasFormChanges) {
-      if (window.confirm("Voulez-vous vraiment fermer le formulaire ? Toutes les modifications seront perdues.")) {
+      if (await toast.confirm("Voulez-vous vraiment fermer le formulaire ? Toutes les modifications seront perdues.")) {
         setShowForm(false);
         setHasFormChanges(false);
       }
@@ -166,7 +172,11 @@ export default function MesReservationsPage() {
   ];
 
   // Filter reservations based on search
-  const filteredReservations = reservations.filter((reservation) => reservation.salle.name.toLowerCase().includes(searchTerm.toLowerCase()) || reservation.purpose.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredReservations = reservations.filter((reservation) =>
+    [reservation.salle?.name, reservation.purpose]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="space-y-8">

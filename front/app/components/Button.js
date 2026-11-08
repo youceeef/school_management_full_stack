@@ -31,8 +31,8 @@ const Button = React.forwardRef(({
     <button
       ref={ref}
       className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
-      disabled={loading}
       {...props}
+      disabled={loading || props.disabled}
     >
       {loading && (
         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

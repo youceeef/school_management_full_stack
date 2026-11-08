@@ -8,7 +8,7 @@ import NotificationDropdown from "./NotificationDropdown";
 import { getStorageImageUrl } from "../services/userProfileService";
 import { useAuth } from "../context/AuthContext";
 
-const TopBar = ({ pathname, isMobileView, toggleSidebar, handleLogout, unreadCount, showNotifications, toggleNotifications, showProfileMenu, toggleProfileMenu, notificationRef, profileRef, setShowProfileMenu }) => {
+const TopBar = ({ pathname, isMobileView, toggleSidebar, handleLogout, unreadCount, showNotifications, toggleNotifications, closeNotifications, showProfileMenu, toggleProfileMenu, notificationRef, profileRef, setShowProfileMenu }) => {
   const { user } = useAuth();
   const [profileImage, setProfileImage] = useState(null);
 
@@ -76,12 +76,18 @@ const TopBar = ({ pathname, isMobileView, toggleSidebar, handleLogout, unreadCou
           <ThemeToggle />
 
           <div className="relative" ref={notificationRef}>
-            <button onClick={toggleNotifications} className="p-2 rounded-full bg-gray-100 dark:bg-dark-border/30 hover:bg-gray-200 dark:hover:bg-dark-border/50 relative transition-colors">
+            <button
+              type="button"
+              onClick={toggleNotifications}
+              aria-label="Afficher les notifications"
+              aria-expanded={showNotifications}
+              className="p-2 rounded-full bg-gray-100 dark:bg-dark-border/30 hover:bg-gray-200 dark:hover:bg-dark-border/50 relative transition-colors"
+            >
               🔔
               {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs">{unreadCount}</span>}
             </button>
 
-            <NotificationDropdown isOpen={showNotifications} onClose={toggleNotifications} />
+            <NotificationDropdown isOpen={showNotifications} onClose={closeNotifications} />
           </div>
 
           <div className="relative" ref={profileRef}>

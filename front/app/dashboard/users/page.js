@@ -97,14 +97,8 @@ function UsersPage() {
     toast.confirmDelete(
       `Êtes-vous sûr de vouloir retirer le rôle "${roleName}" de l'utilisateur "${userName}" ?`,
       async () => {
-        try {
-          await removeUserRole(userId, roleName);
-          await fetchUsers();
-          toast.success(`Le rôle "${roleName}" a été retiré avec succès`);
-        } catch (error) {
-          console.error("Error removing role:", error);
-          toast.error(error.message || `Erreur lors du retrait du rôle`);
-        }
+        await removeUserRole(userId, roleName);
+        await fetchUsers();
       },
       {
         loading: "Retrait du rôle en cours...",

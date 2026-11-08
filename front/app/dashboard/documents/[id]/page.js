@@ -106,15 +106,8 @@ export default function DocumentDetailPage({ params }) {
     toast.confirmDelete(
       `Êtes-vous sûr de vouloir supprimer ce document ?`,
       async () => {
-        try {
-          await deleteDocument(documentId);
-          toast.success("Document supprimé avec succès");
-          // Rediriger vers la liste des documents
-          router.push("/dashboard/documents");
-        } catch (error) {
-          console.error("Erreur lors de la suppression:", error);
-          toast.error(error.message || "Erreur lors de la suppression du document");
-        }
+        await deleteDocument(documentId);
+        router.push("/dashboard/documents");
       },
       {
         loading: "Suppression du document en cours...",

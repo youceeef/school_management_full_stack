@@ -6,7 +6,7 @@ import { Card, DataTable, StatsCard, PageHeader } from "../../components/ui";
 import Button from "../../components/Button";
 import { ClockIcon, AcademicCapIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
 import { getReservations, approveReservation, rejectReservation } from "../../services/reservationService";
-import toast from "react-hot-toast";
+import toast from "../../utils/toast";
 import { PERMISSIONS } from "../../constants/permissions";
 
 export default function ReservationsPage() {

@@ -56,6 +56,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/salles/count', [DashboardController::class, 'getSalleCount']);
     Route::get('/equipements/count', [DashboardController::class, 'getEquipementCount']);
     Route::get('/documents/count', [DashboardController::class, 'getDocumentCount']);
+    Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
 
     // --- Documents ---
     Route::prefix('documents')->group(function () {

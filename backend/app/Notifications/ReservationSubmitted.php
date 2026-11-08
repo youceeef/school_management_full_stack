@@ -3,7 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Reservation;
-use App\Models\User; // Type hint for $notifiable in toArray
+use App\Models\User;
 use Illuminate\Notifications\Notification;
 
 class ReservationSubmitted extends Notification
@@ -22,22 +22,21 @@ class ReservationSubmitted extends Notification
         return ['database'];
     }
 
-    public function toArray(User $notifiable): array // $notifiable is the admin/manager
+    public function toArray(User $notifiable): array
     {
-        // Ensure relationships are loaded on $this->reservation if accessed here
-        // e.g., $this->reservation->loadMissing(['user', 'salle']);
         $creator = $this->reservation->user;
         $salle = $this->reservation->salle;
+        $creatorName = trim($creator->first_name.' '.$creator->last_name);
 
         return [
-            'event' => 'reservation_submitted', // Consistent event key
+            'event' => 'reservation_submitted',
             'reservation_id' => $this->reservation->id,
             'requester_id' => $creator->id,
-            'requester_name' => $creator->name, // Assuming User model has 'name' attribute
+            'requester_name' => $creatorName,
             'salle_name' => $salle->name,
             'start_time' => $this->reservation->start_time->toDateTimeString(),
-            'message' => "Nouvelle demande de réservation de {$creator->name} pour la salle {$salle->name}.",
-            'action_url' => '/admin/reservations/'.$this->reservation->id, // Adjust to your admin panel route
+            'message' => "Nouvelle demande de réservation de {$creatorName} pour la salle {$salle->name}.",
+            'action_url' => '/dashboard/reservations/'.$this->reservation->id,
         ];
     }
 }

@@ -47,7 +47,7 @@ class NewUserForAdminNotification extends Notification implements ShouldQueue
             'new_user_email' => $this->newUser->email,
             'new_user_role' => ucfirst($role),
             'message' => 'Un nouveau '.$role.' ('.$this->newUser->email.') s\'est inscrit.',
-            'action_url' => '/admin/users/'.$this->newUser->id,
+            'action_url' => '/dashboard/users',
         ];
     }
 }

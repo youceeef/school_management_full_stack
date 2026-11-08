@@ -7,7 +7,7 @@ import RoomSelector from "./components/RoomSelector";
 import ReservationDetails from "./components/ReservationDetails";
 import { getSallesCalendar } from "@/app/services/salleService";
 import { getCalendarReservations, getDailyReservations } from "@/app/services/reservationService";
-import { toast } from "react-hot-toast";
+import toast from "../../utils/toast";
 import "react-datepicker/dist/react-datepicker.css";
 import "@/app/styles/datepicker.css";
 

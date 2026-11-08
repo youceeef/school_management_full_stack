@@ -267,21 +267,11 @@ function DocumentsPage() {
 
   // Supprimer un document
   const handleDelete = (id) => {
-    const docToDelete = documents.find((d) => d.id === id);
-
     toast.confirmDelete(
       `Êtes-vous sûr de vouloir supprimer ce document ?`,
       async () => {
-        try {
-          await deleteDocument(id);
-          setDocuments(documents.filter((doc) => doc.id !== id));
-          toast.success("Document supprimé avec succès");
-        } catch (error) {
-          console.error("Erreur lors de la suppression:", error);
-          toast.error(
-            error.message || "Erreur lors de la suppression du document"
-          );
-        }
+        await deleteDocument(id);
+        setDocuments((current) => current.filter((doc) => doc.id !== id));
       },
       {
         loading: "Suppression du document en cours...",

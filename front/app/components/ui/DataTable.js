@@ -13,7 +13,7 @@ const DataTable = ({
     <div className={`w-full ${className}`}>
       {searchable && (
         <div className="mb-6">
-          <SearchInput placeholder={searchPlaceholder} onChange={(e) => onSearch(e.target.value)} />
+          <SearchInput placeholder={searchPlaceholder} onChange={(e) => onSearch?.(e.target.value)} />
         </div>
       )}
 
@@ -37,7 +37,7 @@ const DataTable = ({
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {data.map((row, rowIndex) => (
                   <tr 
-                    key={rowIndex}
+                    key={row.id ?? rowIndex}
                     className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors duration-150 ease-in-out group"
                   >
                     {columns.map((column, colIndex) => (

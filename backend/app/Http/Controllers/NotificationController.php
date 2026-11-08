@@ -17,8 +17,22 @@ class NotificationController extends Controller
         $limit = min(max((int) $request->query('limit', 15), 1), 100);
 
         $notifications = $user->notifications()->latest()->paginate($limit);
+        $unreadCount = $user->unreadNotifications()->count();
 
-        return response()->json($notifications);
+        return response()->json([
+            'data' => $notifications->items(),
+            'meta' => [
+                'current_page' => $notifications->currentPage(),
+                'last_page' => $notifications->lastPage(),
+                'per_page' => $notifications->perPage(),
+                'total' => $notifications->total(),
+            ],
+            'stats' => [
+                'total' => $notifications->total(),
+                'unread' => $unreadCount,
+                'read' => max(0, $notifications->total() - $unreadCount),
+            ],
+        ]);
     }
 
     /**

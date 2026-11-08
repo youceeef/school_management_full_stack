@@ -1,50 +1,59 @@
 "use client";
 
 import React from "react";
-import toast from "../../utils/toast"; // Your custom toast is imported
+import Link from "next/link";
+import toast from "../../utils/toast";
 import { Card, DataTable, StatsCard, PageHeader } from "../../components/ui";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { useNotifications } from "../../context/NotificationContext";
-import { BellIcon, EnvelopeOpenIcon, CheckCircleIcon, TrashIcon, CheckBadgeIcon } from "@heroicons/react/24/outline";
-import ProtectedRoute from "../../components/ProtectedRoute";
-import PermissionGate from "../../components/PermissionGate";
-import { PERMISSIONS } from "../../constants/permissions";
-import { formatDistanceToNow } from "date-fns";
+import { BellIcon, EnvelopeOpenIcon, CheckCircleIcon, TrashIcon, CheckBadgeIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import { formatDistanceToNow, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export default function NotificationsPageWrapper() {
-  return (
-    // <ProtectedRoute permission={PERMISSIONS.LIST_NOTIFICATIONS}>
-    <NotificationsPage />
-    // </ProtectedRoute>
-  );
+  return <NotificationsPage />;
 }
 
 function NotificationsPage() {
-  const { notifications, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
+  const { notifications, unreadCount, readCount, totalCount, loading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
 
   const formatDate = (date) => {
-    if (!date) return "N/A";
-    return formatDistanceToNow(new Date(date), { addSuffix: true, locale: fr });
+    const parsed = new Date(date);
+    if (!date || !isValid(parsed)) return "N/A";
+    return formatDistanceToNow(parsed, { addSuffix: true, locale: fr });
   };
 
-  // --- NEW FUNCTION: handleDelete with confirmation ---
-  const handleDelete = (notificationId) => {
+  const handleDelete = async (notificationId) => {
     const notificationToDelete = notifications.find((n) => n.id === notificationId);
     if (!notificationToDelete) return;
 
-    // Truncate the message for a cleaner toast
     const truncatedMessage = notificationToDelete.message.length > 50 ? `${notificationToDelete.message.substring(0, 50)}...` : notificationToDelete.message;
 
-    toast.confirmDelete(`Êtes-vous sûr de vouloir supprimer cette notification : "${truncatedMessage}" ?`, async () => {
-      try {
-        await deleteNotification(notificationId);
-        toast.success("Notification supprimée avec succès.");
-      } catch (error) {
-        // The error toast is already handled in the context, but we can log it here if needed
-        console.error("Failed to delete notification:", error);
-      }
-    });
+    try {
+      await toast.confirmDelete(
+        `Êtes-vous sûr de vouloir supprimer cette notification : "${truncatedMessage}" ?`,
+        () => deleteNotification(notificationId),
+        {
+          loading: "Suppression en cours...",
+          success: "Notification supprimée avec succès.",
+          error: "Impossible de supprimer la notification.",
+        }
+      );
+    } catch (error) {
+      console.error("Failed to delete notification:", error);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await toast.promise(markAsRead(notificationId), {
+        loading: "Marquage en cours...",
+        success: "Notification marquée comme lue.",
+        error: "Impossible de marquer la notification comme lue.",
+      });
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
   };
 
   const columns = [
@@ -56,7 +65,15 @@ function NotificationsPage() {
           <div className={`w-8 h-8 rounded flex-shrink-0 flex items-center justify-center mr-4 ${!row.read_at ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300" : "bg-gray-100 dark:bg-gray-700 text-gray-500"}`}>
             {!row.read_at ? <BellIcon className="w-5 h-5" /> : <EnvelopeOpenIcon className="w-5 h-5" />}
           </div>
-          <span className="text-sm text-gray-800 dark:text-dark-text">{row.message}</span>
+          <div className="min-w-0">
+            <span className="text-sm text-gray-800 dark:text-dark-text break-words">{row.message}</span>
+            {row.data?.action_url && (
+              <Link href={row.data.action_url} className="mt-1 flex items-center text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                Ouvrir
+                <ArrowTopRightOnSquareIcon className="w-3 h-3 ml-1" />
+              </Link>
+            )}
+          </div>
         </div>
       ),
     },
@@ -81,39 +98,36 @@ function NotificationsPage() {
       render: (row) => (
         <div className="flex justify-center space-x-2">
           {!row.read_at && (
-            // <PermissionGate permission={PERMISSIONS.MODIFIER_NOTIFICATION}>
-            <button onClick={() => markAsRead(row.id)} className="p-2 text-gray-500 hover:text-green-600 dark:hover:text-green-400" title="Marquer comme lu">
+            <button onClick={() => handleMarkAsRead(row.id)} className="p-2 text-gray-500 hover:text-green-600 dark:hover:text-green-400" title="Marquer comme lu">
               <CheckCircleIcon className="w-5 h-5" />
             </button>
-            // </PermissionGate>
           )}
-          {/* <PermissionGate permission={PERMISSIONS.SUPPRIMER_NOTIFICATION}> */}
-          {/* --- MODIFIED: The onClick now calls our new handleDelete function --- */}
           <button onClick={() => handleDelete(row.id)} className="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-400" title="Supprimer">
             <TrashIcon className="w-5 h-5" />
           </button>
-          {/* </PermissionGate> */}
         </div>
       ),
     },
   ];
 
-  const readCount = notifications.length - unreadCount;
-  const readPercentage = notifications.length > 0 ? ((readCount / notifications.length) * 100).toFixed(0) : 0;
+  const readPercentage = totalCount > 0 ? Math.round((readCount / totalCount) * 100) : 0;
 
   const statsCards = [
-    { title: "Total des notifications", value: notifications.length.toString(), icon: BellIcon },
+    { title: "Total des notifications", value: totalCount.toString(), icon: BellIcon },
     { title: "Notifications non lues", value: unreadCount.toString(), icon: EnvelopeOpenIcon },
     { title: "Taux de lecture", value: `${readPercentage}%`, icon: CheckBadgeIcon },
   ];
 
   const handleMarkAllAsRead = async () => {
-    // This now uses the robust promise from the context
-    toast.promise(markAllAsRead(), {
-      loading: "Marquage en cours...",
-      success: "Toutes les notifications ont été marquées comme lues.",
-      error: "Une erreur est survenue.",
-    });
+    try {
+      await toast.promise(markAllAsRead(), {
+        loading: "Marquage en cours...",
+        success: "Toutes les notifications ont été marquées comme lues.",
+        error: "Une erreur est survenue.",
+      });
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+    }
   };
 
   return (
@@ -132,7 +146,6 @@ function NotificationsPage() {
             variant: "primary",
             onClick: handleMarkAllAsRead,
             disabled: unreadCount === 0 || loading,
-            // permission: PERMISSIONS.MODIFIER_NOTIFICATION,
           },
         ]}
       />
@@ -152,7 +165,7 @@ function NotificationsPage() {
           </div>
         ) : notifications.length === 0 ? (
           <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-            <p>Vous n`&apos;`avez aucune notification.</p>
+              <p>Vous n&apos;avez aucune notification.</p>
           </div>
         ) : (
           <DataTable columns={columns} data={notifications} searchable={false} />

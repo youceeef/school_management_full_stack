@@ -5,8 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { FaClock, FaChalkboardTeacher, FaTools, FaArrowLeft } from "react-icons/fa";
 import { getMyreservation, cancelReservation } from "../../../services/reservationService";
-import { confirmDelete } from "../../../utils/toast";
-import toast from "react-hot-toast";
+import toast, { confirmDelete } from "../../../utils/toast";
 import Button from "../../../components/Button";
 
 export default function SingleReservationPage() {

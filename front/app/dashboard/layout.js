@@ -47,9 +47,11 @@ export default function DashboardLayout({ children }) {
   };
 
   const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
+    setShowNotifications((current) => !current);
     setShowProfileMenu(false);
   };
+
+  const closeNotifications = () => setShowNotifications(false);
 
   const toggleProfileMenu = () => {
     setShowProfileMenu(!showProfileMenu);
@@ -205,6 +207,7 @@ export default function DashboardLayout({ children }) {
             unreadCount={unreadCount}
             showNotifications={showNotifications}
             toggleNotifications={toggleNotifications}
+            closeNotifications={closeNotifications}
             showProfileMenu={showProfileMenu}
             toggleProfileMenu={toggleProfileMenu}
             notificationRef={notificationRef}

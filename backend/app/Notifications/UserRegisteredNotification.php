@@ -45,7 +45,7 @@ class UserRegisteredNotification extends Notification implements ShouldQueue
             'user_name' => $this->user->first_name.' '.$this->user->last_name,
             'role' => $this->user->getRoleNames()->first() ?? 'user',
             'message' => 'Bienvenue ! Votre compte en tant que '.($this->user->getRoleNames()->first() ?? 'utilisateur').' a été créé.',
-            'action_url' => '/profile',
+            'action_url' => '/dashboard/profile',
         ];
     }
 }

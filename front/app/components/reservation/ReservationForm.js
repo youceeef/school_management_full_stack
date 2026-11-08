@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { FaCalendar, FaClock, FaChalkboardTeacher, FaTools, FaChevronDown, FaSpinner, FaArrowLeft, FaArrowRight, FaCheck, FaSearch, FaTimes } from "react-icons/fa";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import toast from "react-hot-toast";
+import toast from "../../utils/toast";
 import { getSallesCalendar } from "../../services/salleService";
 import { getReservationsEquipements } from "../../services/equipementService";
 import { createReservation } from "../../services/reservationService";

@@ -1,153 +1,176 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import axiosInstance from "../config/axios";
 import { useAuth } from "./AuthContext";
-import Cookies from "js-cookie";
-import { toast } from "react-hot-toast";
+import toast from "../utils/toast";
 
 const NotificationContext = createContext();
 
+const emptyStats = { total: 0, unread: 0, read: 0 };
+
+const normalizeActionUrl = (url) => {
+  if (!url) return null;
+
+  return url
+    .replace(/^\/admin\/reservations\//, "/dashboard/reservations/")
+    .replace(/^\/my-reservations\//, "/dashboard/mes-reservations/")
+    .replace(/^\/admin\/users(?:\/\d+)?$/, "/dashboard/users")
+    .replace(/^\/profile$/, "/dashboard/profile");
+};
+
+const normalizeNotification = (notification) => ({
+  id: notification.id,
+  message: notification.data?.message || notification.message || "Notification",
+  created_at: notification.created_at,
+  read_at: notification.read_at,
+  data: {
+    ...(notification.data || {}),
+    action_url: normalizeActionUrl(notification.data?.action_url),
+  },
+  type: notification.type,
+});
+
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [stats, setStats] = useState(emptyStats);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const knownIds = useRef(new Set());
+  const hasLoaded = useRef(false);
+  const requestInFlight = useRef(false);
 
-  const fetchNotifications = useCallback(async () => {
-    if (!user || !Cookies.get("token")) {
-      setNotifications([]);
-      setUnreadCount(0);
-      setLoading(false);
-      return;
-    }
+  const resetNotifications = useCallback(() => {
+    setNotifications([]);
+    setStats(emptyStats);
+    setLoading(false);
+    knownIds.current = new Set();
+    hasLoaded.current = false;
+  }, []);
 
-    try {
-      let response = await axiosInstance.get("/api/notifications");
-
-      if (!response.data || (Array.isArray(response.data) && response.data.length === 0)) {
-        response = await axiosInstance.get("/api/notifications/unread");
+  const fetchNotifications = useCallback(
+    async ({ showLoading = false } = {}) => {
+      if (!user) {
+        resetNotifications();
+        return [];
       }
 
-      let notificationsArray;
-      if (Array.isArray(response.data)) {
-        notificationsArray = response.data;
-      } else if (response.data?.notifications) {
-        notificationsArray = response.data.notifications;
-      } else if (response.data?.data) {
-        notificationsArray = response.data.data;
-      } else {
-        notificationsArray = [];
+      if (requestInFlight.current) return [];
+      requestInFlight.current = true;
+      if (showLoading) setLoading(true);
+
+      try {
+        const response = await axiosInstance.get("/api/notifications", {
+          params: { limit: 100 },
+        });
+        const notificationItems = Array.isArray(response.data?.data) ? response.data.data : [];
+        const processed = notificationItems.map(normalizeNotification);
+
+        if (hasLoaded.current) {
+          processed
+            .filter((notification) => !notification.read_at && !knownIds.current.has(notification.id))
+            .forEach((notification) => {
+              toast.info(notification.message, {
+                id: `notification-${notification.id}`,
+                duration: 5000,
+              });
+            });
+        }
+
+        knownIds.current = new Set(processed.map((notification) => notification.id));
+        hasLoaded.current = true;
+        setNotifications(processed);
+        setStats(response.data?.stats || emptyStats);
+
+        return processed;
+      } catch (error) {
+        if (error.response?.status === 401) {
+          resetNotifications();
+        } else {
+          console.error("Notification refresh failed:", error);
+        }
+        throw error;
+      } finally {
+        requestInFlight.current = false;
+        setLoading(false);
       }
+    },
+    [resetNotifications, user]
+  );
 
-      const processedNotifications = notificationsArray.map((notification) => ({
-        id: notification.id,
-        message: notification.data?.message || notification.message || "",
-        created_at: notification.created_at,
-        read_at: notification.read_at,
-        data: notification.data || {},
-        type: notification.type,
-      }));
+  const markAsRead = useCallback(async (notificationId) => {
+    await axiosInstance.post(`/api/notifications/${notificationId}/mark-as-read`);
+    const readAt = new Date().toISOString();
 
-      setNotifications(processedNotifications);
-    } catch (error) {
-      if (error.response?.status === 401) {
-        setNotifications([]);
-        setUnreadCount(0);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+    setNotifications((current) =>
+      current.map((notification) =>
+        notification.id === notificationId ? { ...notification, read_at: notification.read_at || readAt } : notification
+      )
+    );
+    setStats((current) => ({
+      ...current,
+      unread: Math.max(0, current.unread - 1),
+      read: Math.min(current.total, current.read + 1),
+    }));
+  }, []);
 
-  const fetchUnreadCount = useCallback(async () => {
-    if (!user || !Cookies.get("token")) {
-      setUnreadCount(0);
-      setLoading(false);
-      return;
-    }
+  const markAllAsRead = useCallback(async () => {
+    await axiosInstance.post("/api/notifications/mark-all-as-read");
+    const readAt = new Date().toISOString();
 
-    try {
-      const response = await axiosInstance.get("/api/notifications/unread-count");
-      setUnreadCount(response.data.count || 0);
-    } catch (error) {
-      if (error.response?.status === 401) {
-        setUnreadCount(0);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+    setNotifications((current) =>
+      current.map((notification) => ({
+        ...notification,
+        read_at: notification.read_at || readAt,
+      }))
+    );
+    setStats((current) => ({ ...current, unread: 0, read: current.total }));
+  }, []);
 
-  const markAsRead = async (notificationId) => {
-    try {
-      await axiosInstance.post(`/api/notifications/${notificationId}/mark-as-read`);
-      setNotifications(notifications.map((notification) => (notification.id === notificationId ? { ...notification, read_at: new Date().toISOString() } : notification)));
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (error) {
-      toast.error("Erreur lors du marquage de la notification comme lue");
-      // MODIFICATION: Re-throw the error for promise-based handlers
-      throw error;
-    }
-  };
+  const deleteNotification = useCallback(async (notificationId) => {
+    const deleted = notifications.find((notification) => notification.id === notificationId);
+    await axiosInstance.delete(`/api/notifications/${notificationId}`);
 
-  // In NotificationContext.js
-
-  const markAllAsRead = async () => {
-    try {
-      await axiosInstance.post("/api/notifications/mark-all-as-read");
-      setNotifications(
-        notifications.map((notification) => ({
-          ...notification,
-          read_at: notification.read_at || new Date().toISOString(),
-        }))
-      );
-      setUnreadCount(0);
-    } catch (error) {
-      toast.error("Erreur lors du marquage de toutes les notifications comme lues");
-      // This line MUST be here
-      throw error;
-    }
-  };
-
-  const deleteNotification = async (notificationId) => {
-    try {
-      await axiosInstance.delete(`/api/notifications/${notificationId}`);
-      setNotifications(notifications.filter((n) => n.id !== notificationId));
-      const wasUnread = notifications.find((n) => n.id === notificationId && !n.read_at);
-      if (wasUnread) {
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
-    } catch (error) {
-      toast.error("Erreur lors de la suppression de la notification");
-      // MODIFICATION: Re-throw the error for promise-based handlers
-      throw error;
-    }
-  };
+    setNotifications((current) => current.filter((notification) => notification.id !== notificationId));
+    setStats((currentStats) => ({
+      total: Math.max(0, currentStats.total - 1),
+      unread: Math.max(0, currentStats.unread - (deleted && !deleted.read_at ? 1 : 0)),
+      read: Math.max(0, currentStats.read - (deleted?.read_at ? 1 : 0)),
+    }));
+    knownIds.current.delete(notificationId);
+  }, [notifications]);
 
   useEffect(() => {
-    if (user) {
-      fetchNotifications();
-      fetchUnreadCount();
-
-      const interval = setInterval(() => {
-        fetchNotifications();
-        fetchUnreadCount();
-      }, 10000);
-
-      return () => clearInterval(interval);
-    } else {
-      setNotifications([]);
-      setUnreadCount(0);
-      setLoading(false);
+    if (!user) {
+      resetNotifications();
+      return undefined;
     }
-  }, [user, fetchNotifications, fetchUnreadCount]);
+
+    fetchNotifications({ showLoading: true }).catch(() => {});
+
+    const refresh = () => fetchNotifications().catch(() => {});
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    const interval = window.setInterval(refresh, 60000);
+
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [fetchNotifications, resetNotifications, user]);
 
   return (
     <NotificationContext.Provider
       value={{
         notifications,
-        unreadCount,
+        unreadCount: stats.unread,
+        readCount: stats.read,
+        totalCount: stats.total,
         loading,
         markAsRead,
         markAllAsRead,

@@ -1,4 +1,4 @@
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 // Durées par défaut pour chaque type de notification
 const durations = {
@@ -14,14 +14,16 @@ const durations = {
  * @param {object} options - Options supplémentaires pour la notification
  */
 export const notifySuccess = (message, options = {}) => {
+  const { style, ...toastOptions } = options;
   toast.success(message, {
     duration: durations.success,
+    id: toastOptions.id || `success-${message}`,
+    ...toastOptions,
     style: {
       wordBreak: 'break-word',
       whiteSpace: 'normal',
-      ...options.style,
+      ...style,
     },
-    ...options,
   });
 };
 
@@ -31,14 +33,16 @@ export const notifySuccess = (message, options = {}) => {
  * @param {object} options - Options supplémentaires pour la notification
  */
 export const notifyError = (message, options = {}) => {
+  const { style, ...toastOptions } = options;
   toast.error(message, {
     duration: durations.error,
+    id: toastOptions.id || `error-${message}`,
+    ...toastOptions,
     style: {
       wordBreak: 'break-word',
       whiteSpace: 'normal',
-      ...options.style,
+      ...style,
     },
-    ...options,
   });
 };
 
@@ -48,18 +52,19 @@ export const notifyError = (message, options = {}) => {
  * @param {object} options - Options supplémentaires pour la notification
  */
 export const notifyInfo = (message, options = {}) => {
-  // Utiliser toast avec des options personnalisées pour info puisque toast.info n'existe pas nativement
+  const { style, ...toastOptions } = options;
   toast(message, {
     duration: durations.info,
     icon: "ℹ️",
+    id: toastOptions.id || `info-${message}`,
+    ...toastOptions,
     style: {
       background: "#3b82f6",
       color: "#fff",
       wordBreak: 'break-word',
       whiteSpace: 'normal',
-      ...options.style,
+      ...style,
     },
-    ...options,
   });
 };
 
@@ -70,17 +75,16 @@ export const notifyInfo = (message, options = {}) => {
  * @param {object} options - Options avec messages de succès et d'erreur
  * @returns {Promise} - Renvoie la promise d'origine
  */
-export const notifyPromise = (message, promise, options = {}) => {
+export const notifyPromise = (promise, messages = {}, options = {}) => {
   return toast.promise(
     promise,
     {
-      loading: message,
-      success: options.success || "Opération réussie",
-      error: options.error || "Une erreur est survenue",
+      loading: messages.loading || "Opération en cours...",
+      success: messages.success || "Opération réussie",
+      error: messages.error || "Une erreur est survenue",
     },
     {
-      duration: durations.loading,
-      ...options.toastOptions,
+      ...options,
     }
   );
 };
@@ -91,13 +95,14 @@ export const notifyPromise = (message, promise, options = {}) => {
  * @param {object} options - Options supplémentaires pour la notification
  */
 export const notifyCustom = (message, options = {}) => {
+  const { style, ...toastOptions } = options;
   toast(message, {
+    ...toastOptions,
     style: {
       wordBreak: 'break-word',
       whiteSpace: 'normal',
-      ...options.style,
+      ...style,
     },
-    ...options,
   });
 };
 
@@ -163,34 +168,25 @@ export const confirm = (message) => {
  * Fonction pour supprimer un élément avec une confirmation et un toast
  * @param {string} message - Message de confirmation
  * @param {Function} deleteAction - Fonction à exécuter si l'utilisateur confirme
- * @param {object} options - Options pour les messages toast
+ * @param {object} options - Messages optionnels pour le toast de progression
  */
 export const confirmDelete = async (message, deleteAction, options = {}) => {
-  if (await confirm(message)) {
-    return notifyPromise(
-      options.loading || "Suppression en cours...",
-      new Promise((resolve, reject) => {
-        try {
-          const result = deleteAction();
-          // Si l'action de suppression renvoie une promise, on la gère
-          if (result instanceof Promise) {
-            result.then(resolve).catch(reject);
-          } else {
-            // Sinon on simule un délai pour l'effet visuel
-            setTimeout(resolve, 800);
-          }
-        } catch (error) {
-          reject(error);
-        }
-      }),
-      {
-        success: options.success || "Élément supprimé avec succès",
-        error: options.error || "Erreur lors de la suppression",
-        toastOptions: options.toastOptions,
-      }
-    );
-  }
-  return Promise.resolve(false);
+  if (!(await confirm(message))) return false;
+
+  const operation = Promise.resolve().then(deleteAction);
+  const hasProgressMessages = options.loading || options.success || options.error;
+
+  if (!hasProgressMessages) return operation;
+
+  return notifyPromise(
+    operation,
+    {
+      loading: options.loading || "Suppression en cours...",
+      success: options.success || "Élément supprimé avec succès",
+      error: options.error || "Erreur lors de la suppression",
+    },
+    options.toastOptions
+  );
 };
 
 /**
