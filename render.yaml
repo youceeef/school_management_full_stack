@@ -48,7 +48,7 @@ services:
       - key: PROFILE_AWS_SECRET_ACCESS_KEY
         sync: false
       - key: PROFILE_AWS_DEFAULT_REGION
-        value: auto
+        value: eu-central-1
       - key: PROFILE_AWS_BUCKET
         sync: false
       - key: PROFILE_AWS_URL
@@ -62,7 +62,7 @@ services:
       - key: DOCUMENTS_AWS_SECRET_ACCESS_KEY
         sync: false
       - key: DOCUMENTS_AWS_DEFAULT_REGION
-        value: auto
+        value: eu-central-1
       - key: DOCUMENTS_AWS_BUCKET
         sync: false
       - key: DOCUMENTS_AWS_ENDPOINT
