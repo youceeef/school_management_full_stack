@@ -541,7 +541,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P1 Complete | Dedicated Account Approval Center UI, Navigation, and Details Modal | `3a73214` |
 | 2026-11-09 | P2.1 | Institutional identity fields in registration, models, approval center, and tests | `4311584` |
 | 2026-11-09 | P2 Complete | Staff identity, proof documents, private storage, and admin viewer | `a951787` |
-| 2026-11-09 | P3 Complete | Full account-review lifecycle: rejection reason, resubmission, suspension, and review history | `73ed59a` |
+| 2026-11-09 | P3 Complete | Full account-review lifecycle: rejection reason, resubmission, suspension, and review history | `ba8cc3e` |
 
 ## Next action
 
