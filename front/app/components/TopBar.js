@@ -67,6 +67,7 @@ const TopBar = ({
       notifications: "Centre de Notifications",
       profile: "Profil Utilisateur",
       "change-password": "Sécurité du Compte",
+      "system-status": "État du système",
     };
 
     if (lastSegment && !isNaN(lastSegment) && parentSegment && labels[parentSegment]) {

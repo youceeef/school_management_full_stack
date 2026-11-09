@@ -107,10 +107,18 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` Profile storage connectivity reports `ok`.
     - `[x]` Document storage connectivity reports `ok`.
 
-- `[ ]` **P0.3 — Frontend/API compatibility check**
+- `[~]` **P0.3 — Frontend/API compatibility check**
   - Expose the expected API schema version in the frontend build.
   - Show an admin-visible warning when frontend and API versions differ.
   - Add a small System Status page for administrators.
+  - Verification evidence:
+    - `[x]` Backend health payload exposes API schema version `1`.
+    - `[x]` Vercel commit SHA is embedded as the frontend version.
+    - `[x]` Schema `1` frontend versus schema `2` API shows the global warning.
+    - `[x]` Matching schema `1` removes the warning and reports compatible.
+    - `[x]` Degraded health responses remain readable through CORS.
+    - `[x]` System Status page is restricted to administrators.
+    - `[x]` French, English, Arabic/RTL and Lighthouse checks pass.
 
 - `[ ]` **P0.4 — Deployment automation**
   - Enable Render auto-deploy for `main`.

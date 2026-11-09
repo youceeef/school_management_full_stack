@@ -15,6 +15,7 @@ import {
   UsersIcon,
   UserGroupIcon,
   ShieldCheckIcon,
+  SignalIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import toast from "../utils/toast";
@@ -24,6 +25,8 @@ import AuthMiddleware from "../components/AuthMiddleware";
 import { useNotifications } from "../context/NotificationContext";
 import Sidebar from "../components/Sidebar";
 import TopBar from "../components/TopBar";
+import ApiCompatibilityBanner from "../components/ApiCompatibilityBanner";
+import { SystemHealthProvider } from "../context/SystemHealthContext";
 import { PERMISSIONS } from "../constants/permissions";
 
 export default function DashboardLayout({ children }) {
@@ -166,6 +169,12 @@ export default function DashboardLayout({ children }) {
         permissions: [PERMISSIONS.LIST_PERMISSIONS],
       },
       {
+        name: "État du système",
+        path: "/dashboard/system-status",
+        icon: SignalIcon,
+        roles: ["admin"],
+      },
+      {
         name: "Profil",
         path: "/dashboard/profile",
         icon: UserCircleIcon,
@@ -200,36 +209,39 @@ export default function DashboardLayout({ children }) {
 
   return (
     <AuthMiddleware>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-        <Sidebar
-          isSidebarOpen={isSidebarOpen}
-          toggleSidebar={toggleSidebar}
-          handleLogout={handleLogout}
-          navItems={navItems}
-          isMobileView={isMobileView}
-          setIsSidebarOpen={setIsSidebarOpen}
-        />
-
-        <div className={`transition-[margin] duration-200 ${contentOffsetClass}`}>
-          <TopBar
-            pathname={pathname}
-            isMobileView={isMobileView}
+      <SystemHealthProvider>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+          <Sidebar
+            isSidebarOpen={isSidebarOpen}
             toggleSidebar={toggleSidebar}
             handleLogout={handleLogout}
-            unreadCount={unreadCount}
-            showNotifications={showNotifications}
-            toggleNotifications={toggleNotifications}
-            closeNotifications={closeNotifications}
-            showProfileMenu={showProfileMenu}
-            toggleProfileMenu={toggleProfileMenu}
-            notificationRef={notificationRef}
-            profileRef={profileRef}
-            setShowProfileMenu={setShowProfileMenu}
+            navItems={navItems}
+            isMobileView={isMobileView}
+            setIsSidebarOpen={setIsSidebarOpen}
           />
 
-          <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">{children}</main>
+          <div className={`transition-[margin] duration-200 ${contentOffsetClass}`}>
+            <TopBar
+              pathname={pathname}
+              isMobileView={isMobileView}
+              toggleSidebar={toggleSidebar}
+              handleLogout={handleLogout}
+              unreadCount={unreadCount}
+              showNotifications={showNotifications}
+              toggleNotifications={toggleNotifications}
+              closeNotifications={closeNotifications}
+              showProfileMenu={showProfileMenu}
+              toggleProfileMenu={toggleProfileMenu}
+              notificationRef={notificationRef}
+              profileRef={profileRef}
+              setShowProfileMenu={setShowProfileMenu}
+            />
+
+            <ApiCompatibilityBanner />
+            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">{children}</main>
+          </div>
         </div>
-      </div>
+      </SystemHealthProvider>
     </AuthMiddleware>
   );
 }

@@ -50,6 +50,7 @@ class HealthController extends Controller
         return [
             'application' => config('app.name'),
             'version' => config('health.version', 'local'),
+            'api_schema_version' => config('health.api_schema_version', '1'),
             'build_time' => $this->buildTime(),
             'timestamp' => now()->utc()->toIso8601String(),
         ];

@@ -10,7 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
-    "test:i18n": "node --test app/i18n/translations.test.mjs"
+    "test:i18n": "node --test app/i18n/translations.test.mjs",
+    "test:system": "node --test app/utils/systemCompatibility.test.mjs",
+    "test:unit": "npm run test:i18n && npm run test:system"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

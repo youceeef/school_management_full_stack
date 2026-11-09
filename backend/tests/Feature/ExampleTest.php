@@ -20,6 +20,7 @@ class ExampleTest extends TestCase
             ->assertJsonStructure([
                 'application',
                 'version',
+                'api_schema_version',
                 'build_time',
                 'timestamp',
             ]);
