@@ -53,7 +53,7 @@ class NewUserForAdminNotification extends Notification implements ShouldQueue
             'message' => $requiresApproval
                 ? 'Une demande de compte '.$role.' ('.$this->newUser->email.') attend votre approbation.'
                 : 'Un nouveau '.$role.' ('.$this->newUser->email.') s\'est inscrit.',
-            'action_url' => '/dashboard/users',
+            'action_url' => $requiresApproval ? '/dashboard/account-requests' : '/dashboard/users',
         ];
     }
 }

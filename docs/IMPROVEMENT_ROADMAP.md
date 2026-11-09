@@ -54,7 +54,7 @@ A phase is complete only when all applicable checks pass:
 | Phase | Objective | Depends on | Size | Status |
 |---|---|---:|:---:|:---:|
 | P0 | Deployment safety and production baseline | — | M | `[x]` |
-| P1 | Dedicated Account Approval Center | P0 | M | `[~]` |
+| P1 | Dedicated Account Approval Center | P0 | M | `[x]` |
 | P2 | Staff identity and proof documents | P1 | L | `[ ]` |
 | P3 | Rejection, resubmission, suspension, and review history | P2 | L | `[ ]` |
 | P4 | Approval emails and notification reliability | P3 | M | `[ ]` |
@@ -181,24 +181,43 @@ focused admin workflow.
     - `[x]` Automated feature tests pass in `AccountRequestApiTest`.
     - `[x]` Frontend API client `accountRequestService.js` implemented.
 
-- `[ ]` **P1.2 — Approval Center page**
+- `[x]` **P1.2 — Approval Center page**
   - Add `/dashboard/account-requests`.
   - Add Pending, Approved, Rejected, and Suspended tabs.
   - Show pending requests first.
   - Add human-readable role labels instead of raw database role names.
   - Add responsive cards for mobile and a table for larger screens.
+  - Verification evidence:
+    - `[x]` `/dashboard/account-requests` route created and guarded by `AdminRoute`.
+    - `[x]` Tab selector for Pending, Approved, Rejected, Suspended, and All requests with live count indicators.
+    - `[x]` Human-readable localized role badges ("Enseignant", "Responsable de laboratoire", "Administrateur", "Élève / Étudiant").
+    - `[x]` Responsive UI with full desktop table and dedicated mobile card view.
+    - `[x]` Inline approval, rejection, revocation, and re-examination actions with confirmation modals.
+    - `[x]` Search and role filter bar with pagination controls.
+    - `[x]` French, English, and Arabic/RTL translation phrases added.
 
-- `[ ]` **P1.3 — Navigation and dashboard visibility**
+- `[x]` **P1.3 — Navigation and dashboard visibility**
   - Add an Account Requests sidebar item for admins.
   - Display a live pending-count badge.
   - Add a pending-requests card to the admin dashboard.
   - Link approval notifications directly to the request.
+  - Verification evidence:
+    - `[x]` "Demandes de compte" sidebar item added for admins with live pending count badge.
+    - `[x]` Collapsed sidebar displays notification indicator dot when pending requests exist.
+    - `[x]` Admin dashboard features prominent pending requests review banner and quick action shortcut.
+    - `[x]` Admin notifications for new staff applicants link directly to `/dashboard/account-requests`.
 
-- `[ ]` **P1.4 — Request details panel**
+- `[x]` **P1.4 — Request details panel**
   - Show identity, contact details, requested role, registration date, and
     review metadata.
   - Keep approve/reject actions visible but protected from accidental clicks.
   - Add loading, empty, success, and failure states.
+  - Verification evidence:
+    - `[x]` Slide-over details modal component `AccountRequestDetailsModal.js` implemented.
+    - `[x]` Full applicant profile, requested role badge, registration date, contact links (mailto/tel), address, and bio displayed.
+    - `[x]` Chronological review metadata showing reviewer name, email, and processing timestamp.
+    - `[x]` Approve and reject actions with confirmation protection against accidental clicks.
+    - `[x]` Accessible keyboard dismissal (Escape), backdrop click, and full responsive support.
 
 ### Acceptance criteria
 
@@ -472,8 +491,9 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P0.5 | Credential hygiene runbook and automated secret scanning | `f170d1f` |
 | 2026-11-09 | P0 Baseline Complete | Production synchronized at 0d7b75b across Vercel and Render | `0d7b75b` |
 | 2026-11-09 | P1.1 | Dedicated account requests approval API with metrics and filters | `d10c2e4` |
+| 2026-11-09 | P1 Complete | Dedicated Account Approval Center UI, Navigation, and Details Modal | `HEAD` |
 
 ## Next action
 
-Start **P1.2 — Approval Center page**. Build `/dashboard/account-requests` with
-status tabs (Pending, Approved, Rejected, Suspended), responsive layout, and role labels.
+Start **P2.1 — Institutional identity fields** (Phase P2: Staff identity and proof documents).
+Add institution, staff ID, and professional phone fields to staff registration and models.

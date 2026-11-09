@@ -26,6 +26,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
 import { useLanguage } from "../context/LanguageContext";
 import { getDashboardStats, getRecentReservations } from "../services/dashboardService";
+import { getAccountRequestCounts } from "../services/accountRequestService";
 import toast from "../utils/toast";
 
 const DATE_LOCALES = { fr, en: enUS, ar: arTN };
@@ -79,11 +80,24 @@ const activityConfig = {
     icon: UsersIcon,
     className: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
   },
+  account_approval_required: {
+    icon: UserPlusIcon,
+    className: "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-900/60",
+  },
+  account_approved: {
+    icon: CheckCircleIcon,
+    className: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/60",
+  },
+  account_rejected: {
+    icon: XCircleIcon,
+    className: "bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border-red-200/60 dark:border-red-900/60",
+  },
 };
 
 export default function Dashboard() {
   const router = useRouter();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, hasRole } = useAuth();
+  const [pendingRequests, setPendingRequests] = useState(0);
   const { notifications, unreadCount } = useNotifications();
   const { locale, dateLocale, t, tr, isRtl } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
@@ -128,6 +142,15 @@ export default function Dashboard() {
   const quickActions = useMemo(() => {
     const actions = [];
 
+    if (hasRole("admin")) {
+      actions.push({
+        label: "Centre d'approbation",
+        description: "Valider les comptes du personnel",
+        icon: UserPlusIcon,
+        path: "/dashboard/account-requests",
+      });
+    }
+
     if (hasPermission(PERMISSIONS.CREATE_RESERVATIONS)) {
       actions.push({
         label: "Nouvelle réservation",
@@ -160,7 +183,7 @@ export default function Dashboard() {
       path: "/dashboard/notifications",
     });
     return actions;
-  }, [hasPermission]);
+  }, [hasPermission, hasRole]);
 
   const headerActions = quickActions.slice(0, 2).map((action, index) => ({
     children: tr(action.label),
@@ -278,6 +301,34 @@ export default function Dashboard() {
         description="Vue d’ensemble opérationnelle de vos réservations, ressources et documents pédagogiques."
         actions={headerActions}
       />
+
+      {pendingRequests > 0 && (
+        <div className="rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/60 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <UserPlusIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                {pendingRequests === 1
+                  ? tr("1 demande de compte en attente d'approbation.")
+                  : `${pendingRequests} ${tr("demandes de compte en attente d'approbation.")}`}
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {tr("Examinez et validez les comptes avant de leur attribuer des accès aux ressources.")}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/account-requests")}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white transition-colors shrink-0"
+          >
+            {tr("Examiner les demandes")}
+            <ArrowRightIcon className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (

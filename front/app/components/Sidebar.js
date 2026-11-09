@@ -126,7 +126,15 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, handleLogout, navItems, isMobil
                     title={!isSidebarOpen ? translatedName : undefined}
                   >
                     {Icon && <Icon className="w-5 h-5 shrink-0" />}
-                    {isSidebarOpen && <span className="truncate">{translatedName}</span>}
+                    {isSidebarOpen && <span className="truncate flex-1">{translatedName}</span>}
+                    {isSidebarOpen && item.badge !== undefined && item.badge > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        {item.badge}
+                      </span>
+                    )}
+                    {!isSidebarOpen && item.badge !== undefined && item.badge > 0 && (
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    )}
                   </Link>
                 </li>
               );

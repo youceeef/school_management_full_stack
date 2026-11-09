@@ -17,6 +17,7 @@ import {
   ShieldCheckIcon,
   SignalIcon,
   UserCircleIcon,
+  UserPlusIcon,
 } from "@heroicons/react/24/outline";
 import toast from "../utils/toast";
 import { useAuth } from "../context/AuthContext";
@@ -28,6 +29,7 @@ import TopBar from "../components/TopBar";
 import ApiCompatibilityBanner from "../components/ApiCompatibilityBanner";
 import { SystemHealthProvider } from "../context/SystemHealthContext";
 import { PERMISSIONS } from "../constants/permissions";
+import { getAccountRequestCounts } from "../services/accountRequestService";
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -39,6 +41,28 @@ export default function DashboardLayout({ children }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
   const { unreadCount } = useNotifications();
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  useEffect(() => {
+    if (!hasRole("admin")) return;
+    let isMounted = true;
+    const loadPendingCount = async () => {
+      try {
+        const res = await getAccountRequestCounts();
+        if (isMounted) {
+          setPendingRequestsCount(res.pending || 0);
+        }
+      } catch {
+        // ignore errors in background badge fetch
+      }
+    };
+    loadPendingCount();
+    const timer = setInterval(loadPendingCount, 45000);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [hasRole, pathname]);
 
   const notificationRef = useRef(null);
   const profileRef = useRef(null);
@@ -148,6 +172,13 @@ export default function DashboardLayout({ children }) {
         permissions: [PERMISSIONS.TELECHARGEMENTS],
       },
       {
+        name: "Demandes de compte",
+        path: "/dashboard/account-requests",
+        icon: UserPlusIcon,
+        roles: ["admin"],
+        badge: pendingRequestsCount,
+      },
+      {
         name: "Utilisateurs",
         path: "/dashboard/users",
         icon: UsersIcon,
@@ -180,7 +211,7 @@ export default function DashboardLayout({ children }) {
         icon: UserCircleIcon,
       },
     ],
-    []
+    [pendingRequestsCount]
   );
 
   const navItems = useMemo(() => {
