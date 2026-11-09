@@ -57,7 +57,7 @@ A phase is complete only when all applicable checks pass:
 | P1 | Dedicated Account Approval Center | P0 | M | `[x]` |
 | P2 | Staff identity and proof documents | P1 | L | `[x]` |
 | P3 | Rejection, resubmission, suspension, and review history | P2 | L | `[x]` |
-| P4 | Approval emails and notification reliability | P3 | M | `[ ]` |
+| P4 | Approval emails and notification reliability | P3 | M | `[x]` |
 | P5 | User administration UX and scalability | P1 | M | `[ ]` |
 | P6 | Security hardening | P0, P3 | L | `[ ]` |
 | P7 | Monitoring, auditability, and automated E2E testing | P0 | L | `[ ]` |
@@ -361,13 +361,47 @@ the dashboard.
 
 ### Tasks
 
-- `[ ]` Email admins when a new staff request arrives.
-- `[ ]` Email applicants when approved, rejected, suspended, or reactivated.
-- `[ ]` Include rejection reason and safe next steps.
-- `[ ]` Create localized French, English, and Arabic templates.
-- `[ ]` Add retry-safe notification jobs and failure logging.
-- `[ ]` Prevent duplicate emails when jobs are retried.
-- `[ ]` Add notification delivery tests using the fake mailer.
+- `[x]` **P4.1 — Email applicants on review lifecycle transitions**
+  - Email applicants when approved, rejected, suspended, or reactivated via `AccountApprovalStatusNotification`.
+  - Prominently include administrator rejection reason and actionable next steps.
+  - Contextual action buttons: direct `/login` link for approvals and reactivations; direct `/resubmit` link for rejections.
+  - Deliver via `['database', 'mail']` when recipient has an email address.
+  - Verification evidence:
+    - `[x]` `AccountApprovalStatusNotification` implements `toMail()` generating localized HTML and plain text messages.
+    - `[x]` Approved applicants receive congratulations and direct link to sign in (`/login`).
+    - `[x]` Reactivated users receive account restoration notice and direct link to sign in (`/login`).
+    - `[x]` Rejected applicants receive detailed rejection notice with quoted admin reason and one-click link to correct their application (`/resubmit`).
+    - `[x]` Suspended users receive formal notice with reason and instructions to contact school administration.
+    - `[x]` Automated unit and feature assertions in `AccountNotificationTest.php` pass.
+
+- `[x]` **P4.2 — Email administrators on new staff requests and resubmissions**
+  - Email all active administrators when a teacher or lab manager applies or resubmits.
+  - Include applicant name, email, requested role, institution, department, staff ID, and proof document attachment status.
+  - Direct CTA button pointing to `/dashboard/account-requests`.
+  - Verification evidence:
+    - `[x]` `NewUserForAdminNotification` updated to deliver via `['database', 'mail']`.
+    - `[x]` Resubmission support via `isResubmission` flag generating distinct notification event and subject.
+    - `[x]` `RegisteredUserController` dispatches to all admins on new staff registration via `SendWelcomeNotification`.
+    - `[x]` `AccountRequestController@resubmit` notifies all admins immediately on corrected applicant resubmission.
+    - `[x]` Automated feature tests verify admin email dispatch on registration and resubmission.
+
+- `[x]` **P4.3 — Localized French, English, and Arabic templates**
+  - Create complete localized email templates.
+  - Support user locale preference or fallback to application locale.
+  - Verification evidence:
+    - `[x]` French (`fr`), English (`en`), and Arabic (`ar`) templates implemented in `AccountApprovalStatusNotification`.
+    - `[x]` Dynamic locale resolution supports `$customLocale`, `$notifiable->preferred_locale`, and `config('app.locale')`.
+    - `[x]` Full assertions in `AccountNotificationTest.php` verify French, English, and Arabic subjects and copy.
+
+- `[x]` **P4.4 — Queue reliability, retry safety, and failure isolation**
+  - Make notification jobs queueable with exponential backoff.
+  - Prevent duplicate mailings and handle delivery errors safely.
+  - Ensure mail server errors never roll back or corrupt database status transitions.
+  - Verification evidence:
+    - `[x]` Notifications implement `ShouldQueue` with `$tries = 3` and `$backoff = [10, 60, 300]`.
+    - `[x]` `failed(Throwable $exception)` hooks log structured failure diagnostics.
+    - `[x]` `AccountRequestController` and `UserController` isolate `notify()` in try/catch blocks; DB commits first, and API returns status with optional `notification_warning` if mail transport encounters issues.
+    - `[x]` CI tests pass all assertions across full test suite.
 
 ### Acceptance criteria
 
@@ -524,6 +558,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | D006 | `PROD` is the preview/testing branch; `main` is production. | Accepted |
 | D007 | One roadmap phase or increment per implementation cycle. | Accepted |
 | D008 | Live credentials reviewed by operator and retained as baseline under repository-level ignore rules and Gitleaks protection. | Accepted |
+| D009 | Email notifications use a safe non-blocking dispatch pattern so SMTP or queue hiccups cannot corrupt or roll back account approval status transitions. | Accepted |
 
 ## Progress log
 
@@ -542,8 +577,9 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P2.1 | Institutional identity fields in registration, models, approval center, and tests | `4311584` |
 | 2026-11-09 | P2 Complete | Staff identity, proof documents, private storage, and admin viewer | `a951787` |
 | 2026-11-09 | P3 Complete | Full account-review lifecycle: rejection reason, resubmission, suspension, and review history | `3d3bc4a` |
+| 2026-11-09 | P4 Complete | Approval emails, admin notifications, localized templates (FR/EN/AR), retry safety, and test suite | `a4ca245` |
 
 ## Next action
 
-Start **P4.1 — Notification templates and mail delivery** (Phase P4: Approval emails and notification reliability).
-Configure notification jobs, email templates, and delivery testing for approvals, rejections, suspensions, and reactivations.
+Start **P5.1 — User administration UX and scalability** (Phase P5: Server-side pagination, sorting, search, filtering, and role administration).
+Implement server-side pagination, sorting, role/status/department filtering, and mobile card layouts for the general Users management view.
