@@ -23,8 +23,10 @@ class AccountApprovalStatusNotification extends Notification implements ShouldQu
     public function __construct(
         private readonly string $status,
         private readonly ?string $reason = null,
-        private readonly ?string $locale = null,
-    ) {}
+        ?string $customLocale = null,
+    ) {
+        $this->locale = $customLocale;
+    }
 
     public function via(object $notifiable): array
     {
