@@ -29,8 +29,9 @@ It complements `DEPLOYMENT.md` and must be followed for every production change.
 
 ## Automated public smoke checks
 
-The workflow `.github/workflows/production-smoke.yml` runs daily and can be run
-manually after every release. It verifies:
+The workflow `.github/workflows/production-smoke.yml` runs automatically after
+a successful `main` CI run, runs daily to detect drift, and can also be run
+manually. It verifies:
 
 - The production frontend responds successfully.
 - `/api/version` reports the expected Git SHA and API schema.
@@ -39,7 +40,8 @@ manually after every release. It verifies:
 - Profile storage connectivity is healthy.
 - Document storage connectivity is healthy.
 
-For a manual run, open GitHub Actions → Production Smoke → Run workflow. Supply
+The automatic run waits for Vercel and Render to converge on the CI commit. For
+a manual run, open GitHub Actions → Production Smoke → Run workflow and supply
 the full production SHA when verifying a specific deployment.
 
 ## Authenticated production smoke checklist
