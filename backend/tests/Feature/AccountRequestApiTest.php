@@ -6,6 +6,8 @@ use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
+use RuntimeException;
 use Tests\TestCase;
 
 class AccountRequestApiTest extends TestCase
@@ -269,6 +271,51 @@ class AccountRequestApiTest extends TestCase
         $this->assertSame(1, $response->json('meta.total'));
         $this->assertSame(1, $response->json('meta.counts.all'));
         $this->assertSame('enseignant', $response->json('data.0.requested_role'));
+    }
+
+    public function test_admin_can_send_a_test_email(): void
+    {
+        Mail::fake();
+        $admin = $this->createAdmin();
+
+        $this->withToken($this->tokenFor($admin))
+            ->postJson('/api/account-requests/test-email', ['email' => 'delivery@example.com'])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonMissingPath('error');
+    }
+
+    public function test_test_email_endpoint_is_admin_only_and_validates_the_recipient(): void
+    {
+        $student = User::factory()->create();
+        $student->assignRole('eleve');
+
+        $this->postJson('/api/account-requests/test-email')->assertUnauthorized();
+        $this->withToken($this->tokenFor($student))
+            ->postJson('/api/account-requests/test-email')
+            ->assertForbidden();
+
+        $admin = $this->createAdmin();
+        $this->withToken($this->tokenFor($admin))
+            ->postJson('/api/account-requests/test-email', ['email' => 'not-an-email'])
+            ->assertUnprocessable();
+    }
+
+    public function test_test_email_failure_response_sanitizes_credentials_in_errors(): void
+    {
+        $admin = $this->createAdmin();
+        Mail::shouldReceive('raw')
+            ->once()
+            ->andThrow(new RuntimeException('smtp://user:secret@private-mail-host'));
+
+        $response = $this->withToken($this->tokenFor($admin))
+            ->postJson('/api/account-requests/test-email', ['email' => 'delivery@example.com']);
+
+        $response->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Échec de l’envoi de l’email de test.')
+            ->assertJsonPath('error', 'smtp://user:***@private-mail-host');
+        $this->assertStringNotContainsString('secret', $response->getContent());
     }
 
     private function createAdmin(): User

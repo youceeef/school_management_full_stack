@@ -8,8 +8,10 @@ use App\Notifications\NewUserForAdminNotification;
 use App\Notifications\UserRegisteredNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -281,5 +283,130 @@ class AccountNotificationTest extends TestCase
             NewUserForAdminNotification::class,
             fn ($notification) => $notification->isResubmission === true
         );
+    }
+
+    public function test_student_registration_dispatches_user_registered_notification(): void
+    {
+        Notification::fake();
+
+        $response = $this->postJson('/api/register/eleve', [
+            'first_name' => 'Youssef',
+            'last_name' => 'Student',
+            'email' => 'student.mail@school.test',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
+        ]);
+
+        $response->assertCreated();
+        $user = User::where('email', 'student.mail@school.test')->firstOrFail();
+
+        Notification::assertSentTo(
+            $user,
+            UserRegisteredNotification::class,
+            fn ($notif) => $notif->user->id === $user->id
+        );
+    }
+
+    public function test_staff_registration_dispatches_welcome_and_admin_notifications(): void
+    {
+        Notification::fake();
+        $admin = $this->createAdmin();
+
+        $response = $this->postJson('/api/register/enseignant', [
+            'first_name' => 'Prof',
+            'last_name' => 'Enseignant',
+            'email' => 'prof.mail@school.test',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
+            'institution' => 'Polytechnique',
+            'department' => 'Génie Électrique',
+            'staff_id' => 'ENS-777',
+            'proof_document' => UploadedFile::fake()->create('proof.pdf', 200, 'application/pdf'),
+        ]);
+
+        $response->assertCreated();
+        $teacher = User::where('email', 'prof.mail@school.test')->firstOrFail();
+
+        Notification::assertSentTo(
+            $teacher,
+            UserRegisteredNotification::class
+        );
+
+        Notification::assertSentTo(
+            $admin,
+            NewUserForAdminNotification::class,
+            fn ($notif) => $notif->newUser->id === $teacher->id && $notif->isResubmission === false
+        );
+    }
+
+    public function test_account_review_approval_persists_even_when_notification_delivery_fails(): void
+    {
+        $admin = $this->createAdmin();
+        $applicant = $this->createApplicant();
+
+        Notification::shouldReceive('send')->andThrow(new RuntimeException('SMTP transport down'));
+
+        $response = $this->actingAs($admin)
+            ->patchJson("/api/account-requests/{$applicant->id}", [
+                'status' => 'approved',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.approval_status', User::APPROVAL_APPROVED)
+            ->assertJsonStructure(['notification_warning']);
+
+        $this->assertSame(User::APPROVAL_APPROVED, $applicant->fresh()->approval_status);
+    }
+
+    public function test_account_review_rejection_persists_even_when_notification_delivery_fails(): void
+    {
+        $admin = $this->createAdmin();
+        $applicant = $this->createApplicant();
+
+        Notification::shouldReceive('send')->andThrow(new RuntimeException('SMTP transport down'));
+
+        $response = $this->actingAs($admin)
+            ->patchJson("/api/account-requests/{$applicant->id}", [
+                'status' => 'rejected',
+                'reason' => 'Pièce jointe non conforme.',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.approval_status', User::APPROVAL_REJECTED)
+            ->assertJsonStructure(['notification_warning']);
+
+        $this->assertSame(User::APPROVAL_REJECTED, $applicant->fresh()->approval_status);
+        $this->assertSame('Pièce jointe non conforme.', $applicant->fresh()->rejection_reason);
+    }
+
+    public function test_artisan_mail_test_command_sends_email_to_default_address(): void
+    {
+        Mail::fake();
+
+        $this->artisan('mail:test')
+            ->expectsOutputToContain('Sending test email to:')
+            ->expectsOutputToContain('Test email sent successfully!')
+            ->assertExitCode(0);
+    }
+
+    public function test_artisan_mail_test_command_sends_email_to_custom_recipient(): void
+    {
+        Mail::fake();
+
+        $this->artisan('mail:test', ['email' => 'custom-recipient@example.com'])
+            ->expectsOutputToContain('Sending test email to: custom-recipient@example.com')
+            ->expectsOutputToContain('Test email sent successfully!')
+            ->assertExitCode(0);
+    }
+
+    public function test_artisan_mail_test_command_handles_mail_failure_gracefully(): void
+    {
+        Mail::shouldReceive('raw')
+            ->once()
+            ->andThrow(new RuntimeException('Connection timed out on port 587'));
+
+        $this->artisan('mail:test', ['email' => 'test@example.com'])
+            ->expectsOutputToContain('Failed sending test email: Connection timed out on port 587')
+            ->assertExitCode(1);
     }
 }

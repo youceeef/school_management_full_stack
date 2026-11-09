@@ -507,8 +507,11 @@ class AccountRequestController extends Controller
 
         $recipient = $validated['email'] ?? $request->user()->email;
 
+        $mailer = (string) config('mail.default');
+        $endpoint = $mailer === 'mailjet' ? 'api.mailjet.com:443 (HTTPS)' : ((string) config('mail.mailers.smtp.host') ?: 'smtp');
+
         try {
-            Mail::raw('Bonjour, ceci est un email de test envoyé depuis EduSpace pour vérifier la configuration SMTP.', function ($message) use ($recipient) {
+            Mail::raw('Bonjour, ceci est un email de test envoyé depuis EduSpace pour vérifier la configuration de messagerie (Mailjet API v3.1 HTTPS).', function ($message) use ($recipient) {
                 $message->to($recipient)
                     ->subject('[EduSpace] Test de configuration de messagerie');
             });
@@ -516,21 +519,24 @@ class AccountRequestController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => "Email de test envoyé avec succès à {$recipient}.",
-                'mailer' => config('mail.default'),
-                'host' => config('mail.mailers.smtp.host'),
+                'mailer' => $mailer,
+                'host' => $endpoint,
             ]);
         } catch (Throwable $e) {
-            Log::error('SMTP test email failed: '.$e->getMessage(), [
+            $rawError = $e->getMessage();
+            $sanitizedError = preg_replace('/:\/\/([^:]+):([^@]+)@/', '://$1:***@', $rawError);
+
+            Log::error('SMTP/API test email failed: '.$rawError, [
                 'recipient' => $recipient,
-                'error' => $e->getMessage(),
+                'error' => $rawError,
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Échec de l’envoi de l’email de test.',
-                'error' => $e->getMessage(),
-                'mailer' => config('mail.default'),
-                'host' => config('mail.mailers.smtp.host'),
+                'error' => $sanitizedError,
+                'mailer' => $mailer,
+                'host' => $endpoint,
             ], 422);
         }
     }

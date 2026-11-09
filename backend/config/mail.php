@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', 'smtp'),
+    'default' => env('MAIL_MAILER', 'mailjet'),
 
     /*
     |--------------------------------------------------------------------------
@@ -34,6 +34,13 @@ return [
     */
 
     'mailers' => [
+        'mailjet' => [
+            'transport' => 'mailjet',
+            'key' => env('MAILJET_APIKEY', env('MAIL_USERNAME')),
+            'secret' => env('MAILJET_APISECRET', env('MAIL_PASSWORD')),
+            'timeout' => env('MAIL_TIMEOUT', 10),
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'url' => env('MAIL_URL'),
@@ -42,7 +49,7 @@ return [
             'encryption' => env('MAIL_ENCRYPTION', 'tls'),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
+            'timeout' => env('MAIL_TIMEOUT', 10),
             'local_domain' => env('MAIL_EHLO_DOMAIN'),
         ],
 

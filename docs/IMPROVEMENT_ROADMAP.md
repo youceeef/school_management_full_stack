@@ -418,13 +418,14 @@ Keep user administration usable as the number of accounts grows.
 
 ### Tasks
 
-- `[ ]` Server-side pagination, sorting, search, and filtering.
-- `[ ]` Filters for role, status, registration date, and department.
-- `[ ]` Friendly localized role labels everywhere.
-- `[ ]` Mobile card layout for users and role controls.
+- `[~]` **P5.1 — Server-side pagination, sorting, search, and filtering.**
+  - Implementation complete locally; backend execution, browser review, and deployment approval remain.
+- `[~]` Filters for role, status, registration date, and department.
+- `[~]` Friendly localized role labels everywhere.
+- `[~]` Mobile card layout for users and role controls.
 - `[ ]` Preserve filters when navigating back from details.
 - `[ ]` Add carefully scoped bulk actions after single-user actions are stable.
-- `[ ]` Prevent removal of the last administrator and self-demotion in the UI.
+- `[~]` Prevent removal of the last administrator and self-demotion in the UI.
 
 ### Acceptance criteria
 
@@ -560,6 +561,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | D008 | Live credentials reviewed by operator and retained as baseline under repository-level ignore rules and Gitleaks protection. | Accepted |
 | D009 | Email notifications use a safe non-blocking dispatch pattern so SMTP or queue hiccups cannot corrupt or roll back account approval status transitions. | Accepted |
 | D010 | Personal Gmail address (@gmail.com) sender requires native Google SMTP (smtp.gmail.com:587 with Google App Password) to guarantee DMARC/SPF inbox delivery without custom domain DNS records. | Accepted |
+| D011 | Render Free Tier blocks outbound SMTP TCP ports (25, 465, 587, 2525). To guarantee 100% reliable transactional email delivery on Render Free without port blocks or gateway timeouts, EduSpace uses the Mailjet Send API v3.1 over standard HTTPS (Port 443). | Accepted |
 
 ## Progress log
 
@@ -580,8 +582,9 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P3 Complete | Full account-review lifecycle: rejection reason, resubmission, suspension, and review history | `3d3bc4a` |
 | 2026-11-09 | P4 Complete | Approval emails, admin notifications, localized templates (FR/EN/AR), retry safety, and test suite | `a4ca245` |
 | 2026-11-09 | P4.1 Diagnostics | SMTP diagnostic test suite, CLI mail:test command, admin system-status tester, Render mail env sync | `dcd6f8d` |
+| 2026-11-10 | P4.2 | Mailjet API v3.1 HTTPS transport over Port 443, failure isolation, and expanded mail test suite | `1d85d43` |
 
 ## Next action
 
-Start **P5.1 — User administration UX and scalability** (Phase P5: Server-side pagination, sorting, search, filtering, and role administration).
-Implement server-side pagination, sorting, role/status/department filtering, and mobile card layouts for the general Users management view.
+Deploy and verify **Phase P4.2 - Mailjet API v3.1 HTTPS transport over Port 443**.
+Verify live email delivery using /dashboard/system-status on Render production, confirm inbox delivery, then proceed to Phase P5.

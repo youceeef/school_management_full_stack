@@ -83,12 +83,10 @@ services:
       - key: ADMIN_LAST_NAME
         value: User
       - key: MAIL_MAILER
-        value: smtp
-      - key: MAIL_HOST
+        value: mailjet
+      - key: MAILJET_APIKEY
         sync: false
-      - key: MAIL_PORT
-        sync: false
-      - key: MAIL_ENCRYPTION
+      - key: MAILJET_APISECRET
         sync: false
       - key: MAIL_USERNAME
         sync: false

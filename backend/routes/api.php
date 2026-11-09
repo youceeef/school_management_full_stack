@@ -106,7 +106,9 @@ Route::middleware(['auth:sanctum', 'account.approved'])->group(function () {
         Route::patch('/{id}', [AccountRequestController::class, 'review'])->name('account-requests.review');
         Route::get('/{id}/proof/preview', [AccountRequestController::class, 'previewProof'])->name('account-requests.proof.preview');
         Route::get('/{id}/proof/download', [AccountRequestController::class, 'downloadProof'])->name('account-requests.proof.download');
-        Route::post('/test-email', [AccountRequestController::class, 'sendTestEmail'])->name('account-requests.test-email');
+        Route::post('/test-email', [AccountRequestController::class, 'sendTestEmail'])
+            ->middleware('throttle:6,1')
+            ->name('account-requests.test-email');
     });
     Route::delete('/users/{userId}', [UserController::class, 'deleteUserByAdmin'])->name('users.destroy');
     Route::delete('/users/{userId}/roles', [RoleController::class, 'removeRoleFromUser']);
