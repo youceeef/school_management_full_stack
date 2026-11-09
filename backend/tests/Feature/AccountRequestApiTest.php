@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class AccountRequestApiTest extends TestCase
@@ -282,8 +283,8 @@ class AccountRequestApiTest extends TestCase
         string $status = User::APPROVAL_PENDING,
         string $firstName = 'Test',
         string $lastName = 'User',
-        string $email = null,
-        string $createdAt = null
+        ?string $email = null,
+        ?string $createdAt = null
     ): User {
         return User::factory()->create([
             'first_name' => $firstName,
@@ -291,7 +292,7 @@ class AccountRequestApiTest extends TestCase
             'email' => $email ?? fake()->unique()->safeEmail(),
             'requested_role' => $requestedRole,
             'approval_status' => $status,
-            'created_at' => $createdAt ? now()->parse($createdAt) : now(),
+            'created_at' => $createdAt ? Carbon::parse($createdAt) : now(),
         ]);
     }
 
