@@ -4,6 +4,7 @@ services:
     runtime: docker
     plan: free
     region: frankfurt
+    branch: main
     rootDir: backend
     healthCheckPath: /
     autoDeployTrigger: checksPass

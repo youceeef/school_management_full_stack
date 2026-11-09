@@ -120,11 +120,21 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` System Status page is restricted to administrators.
     - `[x]` French, English, Arabic/RTL and Lighthouse checks pass.
 
-- `[ ]` **P0.4 — Deployment automation**
+- `[~]` **P0.4 — Deployment automation**
   - Enable Render auto-deploy for `main`.
   - Keep Vercel production deployment on `main` only.
   - Document manual rollback procedures for both services.
   - Add a production smoke-test checklist to deployment documentation.
+  - Verification evidence:
+    - `[x]` Render Blueprint is pinned to `main` with `checksPass` deploys.
+    - `[x]` Vercel production-branch setting is documented as `main`.
+    - `[x]` Public frontend build metadata endpoint is tested.
+    - `[x]` Production verifier accepts synchronized healthy deployments.
+    - `[x]` Production verifier rejects frontend/API SHA drift.
+    - `[x]` Manual and daily Production Smoke workflow is defined.
+    - `[x]` Non-destructive Vercel/Render rollback runbook is documented.
+    - `[ ]` GitHub accepts and successfully runs the Production Smoke workflow.
+    - `[ ]` Production frontend and API both report the P0.4 commit.
 
 - `[ ]` **P0.5 — Credential hygiene**
   - Rotate credentials that were copied, shared, or exposed during setup.

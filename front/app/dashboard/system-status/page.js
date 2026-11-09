@@ -31,6 +31,7 @@ function SystemStatusPage() {
     lastCheckedAt,
     compatibility,
     frontendVersion,
+    frontendBuildTime,
     expectedApiSchemaVersion,
     refresh,
   } = useSystemHealth();
@@ -153,6 +154,12 @@ function SystemStatusPage() {
                 <dt className="text-slate-500 dark:text-slate-400">{tr("Schéma API déployé")}</dt>
                 <dd className="mt-1 font-mono text-slate-900 dark:text-slate-100">
                   {compatibility.actual || tr("Non disponible")}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 dark:text-slate-400">{tr("Compilation frontend")}</dt>
+                <dd className="mt-1 text-slate-900 dark:text-slate-100">
+                  {formatDate(frontendBuildTime)}
                 </dd>
               </div>
               <div>

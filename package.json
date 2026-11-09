@@ -15,7 +15,9 @@
     "lint": "npm --prefix front run lint",
     "test:i18n": "npm --prefix front run test:i18n",
     "test:system": "npm --prefix front run test:system",
-    "test:unit": "npm --prefix front run test:unit"
+    "test:version": "npm --prefix front run test:version",
+    "test:unit": "npm --prefix front run test:unit",
+    "smoke:production": "node scripts/verify-production.mjs"
   },
   "overrides": {
     "@typescript-eslint/typescript-estree": {

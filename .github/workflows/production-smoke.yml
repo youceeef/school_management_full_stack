@@ -1,0 +1,39 @@
+name: Production Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Expected production commit SHA (defaults to current main)
+        required: false
+        type: string
+  schedule:
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify synchronized production deployments
+        run: npm run smoke:production
+        env:
+          PRODUCTION_FRONTEND_URL: https://eduspace-alpha.vercel.app
+          PRODUCTION_API_URL: https://eduspace-api-dhn4.onrender.com
+          EXPECTED_SHA: ${{ inputs.expected_sha || github.sha }}
+          EXPECTED_API_SCHEMA_VERSION: "1"
+          MAX_ATTEMPTS: ${{ github.event_name == 'workflow_dispatch' && '45' || '1' }}
+          RETRY_DELAY_MS: "20000"

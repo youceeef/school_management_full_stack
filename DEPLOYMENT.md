@@ -83,6 +83,8 @@ and administrator seeding, Laravel optimization, and then the API server.
 4. Set `NEXT_PUBLIC_STORAGE_URL` to the public Neon profile bucket URL.
 5. Deploy and copy the final production URL.
 6. Update Render's `FRONTEND_URL` to that exact origin and redeploy the API.
+7. In Vercel Project Settings → Git, set the Production Branch to `main`.
+   Keep `PROD` enabled for preview deployments only.
 
 ## 6. Verification
 
@@ -103,3 +105,9 @@ After deployment:
 See `backend/.env.example`, `render.yaml`, and `front/.env.example`. In
 production, always keep `APP_DEBUG=false`, use HTTPS origins, and never commit
 database, administrator, mail, or object-storage credentials.
+
+## Release and rollback operations
+
+Follow [`docs/DEPLOYMENT_RUNBOOK.md`](docs/DEPLOYMENT_RUNBOOK.md) for branch
+rules, the automated Production Smoke workflow, authenticated release checks,
+and non-destructive Vercel/Render rollback procedures.

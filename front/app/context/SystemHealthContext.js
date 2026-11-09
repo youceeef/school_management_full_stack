@@ -68,6 +68,7 @@ export function SystemHealthProvider({ children }) {
       lastCheckedAt,
       compatibility,
       frontendVersion: process.env.NEXT_PUBLIC_APP_VERSION || "local",
+      frontendBuildTime: process.env.NEXT_PUBLIC_BUILD_TIME || null,
       expectedApiSchemaVersion:
         process.env.NEXT_PUBLIC_API_SCHEMA_VERSION || "1",
       refresh,

@@ -3,6 +3,7 @@ const storageUrl = new URL(process.env.NEXT_PUBLIC_STORAGE_URL || apiUrl.origin)
 const isProduction = process.env.NODE_ENV === "production";
 const frontendVersion =
   process.env.NEXT_PUBLIC_APP_VERSION || process.env.VERCEL_GIT_COMMIT_SHA || "local";
+const frontendBuildTime = process.env.NEXT_PUBLIC_BUILD_TIME || new Date().toISOString();
 const expectedApiSchemaVersion = process.env.NEXT_PUBLIC_API_SCHEMA_VERSION || "1";
 
 const imagePattern = (url) => ({
@@ -16,6 +17,7 @@ const imagePattern = (url) => ({
 const nextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: frontendVersion,
+    NEXT_PUBLIC_BUILD_TIME: frontendBuildTime,
     NEXT_PUBLIC_API_SCHEMA_VERSION: expectedApiSchemaVersion,
   },
   images: {
