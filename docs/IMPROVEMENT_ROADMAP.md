@@ -56,7 +56,7 @@ A phase is complete only when all applicable checks pass:
 | P0 | Deployment safety and production baseline | — | M | `[x]` |
 | P1 | Dedicated Account Approval Center | P0 | M | `[x]` |
 | P2 | Staff identity and proof documents | P1 | L | `[x]` |
-| P3 | Rejection, resubmission, suspension, and review history | P2 | L | `[ ]` |
+| P3 | Rejection, resubmission, suspension, and review history | P2 | L | `[x]` |
 | P4 | Approval emails and notification reliability | P3 | M | `[ ]` |
 | P5 | User administration UX and scalability | P1 | M | `[ ]` |
 | P6 | Security hardening | P0, P3 | L | `[ ]` |
@@ -541,7 +541,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P1 Complete | Dedicated Account Approval Center UI, Navigation, and Details Modal | `3a73214` |
 | 2026-11-09 | P2.1 | Institutional identity fields in registration, models, approval center, and tests | `4311584` |
 | 2026-11-09 | P2 Complete | Staff identity, proof documents, private storage, and admin viewer | `a951787` |
-| 2026-11-09 | P3 Complete | Full account-review lifecycle: rejection reason, resubmission, suspension, and review history | `ba8cc3e` |
+| 2026-11-09 | P3 Complete | Full account-review lifecycle: rejection reason, resubmission, suspension, and review history | `3d3bc4a` |
 
 ## Next action
 
