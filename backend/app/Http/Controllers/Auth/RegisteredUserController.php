@@ -4,11 +4,9 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -22,19 +20,27 @@ class RegisteredUserController extends Controller
         Request $request,
         array $validationRules,
         string $role,
-        bool $issueToken = true
+        bool $issueToken = true,
+        bool $requiresApproval = false
     ): JsonResponse {
         $validated = $request->validate($validationRules);
 
-        $user = DB::transaction(function () use ($validated, $role) {
+        $user = DB::transaction(function () use ($validated, $role, $requiresApproval) {
             $user = User::create([
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
+                'approval_status' => $requiresApproval
+                    ? User::APPROVAL_PENDING
+                    : User::APPROVAL_APPROVED,
+                'requested_role' => $requiresApproval ? $role : null,
+                'reviewed_at' => $requiresApproval ? null : now(),
             ]);
 
-            $user->assignRole($role);
+            if (! $requiresApproval) {
+                $user->assignRole($role);
+            }
 
             return $user;
         });
@@ -42,11 +48,16 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         $response = [
-            'message' => "$role enregistré avec succès",
+            'message' => $requiresApproval
+                ? 'Votre demande de compte a été enregistrée. Un administrateur doit l’approuver avant votre première connexion.'
+                : "$role enregistré avec succès",
             'user' => $user->load('roles'),
+            'approval_required' => $requiresApproval,
+            'approval_status' => $user->approval_status,
+            'requested_role' => $user->requested_role,
         ];
 
-        if ($issueToken) {
+        if ($issueToken && $user->isApproved()) {
             $response['token'] = $user->createToken('registration-token')->plainTextToken;
         }
 
@@ -83,7 +94,9 @@ class RegisteredUserController extends Controller
                 'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
             ],
-            'enseignant'
+            'enseignant',
+            false,
+            true
         );
     }
 
@@ -92,9 +105,6 @@ class RegisteredUserController extends Controller
      */
     public function registerManager(Request $request): JsonResponse
     {
-        // if (!auth()->user() || !auth()->user()->hasRole('admin')) {
-        //     throw new AuthorizationException('You are not authorized to register an admin.');
-        // }
         return $this->createUser(
             $request,
             [
@@ -104,7 +114,8 @@ class RegisteredUserController extends Controller
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
             ],
             'responsable_laboratoire',
-            false
+            false,
+            true
         );
     }
 
@@ -113,9 +124,6 @@ class RegisteredUserController extends Controller
      */
     public function registerAdmin(Request $request): JsonResponse
     {
-        // if (!auth()->user() || !auth()->user()->hasRole('admin')) {
-        //     throw new AuthorizationException('You are not authorized to register an admin.');
-        // }
         return $this->createUser(
             $request,
             [

@@ -38,3 +38,12 @@ export const removeUserRole = async (userId, roleName) => {
     throw error.response?.data || { message: "Erreur lors du retrait du rôle" };
   }
 };
+
+export const reviewUserApproval = async (userId, status) => {
+  try {
+    const response = await axiosInstance.patch(`/api/users/${userId}/approval`, { status });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Erreur lors de la révision du compte" };
+  }
+};

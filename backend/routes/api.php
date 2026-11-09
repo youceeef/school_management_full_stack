@@ -35,6 +35,7 @@ Route::post('/login', [AuthenticatedSessionController::class, 'store'])
 Route::prefix('register')->middleware('throttle:registration')->group(function () {
     Route::post('/eleve', [RegisteredUserController::class, 'registerStudent']);
     Route::post('/enseignant', [RegisteredUserController::class, 'registerTeacher']);
+    Route::post('/responsable_labo', [RegisteredUserController::class, 'registerManager']);
 });
 
 /*
@@ -47,7 +48,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Privileged accounts may only be created by an authenticated administrator.
     Route::prefix('register')->middleware('role:admin')->group(function () {
-        Route::post('/responsable_labo', [RegisteredUserController::class, 'registerManager']);
         Route::post('/admin', [RegisteredUserController::class, 'registerAdmin']);
     });
 
@@ -89,6 +89,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- Users & Profile ---
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::patch('/users/{userId}/approval', [UserController::class, 'reviewAccountApproval'])
+        ->middleware('role:admin')
+        ->name('users.approval.review');
     Route::delete('/users/{userId}', [UserController::class, 'deleteUserByAdmin'])->name('users.destroy');
     Route::delete('/users/{userId}/roles', [RoleController::class, 'removeRoleFromUser']);
     Route::get('/user', [UserController::class, 'getCurrentUser']);

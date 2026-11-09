@@ -27,6 +27,18 @@ class AuthenticatedSessionController extends Controller
             return response()->json(['message' => 'Identifiants incorrects.'], 401);
         }
 
+        if (! $user->isApproved()) {
+            $message = $user->approval_status === User::APPROVAL_REJECTED
+                ? 'Votre demande de compte a été refusée. Contactez l’administration.'
+                : 'Votre compte est en attente d’approbation par un administrateur.';
+
+            return response()->json([
+                'message' => $message,
+                'code' => 'ACCOUNT_'.strtoupper($user->approval_status),
+                'approval_status' => $user->approval_status,
+            ], 403);
+        }
+
         $user->tokens()->delete();
         $tokenName = 'auth-token:'.Str::limit((string) $request->userAgent(), 220, '');
         $token = $user->createToken($tokenName)->plainTextToken;

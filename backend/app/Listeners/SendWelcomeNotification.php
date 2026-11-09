@@ -32,10 +32,8 @@ class SendWelcomeNotification
             // 2. Notify admins if the new user has a specific role
             $rolesToNotifyAdminFor = ['enseignant', 'responsable_laboratoire', 'admin', 'eleve'];
 
-            $shouldNotifyAdmin = false;
-            if ($registeredUser->hasAnyRole($rolesToNotifyAdminFor)) {
-                $shouldNotifyAdmin = true;
-            }
+            $shouldNotifyAdmin = $registeredUser->approval_status === User::APPROVAL_PENDING
+                || $registeredUser->hasAnyRole($rolesToNotifyAdminFor);
             // If not using Spatie's hasAnyRole or prefer manual check:
             // $userRoles = $registeredUser->getRoleNames();
             // if ($userRoles) {

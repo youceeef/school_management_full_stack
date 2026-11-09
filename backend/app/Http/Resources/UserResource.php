@@ -31,6 +31,9 @@ class UserResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'bio' => $this->bio,
+            'approval_status' => $this->approval_status,
+            'requested_role' => $this->requested_role,
+            'reviewed_at' => $this->reviewed_at,
         ];
     }
 

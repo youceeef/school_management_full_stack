@@ -39,13 +39,21 @@ class UserRegisteredNotification extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
+        $role = $this->user->requested_role
+            ?? $this->user->getRoleNames()->first()
+            ?? 'utilisateur';
+        $pending = $this->user->approval_status === User::APPROVAL_PENDING;
+
         return [
             'event' => 'user_registered',
             'user_id' => $this->user->id,
             'user_name' => $this->user->first_name.' '.$this->user->last_name,
-            'role' => $this->user->getRoleNames()->first() ?? 'user',
-            'message' => 'Bienvenue ! Votre compte en tant que '.($this->user->getRoleNames()->first() ?? 'utilisateur').' a été créé.',
-            'action_url' => '/dashboard/profile',
+            'role' => $role,
+            'approval_status' => $this->user->approval_status,
+            'message' => $pending
+                ? 'Votre demande de compte '.$role.' a été enregistrée et attend l’approbation d’un administrateur.'
+                : 'Bienvenue ! Votre compte en tant que '.$role.' a été créé.',
+            'action_url' => $pending ? '/login' : '/dashboard/profile',
         ];
     }
 }

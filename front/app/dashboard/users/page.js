@@ -3,15 +3,26 @@
 import React, { useState, useEffect } from "react";
 import toast from "../../utils/toast";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import Button from "../../components/Button";
 import { Card, DataTable, StatsCard, PageHeader } from "../../components/ui";
-import { UsersIcon, KeyIcon, SparklesIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { getUsers, removeUserRole } from "../../services/userService";
+import {
+  UsersIcon,
+  KeyIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
+import { getUsers, removeUserRole, reviewUserApproval } from "../../services/userService";
 import AdminRoute from "../../components/AdminRoute";
+import { useLanguage } from "../../context/LanguageContext";
 
 function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [reviewingUserId, setReviewingUserId] = useState(null);
+  const { tr } = useLanguage();
 
   const fetchUsers = async () => {
     try {
@@ -43,6 +54,54 @@ function UsersPage() {
         success: "Le rôle a été retiré",
         error: "Erreur lors du retrait du rôle",
       }
+    );
+  };
+
+  const handleApprovalReview = async (user, status) => {
+    const approving = status === "approved";
+    const confirmed = await toast.confirm(
+      approving
+        ? `Approuver le compte de ${user.first_name} ${user.last_name} et attribuer le rôle ${user.requested_role} ?`
+        : `Refuser le compte de ${user.first_name} ${user.last_name} et révoquer son accès ?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setReviewingUserId(user.id);
+      const response = await reviewUserApproval(user.id, status);
+      toast.success(tr(response.message));
+      await fetchUsers();
+    } catch (error) {
+      toast.error(tr(error.message || "Erreur lors de la révision du compte"));
+    } finally {
+      setReviewingUserId(null);
+    }
+  };
+
+  const approvalBadge = (status) => {
+    const styles = {
+      approved:
+        "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900",
+      pending:
+        "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+      rejected:
+        "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900",
+    };
+    const labels = {
+      approved: "Approuvé",
+      pending: "En attente",
+      rejected: "Refusé",
+    };
+
+    return (
+      <span
+        className={`inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-medium ${
+          styles[status] || styles.pending
+        }`}
+      >
+        {tr(labels[status] || labels.pending)}
+      </span>
     );
   };
 
@@ -106,6 +165,53 @@ function UsersPage() {
           </div>
         ),
     },
+    {
+      header: "Rôle demandé",
+      accessor: "requested_role",
+      render: (row) => (
+        <span className="text-sm text-slate-600 dark:text-slate-300">
+          {row.requested_role || "—"}
+        </span>
+      ),
+    },
+    {
+      header: "Approbation",
+      accessor: "approval_status",
+      render: (row) => approvalBadge(row.approval_status),
+    },
+    {
+      header: "Actions",
+      accessor: "approval_actions",
+      render: (row) =>
+        row.requested_role ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {row.approval_status !== "approved" && (
+              <Button
+                size="sm"
+                variant="success"
+                icon={CheckCircleIcon}
+                loading={reviewingUserId === row.id}
+                onClick={() => handleApprovalReview(row, "approved")}
+              >
+                {tr("Approuver")}
+              </Button>
+            )}
+            {row.approval_status !== "rejected" && (
+              <Button
+                size="sm"
+                variant="danger"
+                icon={XCircleIcon}
+                disabled={reviewingUserId === row.id}
+                onClick={() => handleApprovalReview(row, "rejected")}
+              >
+                {tr("Rejeter")}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        ),
+    },
   ];
 
   const adminCount = users.filter(
@@ -113,6 +219,7 @@ function UsersPage() {
       u.roles &&
       u.roles.some((role) => (typeof role === "object" ? role.name === "admin" : role === "admin"))
   ).length;
+  const pendingCount = users.filter((user) => user.approval_status === "pending").length;
 
   const statsCards = [
     {
@@ -126,9 +233,9 @@ function UsersPage() {
       icon: KeyIcon,
     },
     {
-      title: "Dernières inscriptions",
-      value: users.slice(-5).length.toLocaleString("fr-FR"),
-      icon: SparklesIcon,
+      title: "Comptes en attente",
+      value: pendingCount.toLocaleString("fr-FR"),
+      icon: ClockIcon,
     },
   ];
 
@@ -136,14 +243,16 @@ function UsersPage() {
     (u) =>
       (u.first_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (u.last_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (u.email || "").toLowerCase().includes(searchTerm.toLowerCase())
+      (u.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.requested_role || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.approval_status || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Annuaire des utilisateurs"
-        description="Consultez les comptes inscrits et supervisez leurs rôles institutionnels."
+        description="Approuvez les comptes enseignants et responsables avant de leur attribuer leurs permissions."
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

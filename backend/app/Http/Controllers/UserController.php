@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Notifications\AccountApprovalStatusNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use RuntimeException;
 use Throwable;
 
@@ -25,19 +27,75 @@ class UserController extends Controller
     public function index()
     {
         $this->authorize('listUsers', User::class);
-        $users = User::with('roles')->get();
+        $users = User::with(['roles', 'reviewer:id,first_name,last_name'])
+            ->orderByRaw("CASE approval_status WHEN 'pending' THEN 0 WHEN 'rejected' THEN 1 ELSE 2 END")
+            ->orderByDesc('created_at')
+            ->get();
         $usersWithRoles = $users->map(function ($user) {
             return [
                 'id' => $user->id,
                 'first_name' => $user->first_name,
                 'last_name' => $user->last_name,
                 'email' => $user->email,
-                // Add other fields as needed
                 'roles' => $user->roles->pluck('name'),
+                'approval_status' => $user->approval_status,
+                'requested_role' => $user->requested_role,
+                'reviewed_at' => $user->reviewed_at,
+                'reviewed_by' => $user->reviewer ? [
+                    'id' => $user->reviewer->id,
+                    'name' => $user->reviewer->first_name.' '.$user->reviewer->last_name,
+                ] : null,
+                'created_at' => $user->created_at,
             ];
         });
 
         return response()->json($usersWithRoles);
+    }
+
+    public function reviewAccountApproval(Request $request, int $userId)
+    {
+        $this->authorize('listUsers', User::class);
+
+        $validated = $request->validate([
+            'status' => [
+                'required',
+                Rule::in([User::APPROVAL_APPROVED, User::APPROVAL_REJECTED]),
+            ],
+        ]);
+
+        $user = User::with('roles')->findOrFail($userId);
+
+        if (! $user->requiresAccountApproval()) {
+            return response()->json([
+                'message' => 'Ce compte ne fait pas partie du processus d’approbation.',
+            ], 422);
+        }
+
+        $status = $validated['status'];
+
+        DB::transaction(function () use ($request, $user, $status) {
+            if ($status === User::APPROVAL_APPROVED) {
+                $user->syncRoles([$user->requested_role]);
+            } else {
+                $user->syncRoles([]);
+                $user->tokens()->delete();
+            }
+
+            $user->forceFill([
+                'approval_status' => $status,
+                'reviewed_at' => now(),
+                'reviewed_by' => $request->user()->id,
+            ])->save();
+        });
+
+        $user->notify(new AccountApprovalStatusNotification($status));
+
+        return response()->json([
+            'message' => $status === User::APPROVAL_APPROVED
+                ? 'Compte approuvé et rôle attribué avec succès.'
+                : 'Demande de compte refusée.',
+            'user' => new UserResource($user->fresh()->load('roles')),
+        ]);
     }
 
     public function show($id)

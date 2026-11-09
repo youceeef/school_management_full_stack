@@ -59,22 +59,28 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
         password_confirmation: formData.confirmPassword,
       };
 
+      let response;
+
       switch (userType) {
         case "eleve":
-          await registerStudent(userData);
+          response = await registerStudent(userData);
           break;
         case "professeur":
-          await registerTeacher(userData);
+          response = await registerTeacher(userData);
           break;
         case "responsable":
-          await registerLabManager(userData);
+          response = await registerLabManager(userData);
           break;
         default:
           toast.error(tr("Type d'utilisateur non valide"));
           return;
       }
 
-      toast.success(tr("Compte créé avec succès !"));
+      toast.success(
+        response?.approval_required
+          ? tr(response.message)
+          : tr("Compte créé avec succès !")
+      );
       setTimeout(() => {
         router.push(returnPath);
       }, 900);

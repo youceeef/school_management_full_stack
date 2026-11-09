@@ -28,7 +28,7 @@ export default function LanguageSwitcher({ className = "" }) {
             }}
             data-testid={`lang-${code}`}
             aria-pressed={isActive}
-            aria-label={`${t("common.language")}: ${meta.label}`}
+            aria-label={`${meta.shortLabel} — ${t("common.language")}: ${meta.label}`}
             title={meta.label}
             className={`px-2 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer select-none ${
               isActive

@@ -117,7 +117,9 @@ const TopBar = ({
           <button
             type="button"
             onClick={toggleNotifications}
-            aria-label={tr("Afficher les notifications")}
+            aria-label={`${tr("Afficher les notifications")}${
+              unreadCount > 0 ? `: ${unreadCount}` : ""
+            }`}
             aria-expanded={showNotifications}
             className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 relative transition-colors"
           >
