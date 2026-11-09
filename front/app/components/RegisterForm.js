@@ -19,12 +19,18 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
     email: "",
     password: "",
     confirmPassword: "",
+    institution: "",
+    department: "",
+    staff_id: "",
+    professional_phone: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { registerStudent, registerTeacher, registerLabManager } = useAuth();
   const { t, tr, isRtl } = useLanguage();
+
+  const isStaff = userType === "professeur" || userType === "responsable";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,6 +47,11 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
         return;
       }
 
+      if (isStaff && (!formData.institution.trim() || !formData.department.trim() || !formData.staff_id.trim())) {
+        toast.error(tr("Veuillez renseigner les informations de votre établissement"));
+        return;
+      }
+
       if (formData.password !== formData.confirmPassword) {
         toast.error(tr("Les mots de passe ne correspondent pas"));
         return;
@@ -52,11 +63,17 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
       }
 
       const userData = {
-        first_name: formData.prenom,
-        last_name: formData.nom,
-        email: formData.email,
+        first_name: formData.prenom.trim(),
+        last_name: formData.nom.trim(),
+        email: formData.email.trim(),
         password: formData.password,
         password_confirmation: formData.confirmPassword,
+        ...(isStaff && {
+          institution: formData.institution.trim(),
+          department: formData.department.trim(),
+          staff_id: formData.staff_id.trim(),
+          professional_phone: formData.professional_phone.trim() || null,
+        }),
       };
 
       let response;
@@ -147,10 +164,12 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
             <p className="text-xs font-semibold text-primary-600 dark:text-primary-400">
               {t("auth.registerHubEyebrow")}
             </p>
-            <h1 className="mt-1 text-2xl font-bold font-display text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
               {getTitleByUserType()}
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{getSubtitleByUserType()}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+              {getSubtitleByUserType()}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -203,6 +222,81 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
                 required
               />
             </div>
+
+            {isStaff && (
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+                  {tr("Informations professionnelles")}
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="institution" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      {tr("Établissement / Institution")} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="institution"
+                      name="institution"
+                      type="text"
+                      value={formData.institution}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
+                      placeholder={tr("ex. Faculté des Sciences de Tunis, CSFT...")}
+                      required={isStaff}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="department" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      {tr("Département / Laboratoire")} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="department"
+                      name="department"
+                      type="text"
+                      value={formData.department}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
+                      placeholder={tr("ex. Département Informatique, Labo Physique...")}
+                      required={isStaff}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="staff_id" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      {tr("Identifiant / Matricule professionnel")} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="staff_id"
+                      name="staff_id"
+                      type="text"
+                      value={formData.staff_id}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
+                      placeholder={tr("ex. ENS-2026-084, LAB-104...")}
+                      required={isStaff}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="professional_phone" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      {tr("Téléphone professionnel")}
+                    </label>
+                    <input
+                      id="professional_phone"
+                      name="professional_phone"
+                      type="tel"
+                      value={formData.professional_phone}
+                      onChange={handleChange}
+                      className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
+                      placeholder="+216 71 000 000"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
@@ -272,7 +366,7 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
       </div>
 
       <div className="text-center text-xs text-slate-400 dark:text-slate-500">
-        © {new Date().getFullYear()} EduSpace · CSFT Tunisie
+        © {new Date().getFullYear()} EduSpace — CSFT Tunisie
       </div>
     </div>
   );

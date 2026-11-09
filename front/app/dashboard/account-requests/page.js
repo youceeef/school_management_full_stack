@@ -22,6 +22,7 @@ import {
   CalendarIcon,
   ShieldCheckIcon,
   EyeIcon,
+  BuildingOffice2Icon,
 } from "@heroicons/react/24/outline";
 import {
   getAccountRequests,
@@ -565,9 +566,20 @@ export default function AccountRequestsPage() {
                           </div>
                         </td>
 
-                        {/* Requested Role */}
+                        {/* Requested Role & Institution */}
                         <td className="py-3.5 px-4">
-                          {getRoleBadge(applicant.requested_role)}
+                          <div className="flex flex-col gap-1">
+                            <div>{getRoleBadge(applicant.requested_role)}</div>
+                            {applicant.institution && (
+                              <span
+                                className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 max-w-[220px] truncate"
+                                title={`${applicant.institution}${applicant.department ? ' - ' + applicant.department : ''}`}
+                              >
+                                <BuildingOffice2Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span className="truncate">{applicant.institution}</span>
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Approval Status */}
@@ -711,6 +723,16 @@ export default function AccountRequestsPage() {
                         </span>
                       </div>
                     </div>
+
+                    {applicant.institution && (
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                        <BuildingOffice2Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate">
+                          {applicant.institution}
+                          {applicant.department ? ` (${applicant.department})` : ""}
+                        </span>
+                      </div>
+                    )}
 
                     {applicant.phone && (
                       <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">

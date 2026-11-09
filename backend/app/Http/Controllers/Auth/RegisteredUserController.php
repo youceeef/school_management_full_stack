@@ -31,6 +31,10 @@ class RegisteredUserController extends Controller
                 'last_name' => $validated['last_name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
+                'institution' => $validated['institution'] ?? null,
+                'department' => $validated['department'] ?? null,
+                'staff_id' => $validated['staff_id'] ?? null,
+                'professional_phone' => $validated['professional_phone'] ?? null,
                 'approval_status' => $requiresApproval
                     ? User::APPROVAL_PENDING
                     : User::APPROVAL_APPROVED,
@@ -49,7 +53,7 @@ class RegisteredUserController extends Controller
 
         $response = [
             'message' => $requiresApproval
-                ? 'Votre demande de compte a été enregistrée. Un administrateur doit l’approuver avant votre première connexion.'
+                ? 'Votre demande de compte a été enregistrée. Un administrateur doit l\'approuver avant votre première connexion.'
                 : "$role enregistré avec succès",
             'user' => $user->load('roles'),
             'approval_required' => $requiresApproval,
@@ -93,6 +97,10 @@ class RegisteredUserController extends Controller
                 'last_name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
+                'institution' => ['required', 'string', 'max:255'],
+                'department' => ['required', 'string', 'max:255'],
+                'staff_id' => ['required', 'string', 'max:100'],
+                'professional_phone' => ['nullable', 'string', 'max:30'],
             ],
             'enseignant',
             false,
@@ -112,6 +120,10 @@ class RegisteredUserController extends Controller
                 'last_name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
+                'institution' => ['required', 'string', 'max:255'],
+                'department' => ['required', 'string', 'max:255'],
+                'staff_id' => ['required', 'string', 'max:100'],
+                'professional_phone' => ['nullable', 'string', 'max:30'],
             ],
             'responsable_laboratoire',
             false,
@@ -131,6 +143,10 @@ class RegisteredUserController extends Controller
                 'last_name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
+                'institution' => ['nullable', 'string', 'max:255'],
+                'department' => ['nullable', 'string', 'max:255'],
+                'staff_id' => ['nullable', 'string', 'max:100'],
+                'professional_phone' => ['nullable', 'string', 'max:30'],
             ],
             'admin',
             false

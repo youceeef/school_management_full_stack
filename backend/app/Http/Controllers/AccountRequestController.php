@@ -56,14 +56,28 @@ class AccountRequestController extends Controller
             $query->where('requested_role', $request->input('role'));
         }
 
-        // Filter by general search keyword (name or email)
+        // Filter by general search keyword (name, email, institution, department, or staff ID)
         if ($request->filled('search')) {
             $search = '%'.$request->input('search').'%';
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', $search)
                     ->orWhere('last_name', 'like', $search)
-                    ->orWhere('email', 'like', $search);
+                    ->orWhere('email', 'like', $search)
+                    ->orWhere('institution', 'like', $search)
+                    ->orWhere('department', 'like', $search)
+                    ->orWhere('staff_id', 'like', $search);
             });
+        }
+
+        // Filter by explicit institutional fields
+        if ($request->filled('institution')) {
+            $query->where('institution', 'like', '%'.$request->input('institution').'%');
+        }
+        if ($request->filled('department')) {
+            $query->where('department', 'like', '%'.$request->input('department').'%');
+        }
+        if ($request->filled('staff_id')) {
+            $query->where('staff_id', 'like', '%'.$request->input('staff_id').'%');
         }
 
         // Filter by explicit name
@@ -93,7 +107,17 @@ class AccountRequestController extends Controller
         $sortDirection = strtolower($request->input('sort_direction', 'desc')) === 'asc' ? 'asc' : 'desc';
 
         if ($sortBy) {
-            $allowedSorts = ['created_at', 'first_name', 'last_name', 'email', 'approval_status', 'requested_role'];
+            $allowedSorts = [
+                'created_at',
+                'first_name',
+                'last_name',
+                'email',
+                'approval_status',
+                'requested_role',
+                'institution',
+                'department',
+                'staff_id',
+            ];
             if (in_array($sortBy, $allowedSorts, true)) {
                 $query->orderBy($sortBy, $sortDirection);
             } else {

@@ -150,6 +150,10 @@ class UserController extends Controller
                 'address',
                 'phone',
                 'bio',
+                'institution',
+                'department',
+                'staff_id',
+                'professional_phone',
             ]);
             $pictureUploaded = $newPicture !== null;
 
@@ -209,6 +213,10 @@ class UserController extends Controller
             'first_name' => 'nullable|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'bio' => 'nullable|string|max:1000',
+            'institution' => 'nullable|string|max:255',
+            'department' => 'nullable|string|max:255',
+            'staff_id' => 'nullable|string|max:100',
+            'professional_phone' => 'nullable|string|max:30',
         ];
 
         // Only add picture validation if a file is being uploaded
@@ -296,7 +304,17 @@ class UserController extends Controller
 
     private function updateUserFields(User $user, array $validatedData)
     {
-        $fields = ['first_name', 'last_name', 'address', 'phone', 'bio'];
+        $fields = [
+            'first_name',
+            'last_name',
+            'address',
+            'phone',
+            'bio',
+            'institution',
+            'department',
+            'staff_id',
+            'professional_phone',
+        ];
 
         foreach ($fields as $field) {
             // Only update if field exists in validated data AND is not empty or null

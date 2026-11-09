@@ -55,7 +55,7 @@ A phase is complete only when all applicable checks pass:
 |---|---|---:|:---:|:---:|
 | P0 | Deployment safety and production baseline | — | M | `[x]` |
 | P1 | Dedicated Account Approval Center | P0 | M | `[x]` |
-| P2 | Staff identity and proof documents | P1 | L | `[ ]` |
+| P2 | Staff identity and proof documents | P1 | L | `[~]` |
 | P3 | Rejection, resubmission, suspension, and review history | P2 | L | `[ ]` |
 | P4 | Approval emails and notification reliability | P3 | M | `[ ]` |
 | P5 | User administration UX and scalability | P1 | M | `[ ]` |
@@ -237,11 +237,21 @@ laboratory manager.
 
 ### Tasks
 
-- `[ ]` **P2.1 — Institutional identity fields**
+- `[x]` **P2.1 — Institutional identity fields**
   - Institution or department
   - Staff/employee identifier
   - Professional phone number
   - Optional institutional email validation
+  - Verification evidence:
+    - `[x]` Migration `2026_11_09_000003_add_institutional_identity_fields_to_users_table.php` adds `institution`, `department`, `staff_id`, `professional_phone`.
+    - `[x]` Model `User` adds attributes to `$fillable`.
+    - `[x]` `RegisteredUserController` enforces required institutional fields on teacher (`/api/register/enseignant`) and lab manager (`/api/register/responsable_labo`) registrations, while keeping student registrations unaffected.
+    - `[x]` `AccountRequestResource` and `UserResource` expose institutional attributes.
+    - `[x]` `AccountRequestController` enables searching and filtering by institution, department, and staff ID.
+    - `[x]` Registration form UI displays dedicated institutional identity section for staff applicants with bilingual validation.
+    - `[x]` Slide-over details modal displays institutional credentials with direct `tel:` link.
+    - `[x]` Approval Center table and cards display applicant institution and department.
+    - `[x]` Automated feature tests in `StaffRegistrationTest` verify validation enforcement, DB persistence, pending workflow, and search queries.
 
 - `[ ]` **P2.2 — Private proof upload**
   - Accept PDF, JPEG, and PNG only.
@@ -491,9 +501,10 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P0.5 | Credential hygiene runbook and automated secret scanning | `f170d1f` |
 | 2026-11-09 | P0 Baseline Complete | Production synchronized at 0d7b75b across Vercel and Render | `0d7b75b` |
 | 2026-11-09 | P1.1 | Dedicated account requests approval API with metrics and filters | `d10c2e4` |
-| 2026-11-09 | P1 Complete | Dedicated Account Approval Center UI, Navigation, and Details Modal | `HEAD` |
+| 2026-11-09 | P1 Complete | Dedicated Account Approval Center UI, Navigation, and Details Modal | `3a73214` |
+| 2026-11-09 | P2.1 | Institutional identity fields in registration, models, approval center, and tests | `HEAD` |
 
 ## Next action
 
-Start **P2.1 — Institutional identity fields** (Phase P2: Staff identity and proof documents).
-Add institution, staff ID, and professional phone fields to staff registration and models.
+Start **P2.2 — Private proof upload** (Phase P2: Staff identity and proof documents).
+Implement private document upload (PDF, JPEG, PNG <= 5MB) on private `documents_s3` disk.

@@ -17,6 +17,8 @@ import {
   AcademicCapIcon,
   BeakerIcon,
   ShieldCheckIcon,
+  BuildingOffice2Icon,
+  IdentificationIcon,
 } from "@heroicons/react/24/outline";
 import Button from "./Button";
 import LoadingSpinner from "./LoadingSpinner";
@@ -304,6 +306,64 @@ export default function AccountRequestDetailsModal({
                     </div>
                   )}
                 </div>
+
+                {/* Institutional Identity */}
+                {(applicant.institution || applicant.staff_id || applicant.department || applicant.professional_phone) && (
+                  <div className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/20 text-xs space-y-2">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300 block">
+                      {tr("Informations professionnelles")}
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 dark:text-slate-400">
+                      {applicant.institution && (
+                        <div className="flex items-center gap-1.5 col-span-2">
+                          <BuildingOffice2Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>
+                            <strong className="text-slate-700 dark:text-slate-300">{tr("Établissement")}:</strong>{" "}
+                            {applicant.institution}
+                          </span>
+                        </div>
+                      )}
+
+                      {applicant.department && (
+                        <div className="flex items-center gap-1.5 col-span-2 sm:col-span-1">
+                          <span className="text-slate-400">•</span>
+                          <span>
+                            <strong className="text-slate-700 dark:text-slate-300">{tr("Département")}:</strong>{" "}
+                            {applicant.department}
+                          </span>
+                        </div>
+                      )}
+
+                      {applicant.staff_id && (
+                        <div className="flex items-center gap-1.5 col-span-2 sm:col-span-1">
+                          <IdentificationIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>
+                            <strong className="text-slate-700 dark:text-slate-300">{tr("Matricule")}:</strong>{" "}
+                            <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[11px] text-slate-800 dark:text-slate-200">
+                              {applicant.staff_id}
+                            </code>
+                          </span>
+                        </div>
+                      )}
+
+                      {applicant.professional_phone && (
+                        <div className="flex items-center gap-1.5 col-span-2">
+                          <PhoneIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>
+                            <strong className="text-slate-700 dark:text-slate-300">{tr("Téléphone pro")}:</strong>{" "}
+                            <a
+                              href={`tel:${applicant.professional_phone}`}
+                              className="text-primary-600 hover:underline"
+                            >
+                              {applicant.professional_phone}
+                            </a>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Review Metadata */}
                 <div className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/20 text-xs space-y-1.5">
