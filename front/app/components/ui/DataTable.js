@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import SearchInput from "../SearchInput";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { useLanguage } from "../../context/LanguageContext";
 
 const DataTable = ({
   columns,
@@ -14,6 +15,7 @@ const DataTable = ({
   emptyMessage = "Aucun résultat ne correspond à votre recherche.",
 }) => {
   const [internalQuery, setInternalQuery] = useState("");
+  const { tr } = useLanguage();
 
   const handleSearchChange = (e) => {
     const val = e.target.value;
@@ -32,14 +34,14 @@ const DataTable = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="w-full sm:max-w-sm">
             <SearchInput
-              placeholder={searchPlaceholder}
+              placeholder={typeof searchPlaceholder === "string" ? tr(searchPlaceholder) : searchPlaceholder}
               value={internalQuery}
               onChange={handleSearchChange}
               onClear={internalQuery ? handleClearSearch : undefined}
             />
           </div>
           <div className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
-            {data.length} {data.length > 1 ? "entrées" : "entrée"}
+            {data.length} {data.length > 1 ? tr("entrées") : tr("entrée")}
           </div>
         </div>
       )}
@@ -54,11 +56,11 @@ const DataTable = ({
                     <th
                       key={index}
                       scope="col"
-                      className={`px-4 sm:px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 tracking-wide whitespace-nowrap ${
-                        column.align === "right" ? "text-right" : column.align === "center" ? "text-center" : "text-left"
+                      className={`px-4 sm:px-5 py-3 text-xs font-semibold text-slate-600 dark:text-slate-300 tracking-wide whitespace-nowrap ${
+                        column.align === "right" ? "text-end" : column.align === "center" ? "text-center" : "text-start"
                       }`}
                     >
-                      {column.header}
+                      {typeof column.header === "string" ? tr(column.header) : column.header}
                     </th>
                   ))}
                 </tr>
@@ -77,7 +79,7 @@ const DataTable = ({
                             ? "font-medium text-slate-900 dark:text-slate-100"
                             : "text-slate-600 dark:text-slate-300"
                         } ${
-                          column.align === "right" ? "text-right" : column.align === "center" ? "text-center" : "text-left"
+                          column.align === "right" ? "text-end" : column.align === "center" ? "text-center" : "text-start"
                         }`}
                       >
                         <div className="break-words">
@@ -95,14 +97,16 @@ const DataTable = ({
             <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 mb-3">
               <MagnifyingGlassIcon className="w-5 h-5" />
             </div>
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{emptyMessage}</p>
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              {typeof emptyMessage === "string" ? tr(emptyMessage) : emptyMessage}
+            </p>
             {internalQuery && (
               <button
                 type="button"
                 onClick={handleClearSearch}
                 className="mt-2 text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
               >
-                Réinitialiser la recherche
+                {tr("Réinitialiser la recherche")}
               </button>
             )}
           </div>
@@ -113,3 +117,4 @@ const DataTable = ({
 };
 
 export default DataTable;
+

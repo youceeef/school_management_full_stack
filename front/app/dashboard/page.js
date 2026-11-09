@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow, isValid } from "date-fns";
-import { fr } from "date-fns/locale";
+import { fr, enUS, arTN } from "date-fns/locale";
 import {
   ArrowRightIcon,
   BellIcon,
@@ -24,8 +24,11 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import { PERMISSIONS } from "../constants/permissions";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
+import { useLanguage } from "../context/LanguageContext";
 import { getDashboardStats, getRecentReservations } from "../services/dashboardService";
 import toast from "../utils/toast";
+
+const DATE_LOCALES = { fr, en: enUS, ar: arTN };
 
 const statusConfig = {
   pending: {
@@ -82,6 +85,7 @@ export default function Dashboard() {
   const router = useRouter();
   const { user, hasPermission } = useAuth();
   const { notifications, unreadCount } = useNotifications();
+  const { locale, dateLocale, t, tr, isRtl } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [reservationsLoading, setReservationsLoading] = useState(true);
@@ -111,7 +115,7 @@ export default function Dashboard() {
         setReservations(reservationsData || []);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
-        toast.error("Erreur lors du chargement des données du tableau de bord");
+        toast.error(tr("Erreur lors du chargement des données du tableau de bord"));
       } finally {
         setLoading(false);
         setReservationsLoading(false);
@@ -119,7 +123,7 @@ export default function Dashboard() {
     };
 
     fetchData();
-  }, []);
+  }, [tr]);
 
   const quickActions = useMemo(() => {
     const actions = [];
@@ -159,7 +163,7 @@ export default function Dashboard() {
   }, [hasPermission]);
 
   const headerActions = quickActions.slice(0, 2).map((action, index) => ({
-    children: action.label,
+    children: tr(action.label),
     icon: action.icon,
     variant: index === 0 ? "primary" : "secondary",
     onClick: () => router.push(action.path),
@@ -168,37 +172,37 @@ export default function Dashboard() {
   const stats = [
     {
       title: "Utilisateurs actifs",
-      value: (summary.users ?? 0).toLocaleString("fr-FR"),
+      value: (summary.users ?? 0).toLocaleString(dateLocale),
       icon: UsersIcon,
     },
     {
       title: "Salles & Laboratoires",
-      value: (summary.rooms ?? 0).toLocaleString("fr-FR"),
+      value: (summary.rooms ?? 0).toLocaleString(dateLocale),
       icon: BuildingOfficeIcon,
     },
     {
       title: "Équipements recensés",
-      value: (summary.equipments ?? 0).toLocaleString("fr-FR"),
+      value: (summary.equipments ?? 0).toLocaleString(dateLocale),
       icon: ComputerDesktopIcon,
     },
     {
       title: "Documents partagés",
-      value: (summary.documents ?? 0).toLocaleString("fr-FR"),
+      value: (summary.documents ?? 0).toLocaleString(dateLocale),
       icon: DocumentTextIcon,
     },
   ];
 
   const filteredReservations = reservations.filter((reservation) => {
-    const query = searchQuery.trim().toLocaleLowerCase("fr");
+    const query = searchQuery.trim().toLowerCase();
     if (!query) return true;
     return [reservation.room, reservation.professor, reservation.status, reservation.purpose]
       .filter(Boolean)
-      .some((value) => value.toLocaleLowerCase("fr").includes(query));
+      .some((value) => String(value).toLowerCase().includes(query));
   });
 
   const formatDate = (date) =>
     date
-      ? new Intl.DateTimeFormat("fr-FR", {
+      ? new Intl.DateTimeFormat(dateLocale, {
           dateStyle: "medium",
           timeStyle: "short",
         }).format(new Date(date))
@@ -207,8 +211,8 @@ export default function Dashboard() {
   const formatRelativeDate = (date) => {
     const parsed = new Date(date);
     return date && isValid(parsed)
-      ? formatDistanceToNow(parsed, { addSuffix: true, locale: fr })
-      : "Date inconnue";
+      ? formatDistanceToNow(parsed, { addSuffix: true, locale: DATE_LOCALES[locale] || fr })
+      : tr("Date inconnue");
   };
 
   const columns = [
@@ -219,7 +223,7 @@ export default function Dashboard() {
         <button
           type="button"
           onClick={() => router.push(row.action_url)}
-          className="flex items-center gap-3 text-left group"
+          className="flex items-center gap-3 text-start group"
         >
           <span className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 group-hover:border-primary-300 dark:group-hover:border-primary-700 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
             <BuildingOfficeIcon className="w-4 h-4" />
@@ -242,7 +246,7 @@ export default function Dashboard() {
         return (
           <span className={`inline-flex items-center gap-2 text-xs font-medium ${config.textClass}`}>
             <span className={`w-2 h-2 rounded-full ${config.dotClass}`} />
-            {config.text}
+            {tr(config.text)}
           </span>
         );
       },
@@ -265,12 +269,12 @@ export default function Dashboard() {
     },
   ];
 
-  const greetingName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "Utilisateur";
+  const greetingName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || tr("Utilisateur");
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`Bonjour, ${greetingName}`}
+        title={t("dashboard.welcomeTitle", { name: greetingName })}
         description="Vue d’ensemble opérationnelle de vos réservations, ressources et documents pédagogiques."
         actions={headerActions}
       />
@@ -319,7 +323,7 @@ export default function Dashboard() {
               <div key={item.label} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <span className={`w-2 h-2 rounded-full ${item.dot}`} />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">{item.label}</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">{tr(item.label)}</span>
                 </div>
                 <span className={`text-lg font-mono font-semibold tabular-nums ${item.valueClass}`}>
                   {loading ? "—" : item.value}
@@ -335,7 +339,7 @@ export default function Dashboard() {
               <div className="py-8 text-center">
                 <BellIcon className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Aucune activité récente enregistrée.
+                  {tr("Aucune activité récente enregistrée.")}
                 </p>
               </div>
             ) : (
@@ -354,7 +358,7 @@ export default function Dashboard() {
                     onClick={() =>
                       router.push(notification.data?.action_url || "/dashboard/notifications")
                     }
-                    className="w-full flex items-start gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 rounded-lg p-2.5 transition-colors"
+                    className="w-full flex items-start gap-3 text-start hover:bg-slate-50 dark:hover:bg-slate-800/60 rounded-lg p-2.5 transition-colors"
                   >
                     <span
                       className={`w-8 h-8 rounded-lg border ${config.className} flex items-center justify-center shrink-0 mt-0.5`}
@@ -385,7 +389,7 @@ export default function Dashboard() {
                   type="button"
                   key={action.path}
                   onClick={() => router.push(action.path)}
-                  className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 hover:border-primary-300 dark:hover:border-primary-700 transition-colors flex items-center justify-between text-left group"
+                  className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 hover:border-primary-300 dark:hover:border-primary-700 transition-colors flex items-center justify-between text-start group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors shrink-0">
@@ -393,14 +397,18 @@ export default function Dashboard() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                        {action.label}
+                        {tr(action.label)}
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                        {action.description}
+                        {tr(action.description)}
                       </p>
                     </div>
                   </div>
-                  <ArrowRightIcon className="w-4 h-4 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 shrink-0 ml-2 transition-colors" />
+                  <ArrowRightIcon
+                    className={`w-4 h-4 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 shrink-0 ${
+                      isRtl ? "mr-2 rotate-180" : "ml-2"
+                    } transition-colors`}
+                  />
                 </button>
               );
             })}

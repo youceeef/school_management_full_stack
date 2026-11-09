@@ -3,58 +3,62 @@
 import Link from "next/link";
 import { AcademicCapIcon, UserGroupIcon, BeakerIcon, ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import ThemeToggle from "../components/ThemeToggle";
-
-const accountTypes = [
-  {
-    title: "Enseignant / Formateur",
-    subtitle: "Planification & Pédagogie",
-    description:
-      "Réservez des salles et des équipements de laboratoire pour vos séances et partagez vos supports de cours avec les étudiants.",
-    href: "/register/professeur",
-    icon: AcademicCapIcon,
-  },
-  {
-    title: "Élève / Étudiant",
-    subtitle: "Consultation & Téléchargements",
-    description:
-      "Accédez aux ressources numériques publiées par vos enseignants, téléchargez les supports de TP et suivez vos notifications.",
-    href: "/register/eleve",
-    icon: UserGroupIcon,
-  },
-  {
-    title: "Responsable Laboratoire",
-    subtitle: "Supervision & Validation",
-    description:
-      "Validez ou refusez les demandes de réservation des laboratoires et supervisez la disponibilité des équipements techniques.",
-    href: "/register/responsable",
-    icon: BeakerIcon,
-  },
-];
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function Register() {
+  const { t, tr, isRtl } = useLanguage();
+
+  const accountTypes = [
+    {
+      title: t("auth.teacherRoleTitle"),
+      subtitle: tr("Planification & Pédagogie"),
+      description: t("auth.teacherRoleDesc"),
+      href: "/register/professeur",
+      icon: AcademicCapIcon,
+    },
+    {
+      title: t("auth.studentRoleTitle"),
+      subtitle: tr("Consultation & Téléchargements"),
+      description: t("auth.studentRoleDesc"),
+      href: "/register/eleve",
+      icon: UserGroupIcon,
+    },
+    {
+      title: t("auth.labManagerRoleTitle"),
+      subtitle: tr("Supervision & Validation"),
+      description: t("auth.labManagerRoleDesc"),
+      href: "/register/responsable",
+      icon: BeakerIcon,
+    },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col justify-between p-6 sm:p-12 bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-5xl w-full mx-auto flex items-center justify-between">
+      <div className="max-w-5xl w-full mx-auto flex items-center justify-between gap-2">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
         >
-          <ArrowLeftIcon className="w-4 h-4" />
-          Retour à l&apos;accueil
+          <ArrowLeftIcon className={`w-4 h-4 ${isRtl ? "rotate-180" : ""}`} />
+          {t("common.backHome")}
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
       </div>
 
       <div className="max-w-4xl w-full mx-auto my-12">
         <div className="text-center max-w-xl mx-auto mb-10">
           <p className="text-xs font-semibold text-primary-600 dark:text-primary-400">
-            Création de Compte Académique
+            {t("auth.registerHubEyebrow")}
           </p>
           <h1 className="mt-2 text-2xl sm:text-3xl font-bold font-display text-slate-900 dark:text-white">
-            Sélectionnez votre profil institutionnel
+            {t("auth.registerHubTitle")}
           </h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            Choisissez le type de compte correspondant à vos responsabilités au sein de l&apos;établissement.
+            {t("auth.registerHubSubtitle")}
           </p>
         </div>
 
@@ -81,8 +85,12 @@ export default function Register() {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-primary-600 dark:text-primary-400">
-                  <span>Continuer l&apos;inscription</span>
-                  <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  <span>{t("auth.selectProfileCta")}</span>
+                  <ArrowRightIcon
+                    className={`w-4 h-4 transition-transform ${
+                      isRtl ? "rotate-180 group-hover:-translate-x-0.5" : "group-hover:translate-x-0.5"
+                    }`}
+                  />
                 </div>
               </Link>
             );
@@ -91,9 +99,9 @@ export default function Register() {
 
         <div className="mt-8 text-center">
           <p className="text-xs text-slate-600 dark:text-slate-400">
-            Vous possédez déjà un compte ?{" "}
+            {t("auth.alreadyHaveAccount")}{" "}
             <Link href="/login" className="font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400">
-              Se connecter
+              {t("auth.signInBtn")}
             </Link>
           </p>
         </div>

@@ -10,9 +10,15 @@ import {
   XMarkIcon,
   ArrowRightStartOnRectangleIcon,
 } from "@heroicons/react/24/outline";
+import { useLanguage } from "../context/LanguageContext";
 
 const Sidebar = ({ isSidebarOpen, toggleSidebar, handleLogout, navItems, isMobileView, setIsSidebarOpen }) => {
   const pathname = usePathname();
+  const { t, tr, isRtl } = useLanguage();
+
+  const collapsedSlideClass = isRtl
+    ? "translate-x-full lg:translate-x-0"
+    : "-translate-x-full lg:translate-x-0";
 
   return (
     <>
@@ -24,10 +30,14 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, handleLogout, navItems, isMobil
       )}
 
       <aside
-        className={`fixed top-0 left-0 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-30 transition-all duration-200 flex flex-col ${
+        className={`fixed top-0 ${
+          isRtl
+            ? "right-0 border-l border-slate-200 dark:border-slate-800"
+            : "left-0 border-r border-slate-200 dark:border-slate-800"
+        } h-full bg-white dark:bg-slate-900 z-30 transition-all duration-200 flex flex-col ${
           isSidebarOpen
             ? "translate-x-0 w-64"
-            : "-translate-x-full lg:translate-x-0 w-0 lg:w-[68px] overflow-hidden"
+            : `${collapsedSlideClass} w-0 lg:w-[68px] overflow-hidden`
         }`}
       >
         {/* Brand Header */}
@@ -61,9 +71,15 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, handleLogout, navItems, isMobil
             onClick={toggleSidebar}
             aria-label={isSidebarOpen ? "Réduire le menu" : "Déployer le menu"}
             className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 hidden lg:flex items-center justify-center"
-            title={isSidebarOpen ? "Réduire le menu" : "Déployer le menu"}
+            title={isSidebarOpen ? t("nav.collapseMenu") : t("nav.expandMenu")}
           >
             {isSidebarOpen ? (
+              isRtl ? (
+                <ChevronDoubleRightIcon className="w-4 h-4" />
+              ) : (
+                <ChevronDoubleLeftIcon className="w-4 h-4" />
+              )
+            ) : isRtl ? (
               <ChevronDoubleLeftIcon className="w-4 h-4" />
             ) : (
               <ChevronDoubleRightIcon className="w-4 h-4" />
@@ -91,6 +107,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, handleLogout, navItems, isMobil
                   ? pathname === "/dashboard"
                   : pathname === item.path || pathname.startsWith(`${item.path}/`);
               const Icon = item.icon;
+              const translatedName = tr(item.name);
 
               return (
                 <li key={item.path}>
@@ -106,10 +123,10 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, handleLogout, navItems, isMobil
                         ? "px-3 py-2.5 gap-3"
                         : "justify-center w-11 h-10 mx-auto"
                     }`}
-                    title={!isSidebarOpen ? item.name : undefined}
+                    title={!isSidebarOpen ? translatedName : undefined}
                   >
                     {Icon && <Icon className="w-5 h-5 shrink-0" />}
-                    {isSidebarOpen && <span className="truncate">{item.name}</span>}
+                    {isSidebarOpen && <span className="truncate">{translatedName}</span>}
                   </Link>
                 </li>
               );
@@ -127,10 +144,10 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, handleLogout, navItems, isMobil
                 ? "px-3 py-2.5 w-full gap-3"
                 : "justify-center w-11 h-10 mx-auto"
             }`}
-            title={!isSidebarOpen ? "Déconnexion" : undefined}
+            title={!isSidebarOpen ? t("common.logout") : undefined}
           >
             <ArrowRightStartOnRectangleIcon className="w-5 h-5 shrink-0" />
-            {isSidebarOpen && <span className="truncate">Déconnexion</span>}
+            {isSidebarOpen && <span className="truncate">{t("common.logout")}</span>}
           </button>
         </div>
       </aside>

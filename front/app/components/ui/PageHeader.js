@@ -1,13 +1,20 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import Button from "../Button";
 import PermissionGate from "../PermissionGate";
+import { useLanguage } from "../../context/LanguageContext";
 
 const PageHeader = ({ title, description, actions, breadcrumbs = [], className = "" }) => {
+  const { tr } = useLanguage();
+  const translatedTitle = typeof title === "string" ? tr(title) : title;
+  const translatedDesc = typeof description === "string" ? tr(description) : description;
+
   return (
     <div className={`pb-2 ${className}`}>
       {breadcrumbs.length > 0 && (
-        <nav aria-label="Fil d'Ariane" className="mb-3">
+        <nav aria-label="Breadcrumb" className="mb-3">
           <ol className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
             {breadcrumbs.map((item, index) => (
               <React.Fragment key={index}>
@@ -15,10 +22,12 @@ const PageHeader = ({ title, description, actions, breadcrumbs = [], className =
                 <li>
                   {item.href ? (
                     <Link href={item.href} className="hover:text-slate-900 dark:hover:text-slate-200 transition-colors">
-                      {item.label}
+                      {typeof item.label === "string" ? tr(item.label) : item.label}
                     </Link>
                   ) : (
-                    <span className="text-slate-800 dark:text-slate-200">{item.label}</span>
+                    <span className="text-slate-800 dark:text-slate-200">
+                      {typeof item.label === "string" ? tr(item.label) : item.label}
+                    </span>
                   )}
                 </li>
               </React.Fragment>
@@ -30,9 +39,9 @@ const PageHeader = ({ title, description, actions, breadcrumbs = [], className =
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-slate-900 dark:text-slate-100 text-balance">
-            {title}
+            {translatedTitle}
           </h1>
-          {description && <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400 max-w-2xl">{description}</p>}
+          {translatedDesc && <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400 max-w-2xl">{translatedDesc}</p>}
         </div>
 
         {actions && actions.length > 0 && (
@@ -51,7 +60,7 @@ const PageHeader = ({ title, description, actions, breadcrumbs = [], className =
                   icon={icon}
                   className={btnClassName}
                 >
-                  {children}
+                  {typeof children === "string" ? tr(children) : children}
                 </Button>
               );
 
@@ -71,3 +80,4 @@ const PageHeader = ({ title, description, actions, breadcrumbs = [], className =
 };
 
 export default PageHeader;
+

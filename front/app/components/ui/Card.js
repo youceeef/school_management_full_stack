@@ -1,13 +1,25 @@
+"use client";
+
 import React from "react";
+import { useLanguage } from "../../context/LanguageContext";
 
 const Card = ({ title, subtitle, children, className = "", headerAction, noPadding = false }) => {
+  const { tr } = useLanguage();
   return (
     <div className={`bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden ${className}`}>
       {(title || headerAction) && (
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            {title && <h2 className="text-base font-semibold font-display text-slate-900 dark:text-slate-100">{title}</h2>}
-            {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
+            {title && (
+              <h2 className="text-base font-semibold font-display text-slate-900 dark:text-slate-100">
+                {typeof title === "string" ? tr(title) : title}
+              </h2>
+            )}
+            {subtitle && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {typeof subtitle === "string" ? tr(subtitle) : subtitle}
+              </p>
+            )}
           </div>
           {headerAction && <div className="flex items-center gap-2 shrink-0">{headerAction}</div>}
         </div>
@@ -18,3 +30,4 @@ const Card = ({ title, subtitle, children, className = "", headerAction, noPaddi
 };
 
 export default Card;
+

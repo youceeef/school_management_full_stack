@@ -11,9 +11,11 @@ import {
   ArrowRightStartOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import ThemeToggle from "./ThemeToggle";
+import LanguageSwitcher from "./LanguageSwitcher";
 import NotificationDropdown from "./NotificationDropdown";
 import { getStorageImageUrl } from "../services/userProfileService";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 
 const TopBar = ({
   pathname,
@@ -31,6 +33,7 @@ const TopBar = ({
   setShowProfileMenu,
 }) => {
   const { user } = useAuth();
+  const { t, tr, isRtl } = useLanguage();
   const [profileImage, setProfileImage] = useState(null);
 
   useEffect(() => {
@@ -43,7 +46,7 @@ const TopBar = ({
 
   const getPageBreadcrumb = () => {
     if (pathname === "/dashboard") {
-      return { section: "Espace de travail", title: "Tableau de bord" };
+      return { section: tr("Espace de travail"), title: tr("Tableau de bord") };
     }
 
     const segments = pathname.split("/").filter(Boolean);
@@ -67,17 +70,18 @@ const TopBar = ({
     };
 
     if (lastSegment && !isNaN(lastSegment) && parentSegment && labels[parentSegment]) {
-      return { section: labels[parentSegment], title: `Détail #${lastSegment}` };
+      return { section: tr(labels[parentSegment]), title: `${tr("Détail")} #${lastSegment}` };
     }
 
     return {
-      section: "Espace de travail",
-      title:
+      section: tr("Espace de travail"),
+      title: tr(
         labels[lastSegment] ||
-        lastSegment
-          .split("-")
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(" "),
+          lastSegment
+            .split("-")
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(" ")
+      ),
     };
   };
 
@@ -91,7 +95,7 @@ const TopBar = ({
             type="button"
             onClick={toggleSidebar}
             className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label="Ouvrir le menu"
+            aria-label={t("nav.openMenu")}
           >
             <Bars3Icon className="w-5 h-5" />
           </button>
@@ -106,13 +110,14 @@ const TopBar = ({
       </div>
 
       <div className="flex items-center gap-2.5 shrink-0">
+        <LanguageSwitcher />
         <ThemeToggle />
 
         <div className="relative" ref={notificationRef}>
           <button
             type="button"
             onClick={toggleNotifications}
-            aria-label="Afficher les notifications"
+            aria-label={tr("Afficher les notifications")}
             aria-expanded={showNotifications}
             className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 relative transition-colors"
           >
@@ -158,12 +163,16 @@ const TopBar = ({
               )}
             </div>
             <span className="hidden md:block text-xs font-medium text-slate-700 dark:text-slate-200 max-w-[120px] truncate">
-              {user?.first_name ? `${user.first_name} ${user.last_name || ""}` : "Mon Compte"}
+              {user?.first_name ? `${user.first_name} ${user.last_name || ""}` : t("nav.myAccount")}
             </span>
           </button>
 
           {showProfileMenu && (
-            <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-xl shadow-lg overflow-hidden z-40 border border-slate-200 dark:border-slate-800">
+            <div
+              className={`absolute ${
+                isRtl ? "left-0" : "right-0"
+              } mt-2 w-64 bg-white dark:bg-slate-900 rounded-xl shadow-lg overflow-hidden z-40 border border-slate-200 dark:border-slate-800`}
+            >
               <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-primary-600 shrink-0">
                   {profileImage ? (
@@ -191,7 +200,7 @@ const TopBar = ({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
-                    {user?.first_name} {user?.last_name || "Utilisateur"}
+                    {user?.first_name} {user?.last_name || tr("Utilisateur")}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                     {user?.email || ""}
@@ -205,7 +214,7 @@ const TopBar = ({
                   onClick={() => setShowProfileMenu(false)}
                 >
                   <UserIcon className="w-4 h-4 text-slate-400" />
-                  Mon Profil
+                  {t("nav.myProfile")}
                 </Link>
                 <Link
                   href="/dashboard/change-password"
@@ -213,16 +222,16 @@ const TopBar = ({
                   onClick={() => setShowProfileMenu(false)}
                 >
                   <KeyIcon className="w-4 h-4 text-slate-400" />
-                  Changer le mot de passe
+                  {t("nav.changePassword")}
                 </Link>
                 <div className="my-1 border-t border-slate-200 dark:border-slate-800" />
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
+                  className="flex items-center gap-2.5 w-full text-start px-3 py-2 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
                 >
                   <ArrowRightStartOnRectangleIcon className="w-4 h-4" />
-                  Déconnexion
+                  {t("common.logout")}
                 </button>
               </div>
             </div>

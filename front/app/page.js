@@ -3,99 +3,143 @@
 import React from "react";
 import Link from "next/link";
 import {
-  AcademicCapIcon,
+  ArrowLeftIcon,
   ArrowRightIcon,
   BuildingOffice2Icon,
   CalendarDaysIcon,
-  CheckCircleIcon,
   CpuChipIcon,
   DocumentTextIcon,
-  ShieldCheckIcon,
-  UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import ThemeToggle from "./components/ThemeToggle";
-
-const capabilities = [
-  {
-    number: "01. Gestion des Salles & Laboratoires",
-    title: "Cartographie complète des amphithéâtres, salles de cours et laboratoires spécialisés",
-    description:
-      "Centralisez les capacités d'accueil, les typologies d'espaces et les disponibilités en temps réel pour éliminer les conflits d'affectation entre départements.",
-    meta: "Amphithéâtres · Laboratoires · Salles de TP",
-    span: "lg:col-span-2",
-    icon: BuildingOffice2Icon,
-  },
-  {
-    number: "02. Planification & Réservations",
-    title: "Workflow de réservation en 4 étapes avec validation par les responsables",
-    description:
-      "Les enseignants réservent un créneau et associent le matériel requis ; les responsables de laboratoire valident ou motivent un refus instantanément.",
-    meta: "Contrôle des créneaux · Notifications temps réel",
-    span: "lg:col-span-1",
-    icon: CalendarDaysIcon,
-  },
-  {
-    number: "03. Inventaire des Équipements",
-    title: "Suivi unitaire du matériel pédagogique et scientifique",
-    description:
-      "Affectez vidéoprojecteurs, postes informatiques, oscilloscopes et kits réseaux avec décompte automatique des quantités disponibles par créneau.",
-    meta: "Quantités réservables · État du stock",
-    span: "lg:col-span-1",
-    icon: CpuChipIcon,
-  },
-  {
-    number: "04. Bibliothèque Pédagogique",
-    title: "Diffusion structurée des supports de cours et travaux pratiques",
-    description:
-      "Les enseignants publient leurs fascicules PDF, présentations et schémas techniques ; les étudiants consultent et téléchargent leurs ressources en un clic.",
-    meta: "Supports PDF & Images · Téléchargement direct",
-    span: "lg:col-span-2",
-    icon: DocumentTextIcon,
-  },
-];
-
-const rolesOverview = [
-  {
-    role: "Administrateur",
-    scope: "Gouvernance & inventaire global",
-    description:
-      "Configure les salles, le catalogue d'équipements, les comptes utilisateurs et la matrice des rôles et permissions Spatie.",
-    metrics: "Contrôle RBAC complet · Audit des ressources",
-    href: "/login",
-  },
-  {
-    role: "Responsable Laboratoire",
-    scope: "Validation & supervision technique",
-    description:
-      "Examine les demandes de réservation de laboratoires et d'équipements, approuve les créneaux conformes ou notifie un motif de refus.",
-    metrics: "Validation en 1 clic · Suivi du parc matériel",
-    href: "/register/responsable",
-  },
-  {
-    role: "Enseignant",
-    scope: "Planification & partage pédagogique",
-    description:
-      "Planifie ses séances en laboratoire ou amphithéâtre, réserve les équipements nécessaires et publie ses supports de cours.",
-    metrics: "Réservation guidée · Dépôt de documents",
-    href: "/register/professeur",
-  },
-  {
-    role: "Élève & Étudiant",
-    scope: "Consultation & téléchargement",
-    description:
-      "Accède au portail de téléchargement des supports de cours partagés par les formateurs et gère son profil académique.",
-    metrics: "Accès direct aux cours · Notifications",
-    href: "/register/eleve",
-  },
-];
+import LanguageSwitcher from "./components/LanguageSwitcher";
+import { useLanguage } from "./context/LanguageContext";
 
 export default function Home() {
+  const { t, isRtl } = useLanguage();
+  const DirectionalArrow = isRtl ? ArrowLeftIcon : ArrowRightIcon;
+
+  const capabilities = [
+    {
+      number: t("landing.cap1Number"),
+      title: t("landing.cap1Title"),
+      description: t("landing.cap1Desc"),
+      meta: t("landing.cap1Meta"),
+      span: "lg:col-span-2",
+      icon: BuildingOffice2Icon,
+    },
+    {
+      number: t("landing.cap2Number"),
+      title: t("landing.cap2Title"),
+      description: t("landing.cap2Desc"),
+      meta: t("landing.cap2Meta"),
+      span: "lg:col-span-1",
+      icon: CalendarDaysIcon,
+    },
+    {
+      number: t("landing.cap3Number"),
+      title: t("landing.cap3Title"),
+      description: t("landing.cap3Desc"),
+      meta: t("landing.cap3Meta"),
+      span: "lg:col-span-1",
+      icon: CpuChipIcon,
+    },
+    {
+      number: t("landing.cap4Number"),
+      title: t("landing.cap4Title"),
+      description: t("landing.cap4Desc"),
+      meta: t("landing.cap4Meta"),
+      span: "lg:col-span-2",
+      icon: DocumentTextIcon,
+    },
+  ];
+
+  const rolesOverview = [
+    {
+      role: t("landing.role1Title"),
+      scope: t("landing.role1Scope"),
+      description: t("landing.role1Desc"),
+      metrics: t("landing.role1Metrics"),
+      href: "/login",
+    },
+    {
+      role: t("landing.role2Title"),
+      scope: t("landing.role2Scope"),
+      description: t("landing.role2Desc"),
+      metrics: t("landing.role2Metrics"),
+      href: "/register/responsable",
+    },
+    {
+      role: t("landing.role3Title"),
+      scope: t("landing.role3Scope"),
+      description: t("landing.role3Desc"),
+      metrics: t("landing.role3Metrics"),
+      href: "/register/professeur",
+    },
+    {
+      role: t("landing.role4Title"),
+      scope: t("landing.role4Scope"),
+      description: t("landing.role4Desc"),
+      metrics: t("landing.role4Metrics"),
+      href: "/register/eleve",
+    },
+  ];
+
+  const previewSlots = [
+    {
+      room: t("landing.previewSlot1Room"),
+      slot: "08:30 – 11:30",
+      requester: t("landing.previewSlot1Req"),
+      equipment: t("landing.previewSlot1Equip"),
+      status: t("landing.previewSlot1Status"),
+      statusColor: "text-emerald-700 dark:text-emerald-400",
+    },
+    {
+      room: t("landing.previewSlot2Room"),
+      slot: "11:30 – 13:30",
+      requester: t("landing.previewSlot2Req"),
+      equipment: t("landing.previewSlot2Equip"),
+      status: t("landing.previewSlot2Status"),
+      statusColor: "text-primary-600 dark:text-primary-400",
+    },
+    {
+      room: t("landing.previewSlot3Room"),
+      slot: "14:00 – 17:00",
+      requester: t("landing.previewSlot3Req"),
+      equipment: t("landing.previewSlot3Equip"),
+      status: t("landing.previewSlot3Status"),
+      statusColor: "text-amber-700 dark:text-amber-400",
+    },
+  ];
+
+  const metrics = [
+    {
+      value: t("landing.metric1Value"),
+      label: t("landing.metric1Label"),
+      detail: t("landing.metric1Detail"),
+    },
+    {
+      value: t("landing.metric2Value"),
+      label: t("landing.metric2Label"),
+      detail: t("landing.metric2Detail"),
+    },
+    {
+      value: t("landing.metric3Value"),
+      label: t("landing.metric3Label"),
+      detail: t("landing.metric3Detail"),
+    },
+    {
+      value: t("landing.metric4Value"),
+      label: t("landing.metric4Label"),
+      detail: t("landing.metric4Detail"),
+    },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      {/* Strict 3-Zone Top Bar Contract */}
+      {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-8">
-          {/* Zone 1: Single text element Brand wordmark */}
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4 sm:gap-8">
+          {/* Zone 1: Brand wordmark */}
           <Link
             href="/"
             className="text-lg font-bold font-display tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0"
@@ -109,36 +153,37 @@ export default function Home() {
               href="#fonctionnalites"
               className="hover:text-slate-900 dark:hover:text-white underline-offset-4 hover:underline whitespace-nowrap shrink-0"
             >
-              Fonctionnalités
+              {t("landing.navFeatures")}
             </a>
             <a
               href="#espaces-roles"
               className="hover:text-slate-900 dark:hover:text-white underline-offset-4 hover:underline whitespace-nowrap shrink-0"
             >
-              Espaces & Rôles
+              {t("landing.navRoles")}
             </a>
             <a
               href="#impact"
               className="hover:text-slate-900 dark:hover:text-white underline-offset-4 hover:underline whitespace-nowrap shrink-0"
             >
-              Impact
+              {t("landing.navImpact")}
             </a>
             <Link
               href="/register"
               className="hover:text-slate-900 dark:hover:text-white underline-offset-4 hover:underline whitespace-nowrap shrink-0"
             >
-              Inscription
+              {t("landing.navRegister")}
             </Link>
           </nav>
 
-          {/* Zone 3: Theme toggle & primary action */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          {/* Zone 3: Language switcher, Theme toggle & primary action */}
+          <div className="flex items-center gap-2 shrink-0">
+            <LanguageSwitcher />
             <ThemeToggle />
             <Link
               href="/login"
-              className="px-4 py-2 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors whitespace-nowrap shrink-0"
+              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors whitespace-nowrap shrink-0"
             >
-              Se connecter
+              {t("landing.loginCta")}
             </Link>
           </div>
         </div>
@@ -153,19 +198,19 @@ export default function Home() {
               <div>
                 <div className="flex items-center justify-between gap-4 mb-6">
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                    Centre Sectoriel de Formation en Télécommunications · CSFT Tunisie
+                    {t("landing.institutionTag")}
                   </p>
                 </div>
 
                 <h1
-                  className="font-display font-bold text-slate-900 dark:text-white tracking-tight text-balance leading-[1.1]"
+                  className="font-display font-bold text-slate-900 dark:text-white tracking-tight text-balance leading-[1.15]"
                   style={{ fontSize: "clamp(2.25rem, 4vw, 3.75rem)" }}
                 >
-                  Gestion unifiée des salles, laboratoires et ressources pédagogiques.
+                  {t("landing.heroTitle")}
                 </h1>
 
                 <p className="mt-6 text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
-                  EduSpace remplace les registres manuels par une plateforme institutionnelle centralisée. Planifiez vos créneaux de laboratoire, réservez le matériel scientifique et partagez vos supports de cours avec une traçabilité complète.
+                  {t("landing.heroSubtitle")}
                 </p>
 
                 <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -173,24 +218,24 @@ export default function Home() {
                     href="/dashboard"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors whitespace-nowrap shrink-0"
                   >
-                    Accéder au tableau de bord
-                    <ArrowRightIcon className="w-4 h-4" />
+                    {t("landing.primaryCta")}
+                    <DirectionalArrow className="w-4 h-4" />
                   </Link>
                   <Link
                     href="/register"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg transition-colors whitespace-nowrap shrink-0"
                   >
-                    Créer un compte académique
+                    {t("landing.secondaryCta")}
                   </Link>
                 </div>
               </div>
 
               <div className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
-                <span>Authentification Laravel Sanctum</span>
+                <span>{t("landing.trust1")}</span>
                 <span aria-hidden="true">·</span>
-                <span>Contrôle d&apos;accès Spatie RBAC</span>
+                <span>{t("landing.trust2")}</span>
                 <span aria-hidden="true">·</span>
-                <span>Calendrier de disponibilité en temps réel</span>
+                <span>{t("landing.trust3")}</span>
               </div>
             </div>
 
@@ -200,57 +245,40 @@ export default function Home() {
                 <div>
                   <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
                     <div>
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Aperçu de l&apos;exploitation</p>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        {t("landing.previewTag")}
+                      </p>
                       <h2 className="text-base font-semibold font-display text-slate-900 dark:text-white mt-0.5">
-                        Planning des Laboratoires & Amphithéâtres
+                        {t("landing.previewTitle")}
                       </h2>
                     </div>
                     <span className="text-xs font-mono tabular-nums text-primary-600 dark:text-primary-400 font-medium">
-                      Semaine en cours
+                      {t("landing.previewBadge")}
                     </span>
                   </div>
 
                   <div className="mt-5 space-y-3">
-                    {[
-                      {
-                        room: "Laboratoire Réseaux & Fibre",
-                        slot: "08:30 – 11:30",
-                        requester: "Prof. Y. Kaabechi",
-                        equipment: "12 Routeurs Cisco · 2 Analyseurs",
-                        status: "Approuvée",
-                        statusColor: "text-emerald-700 dark:text-emerald-400",
-                      },
-                      {
-                        room: "Amphithéâtre Central A1",
-                        slot: "11:30 – 13:30",
-                        requester: "Soutenance PFE Multimédia",
-                        equipment: "Projecteur 4K · Sonorisation",
-                        status: "En cours",
-                        statusColor: "text-primary-600 dark:text-primary-400",
-                      },
-                      {
-                        room: "Laboratoire Systèmes Embarqués",
-                        slot: "14:00 – 17:00",
-                        requester: "TP Télécommunications",
-                        equipment: "15 Kits Arduino · Oscilloscopes",
-                        status: "En attente",
-                        statusColor: "text-amber-700 dark:text-amber-400",
-                      },
-                    ].map((item, idx) => (
+                    {previewSlots.map((item, idx) => (
                       <div
                         key={idx}
                         className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{item.room}</span>
-                          <span className={`text-xs font-medium ${item.statusColor}`}>{item.status}</span>
+                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            {item.room}
+                          </span>
+                          <span className={`text-xs font-medium ${item.statusColor}`}>
+                            {item.status}
+                          </span>
                         </div>
                         <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono tabular-nums">
-                          <span>{item.slot}</span>
+                          <span dir="ltr">{item.slot}</span>
                           <span aria-hidden="true">·</span>
                           <span className="font-sans">{item.requester}</span>
                         </div>
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{item.equipment}</p>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          {item.equipment}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -258,13 +286,13 @@ export default function Home() {
 
                 <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
                   <span className="text-slate-500 dark:text-slate-400">
-                    Validation sans conflit d&apos;horaire ni de stock
+                    {t("landing.previewFooterText")}
                   </span>
                   <Link
                     href="/login"
                     className="font-semibold text-primary-600 dark:text-primary-400 hover:underline whitespace-nowrap shrink-0"
                   >
-                    Consulter le calendrier →
+                    {t("landing.previewFooterLink")}
                   </Link>
                 </div>
               </div>
@@ -276,28 +304,7 @@ export default function Home() {
             id="impact"
             className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-8 border-t border-slate-200 dark:border-slate-800"
           >
-            {[
-              {
-                value: "4 Rôles",
-                label: "Architecture RBAC dédiée",
-                detail: "Admin · Responsable · Enseignant · Élève",
-              },
-              {
-                value: "≤ 4h00",
-                label: "Plafond par créneau réservé",
-                detail: "Rotation optimale des laboratoires",
-              },
-              {
-                value: "100%",
-                label: "Vérification de disponibilité",
-                detail: "Contrôle simultané salle + équipements",
-              },
-              {
-                value: "24/7",
-                label: "Accès aux supports de cours",
-                detail: "Portail numérique pour les étudiants",
-              },
-            ].map((metric, idx) => (
+            {metrics.map((metric, idx) => (
               <div
                 key={idx}
                 className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5"
@@ -305,7 +312,9 @@ export default function Home() {
                 <p className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">
                   {metric.value}
                 </p>
-                <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-200">{metric.label}</p>
+                <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  {metric.label}
+                </p>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{metric.detail}</p>
               </div>
             ))}
@@ -320,13 +329,13 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold text-primary-600 dark:text-primary-400">
-                Architecture Fonctionnelle
+                {t("landing.capEyebrow")}
               </p>
               <h2 className="mt-2 text-2xl sm:text-3xl font-bold font-display text-slate-900 dark:text-white text-balance">
-                Conçu pour les exigences opérationnelles de l&apos;enseignement supérieur et technique.
+                {t("landing.capHeading")}
               </h2>
               <p className="mt-3 text-sm sm:text-base text-slate-600 dark:text-slate-400">
-                Chaque module répond à un besoin précis du cycle académique : de la préparation matérielle des travaux pratiques jusqu&apos;à la distribution des supports de révision.
+                {t("landing.capSubtitle")}
               </p>
             </div>
 
@@ -369,18 +378,18 @@ export default function Home() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold text-primary-600 dark:text-primary-400">
-                Permissions & Espaces Dédiés
+                {t("landing.rolesEyebrow")}
               </p>
               <h2 className="mt-2 text-2xl sm:text-3xl font-bold font-display text-slate-900 dark:text-white text-balance">
-                Un environnement adapté à chaque acteur de l&apos;établissement.
+                {t("landing.rolesHeading")}
               </h2>
             </div>
             <Link
               href="/register"
               className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 dark:text-primary-400 hover:underline whitespace-nowrap shrink-0"
             >
-              Choisir un profil d&apos;inscription
-              <ArrowRightIcon className="w-4 h-4" />
+              {t("landing.rolesCta")}
+              <DirectionalArrow className="w-4 h-4" />
             </Link>
           </div>
 
@@ -405,8 +414,8 @@ export default function Home() {
                     href={item.href}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline"
                   >
-                    Accéder à cet espace
-                    <ArrowRightIcon className="w-3.5 h-3.5" />
+                    {t("landing.accessRoleSpace")}
+                    <DirectionalArrow className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>
@@ -421,17 +430,17 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <span className="font-bold font-display text-slate-900 dark:text-white">EduSpace</span>
             <span aria-hidden="true">·</span>
-            <span>Système de Gestion des Ressources Éducatives (CSFT / TSE Consultant INT)</span>
+            <span>{t("landing.footerDesc")}</span>
           </div>
           <div className="flex items-center gap-6">
             <Link href="/login" className="hover:text-slate-900 dark:hover:text-white">
-              Connexion
+              {t("landing.footerLogin")}
             </Link>
             <Link href="/register" className="hover:text-slate-900 dark:hover:text-white">
-              Inscription
+              {t("common.register")}
             </Link>
             <Link href="/dashboard" className="hover:text-slate-900 dark:hover:text-white">
-              Tableau de bord
+              {t("common.dashboard")}
             </Link>
           </div>
         </div>
@@ -439,3 +448,4 @@ export default function Home() {
     </div>
   );
 }
+

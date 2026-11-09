@@ -19,6 +19,7 @@ import {
 } from "@heroicons/react/24/outline";
 import toast from "../utils/toast";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import AuthMiddleware from "../components/AuthMiddleware";
 import { useNotifications } from "../context/NotificationContext";
 import Sidebar from "../components/Sidebar";
@@ -29,6 +30,7 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout, hasRole, hasPermission } = useAuth();
+  const { tr, isRtl } = useLanguage();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -82,10 +84,10 @@ export default function DashboardLayout({ children }) {
     e.preventDefault();
     try {
       await logout();
-      toast.success("Déconnexion réussie");
+      toast.success(tr("Déconnexion réussie"));
       router.push("/login");
     } catch {
-      toast.error("Erreur lors de la déconnexion");
+      toast.error(tr("Erreur lors de la déconnexion"));
     }
   };
 
@@ -183,8 +185,18 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     const currentNavItem = navItems.find((item) => item.path === pathname);
-    document.title = currentNavItem ? `${currentNavItem.name} — EduSpace` : "EduSpace — Tableau de bord";
-  }, [pathname, navItems]);
+    document.title = currentNavItem
+      ? `${tr(currentNavItem.name)} — EduSpace`
+      : `EduSpace — ${tr("Tableau de bord")}`;
+  }, [pathname, navItems, tr]);
+
+  const contentOffsetClass = isSidebarOpen
+    ? isRtl
+      ? "lg:mr-64"
+      : "lg:ml-64"
+    : isRtl
+    ? "lg:mr-[68px]"
+    : "lg:ml-[68px]";
 
   return (
     <AuthMiddleware>
@@ -198,7 +210,7 @@ export default function DashboardLayout({ children }) {
           setIsSidebarOpen={setIsSidebarOpen}
         />
 
-        <div className={`transition-[margin] duration-200 ${isSidebarOpen ? "lg:ml-64" : "lg:ml-[68px]"}`}>
+        <div className={`transition-[margin] duration-200 ${contentOffsetClass}`}>
           <TopBar
             pathname={pathname}
             isMobileView={isMobileView}

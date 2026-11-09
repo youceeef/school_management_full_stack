@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../context/LanguageContext";
 
 const Button = React.forwardRef(
   (
@@ -16,6 +17,7 @@ const Button = React.forwardRef(
     },
     ref
   ) => {
+    const { tr } = useLanguage();
     const baseClasses =
       "inline-flex items-center justify-center gap-2 font-medium whitespace-nowrap shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed";
 
@@ -75,7 +77,7 @@ const Button = React.forwardRef(
             </span>
           )
         )}
-        {children}
+        {typeof children === "string" ? tr(children) : children}
       </button>
     );
   }
@@ -84,3 +86,4 @@ const Button = React.forwardRef(
 Button.displayName = "Button";
 
 export default Button;
+

@@ -7,9 +7,11 @@ import { AcademicCapIcon, KeyIcon } from "@heroicons/react/24/outline";
 import { resetPassword } from "../../services/authService";
 import toast from "../../utils/toast";
 import ThemeToggle from "../../components/ThemeToggle";
+import LanguageSwitcher from "../../components/LanguageSwitcher";
 import Button from "../../components/Button";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { isStrongPassword, PASSWORD_REQUIREMENTS } from "../../utils/password";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function ResetPassword({ params }) {
   return (
@@ -33,6 +35,7 @@ function ResetPasswordContent({ params }) {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
   const token = use(params).token;
+  const { tr } = useLanguage();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,11 +43,11 @@ function ResetPasswordContent({ params }) {
 
     try {
       if (!isStrongPassword(password)) {
-        throw new Error(PASSWORD_REQUIREMENTS);
+        throw new Error(tr(PASSWORD_REQUIREMENTS));
       }
 
       if (password !== passwordConfirmation) {
-        throw new Error("Les mots de passe ne correspondent pas");
+        throw new Error(tr("Les mots de passe ne correspondent pas"));
       }
 
       await resetPassword({
@@ -54,10 +57,10 @@ function ResetPasswordContent({ params }) {
         password_confirmation: passwordConfirmation,
       });
 
-      toast.success("Votre mot de passe a été réinitialisé avec succès");
+      toast.success(tr("Votre mot de passe a été réinitialisé avec succès"));
       router.push("/login");
     } catch (error) {
-      toast.error(error.message || "Une erreur est survenue. Veuillez réessayer.");
+      toast.error(tr(error.message || "Une erreur est survenue. Veuillez réessayer."));
     } finally {
       setLoading(false);
     }
@@ -68,13 +71,13 @@ function ResetPasswordContent({ params }) {
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-xl max-w-md w-full text-center space-y-4">
           <h1 className="text-xl font-display font-bold text-slate-900 dark:text-white">
-            Lien de réinitialisation invalide
+            {tr("Lien de réinitialisation invalide")}
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Ce lien est invalide ou a expiré. Veuillez effectuer une nouvelle demande.
+            {tr("Ce lien est invalide ou a expiré. Veuillez effectuer une nouvelle demande.")}
           </p>
           <Link href="/forgot-password" className="inline-block pt-2">
-            <Button variant="primary">Demander un nouveau lien</Button>
+            <Button variant="primary">{tr("Demander un nouveau lien")}</Button>
           </Link>
         </div>
       </div>
@@ -83,7 +86,8 @@ function ResetPasswordContent({ params }) {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-slate-50 dark:bg-slate-950">
-      <div className="fixed top-4 right-4">
+      <div className="fixed top-4 right-4 flex items-center gap-2">
+        <LanguageSwitcher />
         <ThemeToggle />
       </div>
 
@@ -101,10 +105,10 @@ function ResetPasswordContent({ params }) {
             <KeyIcon className="w-5 h-5" />
           </div>
           <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white">
-            Définir un nouveau mot de passe
+            {tr("Définir un nouveau mot de passe")}
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Compte : <strong className="text-slate-800 dark:text-slate-200">{email}</strong>
+            {tr("Compte :")} <strong className="text-slate-800 dark:text-slate-200">{email}</strong>
           </p>
         </div>
 
@@ -115,7 +119,7 @@ function ResetPasswordContent({ params }) {
                 htmlFor="password"
                 className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
               >
-                Nouveau mot de passe
+                {tr("Nouveau mot de passe")}
               </label>
               <input
                 type="password"
@@ -125,7 +129,7 @@ function ResetPasswordContent({ params }) {
                 required
                 minLength={12}
                 className="w-full px-3.5 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600"
-                placeholder="Minimum 12 caractères"
+                placeholder={tr("Minimum 12 caractères")}
               />
             </div>
 
@@ -134,7 +138,7 @@ function ResetPasswordContent({ params }) {
                 htmlFor="password_confirmation"
                 className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
               >
-                Confirmer le mot de passe
+                {tr("Confirmer le mot de passe")}
               </label>
               <input
                 type="password"
@@ -144,13 +148,13 @@ function ResetPasswordContent({ params }) {
                 required
                 minLength={12}
                 className="w-full px-3.5 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600"
-                placeholder="Répétez le mot de passe"
+                placeholder={tr("Répétez le mot de passe")}
               />
             </div>
 
             <div className="pt-2">
               <Button type="submit" loading={loading} variant="primary" className="w-full">
-                {loading ? "Réinitialisation en cours..." : "Enregistrer le mot de passe"}
+                {loading ? tr("Réinitialisation en cours...") : tr("Enregistrer le mot de passe")}
               </Button>
             </div>
           </form>
