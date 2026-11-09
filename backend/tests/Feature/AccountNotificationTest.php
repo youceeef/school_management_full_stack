@@ -179,7 +179,7 @@ class AccountNotificationTest extends TestCase
 
         $response = $this->actingAs($admin)
             ->patchJson("/api/account-requests/{$applicant->id}", [
-                'action' => 'approved',
+                'status' => 'approved',
             ]);
 
         $response->assertOk();
@@ -200,7 +200,7 @@ class AccountNotificationTest extends TestCase
 
         $response = $this->actingAs($admin)
             ->patchJson("/api/account-requests/{$applicant->id}", [
-                'action' => 'rejected',
+                'status' => 'rejected',
                 'reason' => $reason,
             ]);
 
@@ -224,7 +224,7 @@ class AccountNotificationTest extends TestCase
         // Suspend
         $suspendResponse = $this->actingAs($admin)
             ->patchJson("/api/account-requests/{$approvedUser->id}", [
-                'action' => 'suspended',
+                'status' => 'suspended',
                 'reason' => 'Vérification de contrat en cours.',
             ]);
         $suspendResponse->assertOk();
@@ -238,7 +238,7 @@ class AccountNotificationTest extends TestCase
         // Reactivate
         $reactivateResponse = $this->actingAs($admin)
             ->patchJson("/api/account-requests/{$approvedUser->id}", [
-                'action' => 'reactivated',
+                'status' => 'approved',
             ]);
         $reactivateResponse->assertOk();
 
