@@ -55,11 +55,25 @@ prepared Render configuration enables it.
 6. Activate a Mailjet sender address and generate the primary API/secret keys.
    Use the API key as the SMTP username and the secret key as the SMTP password.
    Render Free blocks common SMTP ports but allows Mailjet's STARTTLS port 2525.
-7. Wait for `/` on the generated `onrender.com` URL to return:
-   `{"application":"EduSpace","status":"ok"}`.
+7. Wait for `/` on the generated `onrender.com` URL to return the lightweight
+   liveness response with `status: "ok"`.
+8. Open `/health` and confirm the readiness response reports `status: "ok"`
+   for the database, profile storage and document storage. Render provides the
+   deployed Git SHA through `RENDER_GIT_COMMIT`; the Docker image records its
+   build time automatically.
 
 The container automatically runs non-destructive migrations, idempotent role
 and administrator seeding, Laravel optimization, and then the API server.
+
+### Health endpoints
+
+- `/` is a lightweight liveness endpoint used by Render. It does not contact
+  external dependencies, so a temporary database or storage outage does not
+  cause a restart loop.
+- `/health` is a cached readiness endpoint. It checks the database and both
+  configured storage disks, returns HTTP `503` when degraded, and never exposes
+  bucket names, endpoints, credentials or raw exception messages.
+- `HEALTH_CACHE_SECONDS` controls readiness caching and defaults to `60`.
 
 ## 5. Vercel frontend
 

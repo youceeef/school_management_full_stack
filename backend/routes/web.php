@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,9 +14,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return [
-        'application' => config('app.name'),
-        'status' => 'ok',
-    ];
-});
+Route::get('/', [HealthController::class, 'liveness']);
+Route::get('/health', [HealthController::class, 'readiness'])
+    ->middleware('throttle:30,1');

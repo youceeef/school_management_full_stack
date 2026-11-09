@@ -14,6 +14,14 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        $response
+            ->assertOk()
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonStructure([
+                'application',
+                'version',
+                'build_time',
+                'timestamp',
+            ]);
     }
 }

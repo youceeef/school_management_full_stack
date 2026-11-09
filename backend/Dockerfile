@@ -38,6 +38,7 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
 COPY . .
 
 RUN composer dump-autoload --no-dev --optimize --no-interaction \
+    && date -u +"%Y-%m-%dT%H:%M:%SZ" > .build-time \
     && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
     && php artisan storage:link \
     && chown -R www-data:www-data storage bootstrap/cache
