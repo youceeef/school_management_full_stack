@@ -28,7 +28,7 @@ jobs:
           extensions: mbstring, pdo_sqlite
           coverage: none
       - run: composer install --no-interaction --prefer-dist
-      - run: vendor/bin/pint --test -v
+      - run: vendor/bin/pint --test -v --format=github
       - run: php artisan test
       - run: composer audit --locked
 
