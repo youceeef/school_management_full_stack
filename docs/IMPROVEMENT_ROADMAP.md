@@ -502,7 +502,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P0 Baseline Complete | Production synchronized at 0d7b75b across Vercel and Render | `0d7b75b` |
 | 2026-11-09 | P1.1 | Dedicated account requests approval API with metrics and filters | `d10c2e4` |
 | 2026-11-09 | P1 Complete | Dedicated Account Approval Center UI, Navigation, and Details Modal | `3a73214` |
-| 2026-11-09 | P2.1 | Institutional identity fields in registration, models, approval center, and tests | `HEAD` |
+| 2026-11-09 | P2.1 | Institutional identity fields in registration, models, approval center, and tests | `4311584` |
 
 ## Next action
 
