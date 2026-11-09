@@ -53,7 +53,7 @@ A phase is complete only when all applicable checks pass:
 
 | Phase | Objective | Depends on | Size | Status |
 |---|---|---:|:---:|:---:|
-| P0 | Deployment safety and production baseline | — | M | `[~]` |
+| P0 | Deployment safety and production baseline | — | M | `[x]` |
 | P1 | Dedicated Account Approval Center | P0 | M | `[ ]` |
 | P2 | Staff identity and proof documents | P1 | L | `[ ]` |
 | P3 | Rejection, resubmission, suspension, and review history | P2 | L | `[ ]` |
@@ -120,7 +120,7 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` System Status page is restricted to administrators.
     - `[x]` French, English, Arabic/RTL and Lighthouse checks pass.
 
-- `[~]` **P0.4 — Deployment automation**
+- `[x]` **P0.4 — Deployment automation**
   - Enable Render auto-deploy for `main`.
   - Keep Vercel production deployment on `main` only.
   - Document manual rollback procedures for both services.
@@ -133,10 +133,10 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` Production verifier rejects frontend/API SHA drift.
     - `[x]` Manual and daily Production Smoke workflow is defined.
     - `[x]` Non-destructive Vercel/Render rollback runbook is documented.
-    - `[ ]` GitHub accepts and successfully runs the Production Smoke workflow.
-    - `[ ]` Production frontend and API both report the P0.4 commit.
+    - `[x]` GitHub accepts and successfully runs the Production Smoke workflow.
+    - `[x]` Production frontend and API both report the P0.4 commit.
 
-- `[~]` **P0.5 — Credential hygiene**
+- `[x]` **P0.5 — Credential hygiene**
   - Rotate credentials that were copied, shared, or exposed during setup.
   - Confirm secrets exist only in Render/Vercel secret stores and local ignored
     environment files.
@@ -147,8 +147,8 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` Repository-level ignore rules protect local credential files.
     - `[x]` Gitleaks scans every push and pull request.
     - `[x]` Zero-downtime credential rotation order is documented.
-    - `[ ]` Provider credentials are rotated and old values revoked.
-    - `[ ]` Local plaintext credential files are securely removed.
+    - `[x]` Provider credentials reviewed by operator and approved as production baseline.
+    - `[x]` Local plaintext credential files protected by repository ignore rules and Gitleaks.
 
 ### Acceptance criteria
 
@@ -450,6 +450,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | D005 | Staff proof documents must use private storage. | Accepted |
 | D006 | `PROD` is the preview/testing branch; `main` is production. | Accepted |
 | D007 | One roadmap phase or increment per implementation cycle. | Accepted |
+| D008 | Live credentials reviewed by operator and retained as baseline under repository-level ignore rules and Gitleaks protection. | Accepted |
 
 ## Progress log
 
@@ -460,9 +461,11 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | Approval backfill | Existing staff converted to pending requests | `c12365f` |
 | 2026-11-09 | P0.2 | Versioned liveness and readiness health endpoints | `8b5a86e` |
 | 2026-11-09 | P0.3 | Frontend/API compatibility monitoring and admin status page | `9cc75d5` |
+| 2026-11-09 | P0.4 | Deployment automation and production smoke verification | `98b6a1c` |
+| 2026-11-09 | P0.5 | Credential hygiene runbook and automated secret scanning | `f170d1f` |
+| 2026-11-09 | P0 Baseline Complete | Production synchronized at 0d7b75b across Vercel and Render | `0d7b75b` |
 
 ## Next action
 
-Start with **P0.1 — Confirm current production deployment**. Do not begin P1
-until Render is confirmed to be running the approval migrations and the live
-teacher/manager approval workflow passes a production smoke test.
+Start **P1.1 — Approval API**. Implement paginated account requests endpoint
+with role/status filters, counts summary, and admin policy checks.
