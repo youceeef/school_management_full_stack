@@ -31,7 +31,40 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'approval_status' => User::APPROVAL_APPROVED,
         ];
+    }
+
+    /**
+     * Indicate that the user account is pending approval.
+     */
+    public function pending(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'approval_status' => User::APPROVAL_PENDING,
+        ]);
+    }
+
+    /**
+     * Indicate that the user account is suspended.
+     */
+    public function suspended(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'approval_status' => User::APPROVAL_SUSPENDED,
+            'suspended_at' => now(),
+        ]);
+    }
+
+    /**
+     * Indicate that the user account is rejected.
+     */
+    public function rejected(?string $reason = 'Information incomplete'): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'approval_status' => User::APPROVAL_REJECTED,
+            'rejection_reason' => $reason,
+        ]);
     }
 
     /**
