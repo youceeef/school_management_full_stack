@@ -54,7 +54,7 @@ A phase is complete only when all applicable checks pass:
 | Phase | Objective | Depends on | Size | Status |
 |---|---|---:|:---:|:---:|
 | P0 | Deployment safety and production baseline | — | M | `[x]` |
-| P1 | Dedicated Account Approval Center | P0 | M | `[ ]` |
+| P1 | Dedicated Account Approval Center | P0 | M | `[~]` |
 | P2 | Staff identity and proof documents | P1 | L | `[ ]` |
 | P3 | Rejection, resubmission, suspension, and review history | P2 | L | `[ ]` |
 | P4 | Approval emails and notification reliability | P3 | M | `[ ]` |
@@ -168,11 +168,18 @@ focused admin workflow.
 
 ### Tasks
 
-- `[ ]` **P1.1 — Approval API**
+- `[x]` **P1.1 — Approval API**
   - Add a paginated account-request endpoint.
   - Filter by status, requested role, date, name, and email.
   - Return summary counts for pending, approved, rejected, and suspended.
   - Preserve strict admin-only authorization.
+  - Verification evidence:
+    - `[x]` Paginated `/api/account-requests` endpoint supports status, requested role, search, name, email, and date filters.
+    - `[x]` Summary counts for pending, approved, rejected, and suspended returned in `meta.counts` and `/api/account-requests/counts`.
+    - `[x]` Strict admin-only access enforced; unauthenticated and student/teacher accounts receive 401/403.
+    - `[x]` Single request view and review approval/rejection actions supported.
+    - `[x]` Automated feature tests pass in `AccountRequestApiTest`.
+    - `[x]` Frontend API client `accountRequestService.js` implemented.
 
 - `[ ]` **P1.2 — Approval Center page**
   - Add `/dashboard/account-requests`.

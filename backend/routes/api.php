@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountRequestController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -92,6 +93,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::patch('/users/{userId}/approval', [UserController::class, 'reviewAccountApproval'])
         ->middleware('role:admin')
         ->name('users.approval.review');
+
+    // --- Account Requests (Dedicated Approval Center) ---
+    Route::prefix('account-requests')->middleware('role:admin')->group(function () {
+        Route::get('/', [AccountRequestController::class, 'index'])->name('account-requests.index');
+        Route::get('/counts', [AccountRequestController::class, 'counts'])->name('account-requests.counts');
+        Route::get('/{id}', [AccountRequestController::class, 'show'])->name('account-requests.show');
+        Route::patch('/{id}', [AccountRequestController::class, 'review'])->name('account-requests.review');
+    });
     Route::delete('/users/{userId}', [UserController::class, 'deleteUserByAdmin'])->name('users.destroy');
     Route::delete('/users/{userId}/roles', [RoleController::class, 'removeRoleFromUser']);
     Route::get('/user', [UserController::class, 'getCurrentUser']);
