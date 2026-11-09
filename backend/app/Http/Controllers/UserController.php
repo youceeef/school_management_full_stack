@@ -139,7 +139,14 @@ class UserController extends Controller
             ]);
         });
 
-        $user->notify(new AccountApprovalStatusNotification($action, $reason));
+        try {
+            $user->notify(new AccountApprovalStatusNotification($action, $reason));
+        } catch (Throwable $e) {
+            Log::warning('Failed delivering account approval status notification: '.$e->getMessage(), [
+                'user_id' => $user->id,
+                'action' => $action,
+            ]);
+        }
 
         $message = match ($action) {
             AccountReview::ACTION_APPROVED => 'Compte approuvé et rôle attribué avec succès.',

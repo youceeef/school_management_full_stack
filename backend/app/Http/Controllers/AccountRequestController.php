@@ -6,11 +6,13 @@ use App\Http\Resources\AccountRequestResource;
 use App\Models\AccountReview;
 use App\Models\User;
 use App\Notifications\AccountApprovalStatusNotification;
+use App\Notifications\NewUserForAdminNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -291,7 +293,16 @@ class AccountRequestController extends Controller
             ]);
         });
 
-        $user->notify(new AccountApprovalStatusNotification($action, $reason));
+        $notificationWarning = null;
+        try {
+            $user->notify(new AccountApprovalStatusNotification($action, $reason));
+        } catch (Throwable $e) {
+            Log::warning('Failed delivering account approval status notification: '.$e->getMessage(), [
+                'user_id' => $user->id,
+                'action' => $action,
+            ]);
+            $notificationWarning = 'Le statut a été mis à jour avec succès, mais la notification par email n’a pas pu être délivrée.';
+        }
 
         $successMessage = match ($action) {
             AccountReview::ACTION_APPROVED => 'Compte approuvé et rôle attribué avec succès.',
@@ -300,10 +311,16 @@ class AccountRequestController extends Controller
             AccountReview::ACTION_REJECTED => 'Demande de compte refusée avec motif.',
         };
 
-        return response()->json([
+        $responseData = [
             'message' => $successMessage,
             'data' => new AccountRequestResource($user->fresh()->load(['roles', 'reviewer', 'reviews.reviewer'])),
-        ]);
+        ];
+
+        if ($notificationWarning) {
+            $responseData['notification_warning'] = $notificationWarning;
+        }
+
+        return response()->json($responseData);
     }
 
     /**
@@ -458,6 +475,18 @@ class AccountRequestController extends Controller
             } catch (Throwable $e) {
                 Log::warning('Failed to delete old proof document on resubmission: '.$e->getMessage());
             }
+        }
+
+        // Notify administrators of corrected resubmission
+        try {
+            $admins = User::role('admin')->get();
+            if ($admins->isNotEmpty()) {
+                Notification::send($admins, new NewUserForAdminNotification($user, isResubmission: true));
+            }
+        } catch (Throwable $e) {
+            Log::warning('Failed to send admin notification for resubmission: '.$e->getMessage(), [
+                'user_id' => $user->id,
+            ]);
         }
 
         return response()->json([

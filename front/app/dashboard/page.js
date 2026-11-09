@@ -88,9 +88,21 @@ const activityConfig = {
     icon: CheckCircleIcon,
     className: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/60",
   },
+  account_approval_resubmitted: {
+    icon: ClockIcon,
+    className: "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-200/60 dark:border-blue-900/60",
+  },
+  account_reactivated: {
+    icon: CheckCircleIcon,
+    className: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/60",
+  },
   account_rejected: {
     icon: XCircleIcon,
     className: "bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border-red-200/60 dark:border-red-900/60",
+  },
+  account_suspended: {
+    icon: XCircleIcon,
+    className: "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-900/60",
   },
 };
 

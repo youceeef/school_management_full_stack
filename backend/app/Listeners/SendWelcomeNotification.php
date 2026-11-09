@@ -6,7 +6,9 @@ use App\Models\User;
 use App\Notifications\NewUserForAdminNotification;
 use App\Notifications\UserRegisteredNotification;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\Facades\Notification as NotificationFacade; // For sending to multiple users
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Throwable;
 
 class SendWelcomeNotification
 {
@@ -27,31 +29,31 @@ class SendWelcomeNotification
 
         if ($registeredUser instanceof User) {
             // 1. Notify the newly registered user
-            $registeredUser->notify(new UserRegisteredNotification($registeredUser));
+            try {
+                $registeredUser->notify(new UserRegisteredNotification($registeredUser));
+            } catch (Throwable $e) {
+                Log::warning('Failed delivering welcome notification: '.$e->getMessage(), [
+                    'user_id' => $registeredUser->id,
+                ]);
+            }
 
-            // 2. Notify admins if the new user has a specific role
+            // 2. Notify admins if the new user has a specific role or requires approval
             $rolesToNotifyAdminFor = ['enseignant', 'responsable_laboratoire', 'admin', 'eleve'];
 
             $shouldNotifyAdmin = $registeredUser->approval_status === User::APPROVAL_PENDING
                 || $registeredUser->hasAnyRole($rolesToNotifyAdminFor);
-            // If not using Spatie's hasAnyRole or prefer manual check:
-            // $userRoles = $registeredUser->getRoleNames();
-            // if ($userRoles) {
-            //     foreach ($rolesToNotifyAdminFor as $roleToWatch) {
-            //         if ($userRoles->contains($roleToWatch)) {
-            //             $shouldNotifyAdmin = true;
-            //             break;
-            //         }
-            //     }
-            // }
 
             if ($shouldNotifyAdmin) {
-                // Fetch all users with the 'admin' role
-                // Make sure you have an 'admin' role defined with Spatie Permissions
-                $admins = User::role('admin')->get();
+                try {
+                    $admins = User::role('admin')->get();
 
-                if ($admins->isNotEmpty()) {
-                    NotificationFacade::send($admins, new NewUserForAdminNotification($registeredUser));
+                    if ($admins->isNotEmpty()) {
+                        NotificationFacade::send($admins, new NewUserForAdminNotification($registeredUser));
+                    }
+                } catch (Throwable $e) {
+                    Log::warning('Failed notifying admins of new user: '.$e->getMessage(), [
+                        'new_user_id' => $registeredUser->id,
+                    ]);
                 }
             }
         }
