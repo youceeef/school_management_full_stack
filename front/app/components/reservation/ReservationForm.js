@@ -1,14 +1,26 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { FaCalendar, FaClock, FaChalkboardTeacher, FaTools, FaChevronDown, FaSpinner, FaArrowLeft, FaArrowRight, FaCheck, FaSearch, FaTimes } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  BuildingOfficeIcon,
+  CalendarDaysIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ClockIcon,
+  MagnifyingGlassIcon,
+  WrenchScrewdriverIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import toast from "../../utils/toast";
 import { getSallesCalendar } from "../../services/salleService";
 import { getReservationsEquipements } from "../../services/equipementService";
 import { createReservation } from "../../services/reservationService";
-import fr from "date-fns/locale/fr"; // French locale
+import LoadingSpinner from "../LoadingSpinner";
+import fr from "date-fns/locale/fr";
 
 const ReservationForm = ({ onSuccess, onFormChange }) => {
   const [loading, setLoading] = useState(true);
@@ -30,57 +42,65 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
   const [filteredSalles, setFilteredSalles] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Calculate step completion
   const isStepComplete = {
     1: !!formData.salle_id,
     2: !!formData.start_time && !!formData.end_time && !timeError,
     3: !!formData.purpose,
-    4: true, // Equipment is optional
+    4: true,
   };
 
-  // Step titles and icons
   const steps = [
-    { title: "Salle", icon: FaChalkboardTeacher },
-    { title: "Date/Heure", icon: FaClock },
-    { title: "Objectif", icon: FaCalendar },
-    { title: "Équipements", icon: FaTools },
+    { title: "Salle", icon: BuildingOfficeIcon },
+    { title: "Date & Heure", icon: ClockIcon },
+    { title: "Objectif", icon: CalendarDaysIcon },
+    { title: "Équipements", icon: WrenchScrewdriverIcon },
   ];
 
-  // Notify parent component of form changes
   useEffect(() => {
-    if (formData.salle_id || formData.start_time || formData.end_time || formData.purpose || selectedEquipment.length > 0) {
+    if (
+      formData.salle_id ||
+      formData.start_time ||
+      formData.end_time ||
+      formData.purpose ||
+      selectedEquipment.length > 0
+    ) {
       onFormChange?.();
     }
   }, [formData, selectedEquipment, onFormChange]);
 
-  // Filter salles based on search query
   useEffect(() => {
     if (salles.length > 0) {
-      const filtered = salles.filter((salle) => salle.name.toLowerCase().includes(searchQuery.toLowerCase()) || salle.type.toLowerCase().includes(searchQuery.toLowerCase()));
+      const filtered = salles.filter(
+        (salle) =>
+          salle.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          salle.type.toLowerCase().includes(searchQuery.toLowerCase())
+      );
       setFilteredSalles(filtered);
     }
   }, [searchQuery, salles]);
 
-  // Fetch data on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [sallesResponse, equipementsResponse] = await Promise.all([getSallesCalendar(), getReservationsEquipements()]);
+        const [sallesResponse, equipementsResponse] = await Promise.all([
+          getSallesCalendar(),
+          getReservationsEquipements(),
+        ]);
 
-        // Filter salles by type
-        const filteredSalles = sallesResponse.data.filter((salle) => salle.type === "laboratoire" || salle.type === "amphitheatre");
-        setSalles(filteredSalles);
-        setFilteredSalles(filteredSalles);
+        const availableSalles = (sallesResponse.data || []).filter(
+          (salle) => salle.type === "laboratoire" || salle.type === "amphitheatre"
+        );
+        setSalles(availableSalles);
+        setFilteredSalles(availableSalles);
 
-        // Ensure equipements is always an array
-        const equipementsArray = Array.isArray(equipementsResponse.data) ? equipementsResponse.data : equipementsResponse.data?.data || [];
+        const equipementsArray = Array.isArray(equipementsResponse.data)
+          ? equipementsResponse.data
+          : equipementsResponse.data?.data || [];
 
-        // Set equipements data
         setEquipements(equipementsArray);
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error(error.message || "Erreur lors du chargement des données");
-        // Initialize with empty array on error
         setEquipements([]);
       } finally {
         setLoading(false);
@@ -96,13 +116,13 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
     const end = new Date(endTime);
 
     if (end <= start) {
-      setTimeError("L'heure de fin doit être après l'heure de début");
+      setTimeError("L'heure de fin doit être postérieure à l'heure de début.");
       return false;
     }
 
-    const duration = (end - start) / (1000 * 60 * 60); // duration in hours
+    const duration = (end - start) / (1000 * 60 * 60);
     if (duration > 4) {
-      setTimeError("La durée ne peut pas dépasser 4 heures");
+      setTimeError("La durée maximale d'une séance est fixée à 4 heures.");
       return false;
     }
 
@@ -113,13 +133,11 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate required fields
     if (!formData.salle_id || !formData.start_time || !formData.end_time || !formData.purpose) {
       toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
 
-    // Validate time range
     if (!validateTimeRange(formData.start_time, formData.end_time)) {
       return;
     }
@@ -127,15 +145,13 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
     try {
       setSubmitting(true);
 
-      // Format equipment data
       const equipmentData = selectedEquipment
         .filter((eq) => eq.quantity > 0)
         .map((eq) => ({
           id: eq.equipmentId,
-          quantity: parseInt(eq.quantity),
+          quantity: parseInt(eq.quantity, 10),
         }));
 
-      // Format dates to match backend expectations (YYYY-MM-DD HH:mm:ss)
       const formatDateTime = (dateString) => {
         const date = new Date(dateString);
         const year = date.getFullYear();
@@ -149,7 +165,7 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
       };
 
       const reservationData = {
-        salle_id: parseInt(formData.salle_id),
+        salle_id: parseInt(formData.salle_id, 10),
         start_time: formatDateTime(formData.start_time),
         end_time: formatDateTime(formData.end_time),
         purpose: formData.purpose,
@@ -163,7 +179,6 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
         onSuccess?.();
       } else {
         if (response.errors) {
-          // Handle validation errors
           Object.values(response.errors).forEach((errorMessages) => {
             if (Array.isArray(errorMessages)) {
               errorMessages.forEach((message) => toast.error(message));
@@ -199,15 +214,17 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
 
   const handleEquipmentQuantityChange = (equipmentId, quantity) => {
     const equipment = equipements.find((e) => e.id === equipmentId);
-    const parsedQuantity = parseInt(quantity) || "";
-    const availableQuantity = equipment.quantity_available || equipment.quantity || 0;
+    const parsedQuantity = parseInt(quantity, 10) || "";
+    const availableQuantity = equipment?.quantity_available || equipment?.quantity || 0;
 
     if (parsedQuantity > availableQuantity) {
-      toast.error(`Quantité maximum disponible: ${availableQuantity}`);
+      toast.error(`Quantité maximum disponible : ${availableQuantity}`);
       return;
     }
 
-    setSelectedEquipment((prev) => prev.map((item) => (item.equipmentId === equipmentId ? { ...item, quantity: quantity } : item)));
+    setSelectedEquipment((prev) =>
+      prev.map((item) => (item.equipmentId === equipmentId ? { ...item, quantity } : item))
+    );
   };
 
   const handleRemoveEquipment = (equipmentId) => {
@@ -218,66 +235,81 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
-                <FaChalkboardTeacher className="w-6 h-6 mr-2 text-primary-500" />
-                Sélection de la salle
-              </h3>
-              <div className="relative">
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h3 className="text-base font-display font-semibold text-slate-900 dark:text-white">
+                  1. Choisissez un espace disponible
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Laboratoires et amphithéâtres ouverts à la réservation.
+                </p>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher une salle..."
-                  className="pl-10 pr-4 py-2 border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent w-64 dark:bg-dark-card dark:text-dark-text dark:placeholder-dark-muted"
+                  placeholder="Filtrer les salles..."
+                  className="w-full pl-9 pr-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                 />
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredSalles.map((salle) => (
-                <button
-                  key={salle.id}
-                  type="button"
-                  onClick={() => {
-                    setFormData((prev) => ({ ...prev, salle_id: salle.id.toString() }));
-                    setCurrentStep(2);
-                  }}
-                  className={`group p-4 rounded-xl border-2 transition-all duration-200 text-left hover:shadow-md ${
-                    formData.salle_id === salle.id.toString() ? "border-primary-500 bg-primary-50 dark:bg-primary-900/10" : "border-gray-100 dark:border-dark-border hover:border-primary-200 dark:hover:border-primary-700"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors duration-200">{salle.name}</h4>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${salle.type === "laboratoire" ? "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400" : "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400"}`}>{salle.type}</span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">{salle.capacity} places</span>
-                      </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+              {filteredSalles.map((salle) => {
+                const selected = formData.salle_id === salle.id.toString();
+                return (
+                  <button
+                    key={salle.id}
+                    type="button"
+                    onClick={() => {
+                      setFormData((prev) => ({ ...prev, salle_id: salle.id.toString() }));
+                      setCurrentStep(2);
+                    }}
+                    className={`p-4 rounded-xl border text-left transition-colors flex items-start justify-between gap-3 ${
+                      selected
+                        ? "border-primary-600 bg-primary-50/50 dark:bg-primary-950/40"
+                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
+                    }`}
+                  >
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {salle.name}
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 capitalize">
+                        {salle.type} ·{" "}
+                        <span className="font-mono tabular-nums">{salle.capacity}</span> places
+                      </p>
                     </div>
-                    {formData.salle_id === salle.id.toString() && (
-                      <div className="bg-primary-500 text-white p-2 rounded-full">
-                        <FaCheck className="w-4 h-4" />
+                    {selected && (
+                      <div className="w-6 h-6 rounded-full bg-primary-600 text-white flex items-center justify-center shrink-0">
+                        <CheckIcon className="w-3.5 h-3.5" />
                       </div>
                     )}
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
         );
 
       case 2:
         return (
-          <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
-              <FaClock className="w-6 h-6 mr-2 text-primary-500" />
-              Date et heure
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-base font-display font-semibold text-slate-900 dark:text-white">
+                2. Définissez le créneau horaire
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                La durée d&apos;une réservation est comprise entre 30 minutes et 4 heures.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Date et heure de début <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -294,10 +326,9 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
                     dateFormat="dd/MM/yyyy HH:mm"
                     minDate={new Date()}
                     locale={fr}
-                    placeholderText="Sélectionner date et heure"
-                    className="w-full px-4 py-2 border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-dark-card dark:text-dark-text"
+                    placeholderText="Sélectionner le début"
+                    className="w-full px-3.5 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                     calendarClassName="reservation-calendar"
-                    showTimeSelectOnly={false}
                     portalId="root"
                     popperClassName="reservation-popper"
                     popperPlacement="bottom-start"
@@ -305,11 +336,12 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
                     showPopperArrow={false}
                     monthsShown={1}
                   />
-                  <FaClock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                  <ClockIcon className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Date et heure de fin <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -317,7 +349,10 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
                     selected={formData.end_time ? new Date(formData.end_time) : null}
                     onChange={(date) => {
                       setFormData((prev) => ({ ...prev, end_time: date?.toISOString() }));
-                      validateTimeRange(formData.start_time ? new Date(formData.start_time) : null, date);
+                      validateTimeRange(
+                        formData.start_time ? new Date(formData.start_time) : null,
+                        date
+                      );
                     }}
                     showTimeSelect
                     timeFormat="HH:mm"
@@ -326,10 +361,9 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
                     dateFormat="dd/MM/yyyy HH:mm"
                     minDate={formData.start_time ? new Date(formData.start_time) : new Date()}
                     locale={fr}
-                    placeholderText="Sélectionner date et heure"
-                    className="w-full px-4 py-2 border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-dark-card dark:text-dark-text"
+                    placeholderText="Sélectionner la fin"
+                    className="w-full px-3.5 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                     calendarClassName="reservation-calendar"
-                    showTimeSelectOnly={false}
                     portalId="root"
                     popperClassName="reservation-popper"
                     popperPlacement="bottom-start"
@@ -337,24 +371,22 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
                     showPopperArrow={false}
                     monthsShown={1}
                   />
-                  <FaClock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                  <ClockIcon className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
               </div>
             </div>
+
             {timeError && (
-              <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 flex items-start">
-                <div className="flex-shrink-0 mt-0.5">
-                  <FaTimes className="w-5 h-5 text-red-400" />
-                </div>
-                <p className="ml-3 text-sm text-red-600 dark:text-red-400">{timeError}</p>
+              <div className="p-3.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 flex items-center gap-2.5 text-xs text-red-700 dark:text-red-300">
+                <XMarkIcon className="w-4 h-4 shrink-0" />
+                <span>{timeError}</span>
               </div>
             )}
+
             {formData.start_time && formData.end_time && !timeError && (
-              <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 flex items-start">
-                <div className="flex-shrink-0 mt-0.5">
-                  <FaCheck className="w-5 h-5 text-green-400" />
-                </div>
-                <p className="ml-3 text-sm text-green-600 dark:text-green-400">Durée valide</p>
+              <div className="p-3.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 flex items-center gap-2.5 text-xs text-emerald-700 dark:text-emerald-300">
+                <CheckIcon className="w-4 h-4 shrink-0" />
+                <span>Créneau horaire valide.</span>
               </div>
             )}
           </div>
@@ -362,25 +394,37 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
 
       case 3:
         return (
-          <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
-              <FaCalendar className="w-6 h-6 mr-2 text-primary-500" />
-              Objectif de la réservation
-            </h3>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Description <span className="text-red-500">*</span>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-base font-display font-semibold text-slate-900 dark:text-white">
+                3. Précisez l&apos;objectif pédagogique
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Indiquez l&apos;intitulé du cours, du TP ou de la soutenance.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Motif de la demande <span className="text-red-500">*</span>
               </label>
               <textarea
-                className="w-full px-4 py-3 border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none dark:bg-dark-card dark:text-dark-text dark:placeholder-dark-muted"
-                rows={6}
+                className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 resize-none bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                rows={5}
                 value={formData.purpose}
                 onChange={(e) => setFormData((prev) => ({ ...prev, purpose: e.target.value }))}
-                placeholder="Décrivez l'objectif de votre réservation..."
+                placeholder="Ex: Travaux pratiques de réseaux informatiques — Groupe 2..."
                 maxLength={500}
               />
               <div className="flex justify-end">
-                <span className={`text-sm ${formData.purpose.length >= 450 ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}`}>{formData.purpose.length}/500 caractères</span>
+                <span
+                  className={`text-xs font-mono tabular-nums ${
+                    formData.purpose.length >= 450
+                      ? "text-red-500 dark:text-red-400"
+                      : "text-slate-500 dark:text-slate-400"
+                  }`}
+                >
+                  {formData.purpose.length}/500
+                </span>
               </div>
             </div>
           </div>
@@ -388,26 +432,34 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
 
       case 4:
         return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
-                <FaTools className="w-6 h-6 mr-2 text-primary-500" />
-                Équipements (optionnel)
-              </h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-display font-semibold text-slate-900 dark:text-white">
+                  4. Équipements complémentaires (optionnel)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Sélectionnez le matériel nécessaire à votre séance.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowEquipmentDropdown(!showEquipmentDropdown)}
-                className="px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-700 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors duration-200 flex items-center"
+                className="px-3.5 py-2 text-xs font-medium text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-800 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors inline-flex items-center gap-1.5 shrink-0"
               >
-                Ajouter un équipement
-                <FaChevronDown className={`ml-2 transform transition-transform duration-200 ${showEquipmentDropdown ? "rotate-180" : ""}`} />
+                <span>Choisir un équipement</span>
+                <ChevronDownIcon
+                  className={`w-4 h-4 transition-transform ${
+                    showEquipmentDropdown ? "rotate-180" : ""
+                  }`}
+                />
               </button>
             </div>
 
             {showEquipmentDropdown && (
-              <div className="p-4 bg-gray-50 dark:bg-dark-card/50 rounded-lg border border-gray-200 dark:border-dark-border">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array.isArray(equipements) ? (
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto">
+                  {Array.isArray(equipements) && equipements.length > 0 ? (
                     equipements
                       .filter((eq) => !selectedEquipment.some((sel) => sel.equipmentId === eq.id))
                       .map((equipment) => (
@@ -415,54 +467,93 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
                           key={equipment.id}
                           type="button"
                           onClick={() => handleEquipmentSelect(equipment)}
-                          className="p-3 bg-white dark:bg-dark-card rounded-lg border border-gray-200 dark:border-dark-border hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-sm transition-all duration-200 text-left"
+                          className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-600 transition-colors text-left"
                         >
-                          <div className="font-medium text-gray-800 dark:text-white">{equipment.name}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">Disponible: {equipment.quantity_available || equipment.quantity || 0}</div>
+                          <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                            {equipment.name}
+                          </div>
+                          <div className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400 mt-0.5">
+                            Stock : {equipment.quantity_available || equipment.quantity || 0}
+                          </div>
                         </button>
                       ))
                   ) : (
-                    <div className="col-span-3 p-4 text-center text-gray-500 dark:text-gray-400">Aucun équipement disponible</div>
+                    <div className="col-span-3 py-4 text-center text-xs text-slate-500 dark:text-slate-400">
+                      Aucun équipement disponible
+                    </div>
                   )}
                 </div>
               </div>
             )}
 
-            <div className="space-y-3">
-              {selectedEquipment.map((item) => (
-                <div key={item.equipmentId} className="flex items-center justify-between p-4 rounded-lg bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border hover:border-primary-200 dark:hover:border-primary-700 transition-all duration-200">
-                  <span className="font-medium text-gray-800 dark:text-white">{item.name}</span>
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center space-x-2">
+            <div className="space-y-2.5">
+              {selectedEquipment.length === 0 ? (
+                <div className="py-8 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-500 dark:text-slate-400">
+                  Aucun équipement supplémentaire sélectionné. Vous pouvez confirmer directement la
+                  réservation.
+                </div>
+              ) : (
+                selectedEquipment.map((item) => (
+                  <div
+                    key={item.equipmentId}
+                    className="flex items-center justify-between p-3.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+                  >
+                    <div>
+                      <span className="text-sm font-medium text-slate-900 dark:text-white">
+                        {item.name}
+                      </span>
+                      <span className="block text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                        Max disponible : {item.maxQuantity}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleEquipmentQuantityChange(
+                              item.equipmentId,
+                              Math.max(1, parseInt(item.quantity, 10) - 1)
+                            )
+                          }
+                          className="w-7 h-7 flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          max={item.maxQuantity}
+                          value={item.quantity}
+                          onChange={(e) =>
+                            handleEquipmentQuantityChange(item.equipmentId, e.target.value)
+                          }
+                          className="w-14 px-2 py-1 text-center font-mono text-sm tabular-nums border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleEquipmentQuantityChange(
+                              item.equipmentId,
+                              Math.min(item.maxQuantity, parseInt(item.quantity, 10) + 1)
+                            )
+                          }
+                          className="w-7 h-7 flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          +
+                        </button>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => handleEquipmentQuantityChange(item.equipmentId, Math.max(1, parseInt(item.quantity) - 1))}
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 dark:border-dark-border hover:border-primary-500 dark:hover:border-primary-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors duration-200"
+                        onClick={() => handleRemoveEquipment(item.equipmentId)}
+                        className="p-1.5 rounded-md text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                       >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        min="1"
-                        max={item.maxQuantity}
-                        value={item.quantity}
-                        onChange={(e) => handleEquipmentQuantityChange(item.equipmentId, e.target.value)}
-                        className="w-16 px-2 py-1 text-center border dark:border-dark-border rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-dark-card dark:text-dark-text"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleEquipmentQuantityChange(item.equipmentId, Math.min(item.maxQuantity, parseInt(item.quantity) + 1))}
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 dark:border-dark-border hover:border-primary-500 dark:hover:border-primary-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors duration-200"
-                      >
-                        +
+                        <XMarkIcon className="w-4 h-4" />
                       </button>
                     </div>
-                    <button type="button" onClick={() => handleRemoveEquipment(item.equipmentId)} className="w-8 h-8 flex items-center justify-center rounded-full text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors duration-200">
-                      ×
-                    </button>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         );
@@ -474,113 +565,116 @@ const ReservationForm = ({ onSuccess, onFormChange }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-48">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      <div className="flex justify-center items-center py-14">
+        <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white dark:bg-dark-card rounded-2xl shadow-lg border border-gray-100 dark:border-dark-border">
-        {/* Progress Steps */}
-        <div className="px-6 py-6 border-b border-gray-100 dark:border-dark-border">
-          <div className="flex items-center justify-between relative">
-            {/* Progress Line - Now positioned between steps */}
-            <div className="absolute top-1/2 left-0 w-full h-1 -translate-y-1/2">
-              <div className="mx-[3.5rem] h-full">
-                <div className="relative h-full bg-gray-200 dark:bg-dark-border rounded-full">
-                  <div className="absolute left-0 top-0 h-full bg-primary-500 rounded-full transition-all duration-300" style={{ width: `${((currentStep - 1) / 3) * 100}%` }} />
-                </div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-4 gap-2 pb-5 border-b border-slate-200 dark:border-slate-800">
+        {steps.map((step, index) => {
+          const stepNumber = index + 1;
+          const Icon = step.icon;
+          const isActive = currentStep === stepNumber;
+          const isCompleted = currentStep > stepNumber;
+          const isClickable = stepNumber < currentStep || isStepComplete[stepNumber - 1];
+
+          return (
+            <button
+              key={stepNumber}
+              type="button"
+              disabled={!isClickable}
+              onClick={() => {
+                if (isClickable) setCurrentStep(stepNumber);
+              }}
+              className={`flex items-center gap-2.5 p-2.5 rounded-lg border text-left transition-colors ${
+                isActive
+                  ? "border-primary-600 bg-primary-50/60 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300"
+                  : isCompleted
+                  ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 cursor-pointer"
+                  : "border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500"
+              }`}
+            >
+              <div
+                className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-xs font-mono font-bold ${
+                  isActive
+                    ? "bg-primary-600 text-white"
+                    : isCompleted
+                    ? "bg-emerald-600 text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                }`}
+              >
+                {isCompleted ? <CheckIcon className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
               </div>
-            </div>
-
-            {steps.map((step, index) => {
-              const stepNumber = index + 1;
-              const Icon = step.icon;
-              const isActive = currentStep === stepNumber;
-              const isCompleted = currentStep > stepNumber;
-              const isClickable = stepNumber < currentStep || isStepComplete[stepNumber - 1];
-
-              return (
-                <div key={stepNumber} className="flex flex-col items-center relative z-10">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isClickable) setCurrentStep(stepNumber);
-                    }}
-                    disabled={!isClickable}
-                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
-                      isActive
-                        ? "bg-primary-500 text-white ring-4 ring-primary-100 dark:ring-primary-900/30"
-                        : isCompleted
-                        ? "bg-primary-500 text-white cursor-pointer hover:ring-4 hover:ring-primary-100 dark:hover:ring-primary-900/30"
-                        : isClickable
-                        ? "bg-white dark:bg-dark-card text-gray-500 dark:text-gray-400 border-2 border-gray-300 dark:border-dark-border cursor-pointer hover:border-primary-500 dark:hover:border-primary-400"
-                        : "bg-gray-100 dark:bg-dark-border text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                    }`}
-                  >
-                    {isCompleted ? <FaCheck className="w-6 h-6" /> : <Icon className={`w-6 h-6 ${isActive ? "animate-bounce" : ""}`} />}
-                  </button>
-                  <span className={`mt-3 font-medium text-sm transition-colors duration-300 ${isActive ? "text-primary-500 dark:text-primary-400" : isCompleted ? "text-primary-500 dark:text-primary-400" : "text-gray-500 dark:text-gray-400"}`}>{step.title}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Form Content */}
-        <div className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="transition-all duration-300 transform">{renderStepContent()}</div>
-
-            {/* Navigation Buttons */}
-            <div className="flex justify-between pt-6 border-t border-gray-100 dark:border-dark-border">
-              {currentStep > 1 && (
-                <button type="button" onClick={() => setCurrentStep(currentStep - 1)} className="flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors duration-200">
-                  <FaArrowLeft className="mr-2" />
-                  Retour
-                </button>
-              )}
-              <div className="ml-auto">
-                {currentStep < 4 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isStepComplete[currentStep]) {
-                        setCurrentStep(currentStep + 1);
-                      } else {
-                        toast.error("Veuillez remplir tous les champs obligatoires");
-                      }
-                    }}
-                    className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center ${
-                      isStepComplete[currentStep] ? "bg-primary-500 text-white hover:bg-primary-600 dark:bg-primary-600 dark:hover:bg-primary-700" : "bg-gray-100 dark:bg-dark-border text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                    }`}
-                  >
-                    Suivant
-                    <FaArrowRight className="ml-2" />
-                  </button>
-                )}
-                {currentStep === 4 && (
-                  <button type="submit" disabled={submitting} className="px-6 py-3 bg-green-500 dark:bg-green-600 text-white rounded-lg font-medium hover:bg-green-600 dark:hover:bg-green-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
-                    {submitting ? (
-                      <>
-                        <FaSpinner className="animate-spin mr-2" />
-                        Confirmation en cours...
-                      </>
-                    ) : (
-                      <>
-                        Confirmer la réservation
-                        <FaCheck className="ml-2" />
-                      </>
-                    )}
-                  </button>
-                )}
+              <div className="min-w-0 hidden sm:block">
+                <p className="text-[11px] font-mono uppercase tracking-wider opacity-75">
+                  Étape 0{stepNumber}
+                </p>
+                <p className="text-xs font-semibold truncate">{step.title}</p>
               </div>
-            </div>
-          </form>
-        </div>
+            </button>
+          );
+        })}
       </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>{renderStepContent()}</div>
+
+        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
+          {currentStep > 1 ? (
+            <button
+              type="button"
+              onClick={() => setCurrentStep(currentStep - 1)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              <ArrowLeftIcon className="w-4 h-4" />
+              Précédent
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {currentStep < 4 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (isStepComplete[currentStep]) {
+                  setCurrentStep(currentStep + 1);
+                } else {
+                  toast.error("Veuillez compléter cette étape avant de continuer");
+                }
+              }}
+              className={`inline-flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-lg transition-colors ${
+                isStepComplete[currentStep]
+                  ? "bg-primary-600 text-white hover:bg-primary-700"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
+              }`}
+            >
+              Suivant
+              <ArrowRightIcon className="w-4 h-4" />
+            </button>
+          )}
+
+          {currentStep === 4 && (
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+            >
+              {submitting ? (
+                <span>Enregistrement en cours...</span>
+              ) : (
+                <>
+                  <span>Confirmer la réservation</span>
+                  <CheckIcon className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </form>
     </div>
   );
 };

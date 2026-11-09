@@ -1,20 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { LockClosedIcon } from "@heroicons/react/24/outline";
+import { LockClosedIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
+import Button from "../components/Button";
 
 export default function UnauthorizedPage() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-950 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 text-center p-8 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700">
-        <div className="flex justify-center">
-          <LockClosedIcon className="h-16 w-16 text-red-500 dark:text-red-400" aria-hidden="true" />
+    <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 px-4 py-12">
+      <div className="max-w-md w-full text-center p-8 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
+        <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200/70 dark:border-red-900/60 flex items-center justify-center text-red-600 dark:text-red-400 mx-auto">
+          <LockClosedIcon className="h-6 w-6" aria-hidden="true" />
         </div>
-        <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Accès non autorisé</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Désolé, vous n&apos;avez pas les permissions nécessaires pour accéder à cette page.</p>
-        <div className="mt-6">
-          <Link href="/dashboard" className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition duration-150 ease-in-out">
-            Retourner au tableau de bord
+        <div>
+          <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white">
+            Accès restreint
+          </h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            Votre compte ne dispose pas des habilitations nécessaires pour consulter cette section.
+          </p>
+        </div>
+        <div className="pt-2">
+          <Link href="/dashboard">
+            <Button variant="primary" icon={ArrowLeftIcon}>
+              Retourner au tableau de bord
+            </Button>
           </Link>
         </div>
       </div>

@@ -2,11 +2,25 @@
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import {
+  Squares2X2Icon,
+  BellIcon,
+  BuildingOffice2Icon,
+  CalendarDaysIcon,
+  CpuChipIcon,
+  ClipboardDocumentListIcon,
+  ClipboardDocumentCheckIcon,
+  DocumentTextIcon,
+  ArrowDownTrayIcon,
+  UsersIcon,
+  UserGroupIcon,
+  ShieldCheckIcon,
+  UserCircleIcon,
+} from "@heroicons/react/24/outline";
 import toast from "../utils/toast";
 import { useAuth } from "../context/AuthContext";
 import AuthMiddleware from "../components/AuthMiddleware";
 import { useNotifications } from "../context/NotificationContext";
-import { useTheme } from "../context/ThemeContext";
 import Sidebar from "../components/Sidebar";
 import TopBar from "../components/TopBar";
 import { PERMISSIONS } from "../constants/permissions";
@@ -14,27 +28,21 @@ import { PERMISSIONS } from "../constants/permissions";
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, hasRole, hasPermission } = useAuth();
+  const { logout, hasRole, hasPermission } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
   const { unreadCount } = useNotifications();
-  const { darkMode } = useTheme();
 
   const notificationRef = useRef(null);
   const profileRef = useRef(null);
-  const sidebarRef = useRef(null);
 
-  // Handle responsive sidebar
   useEffect(() => {
     const handleResize = () => {
-      setIsMobileView(window.innerWidth < 1024);
-      if (window.innerWidth < 1024) {
-        setIsSidebarOpen(false);
-      } else {
-        setIsSidebarOpen(true);
-      }
+      const mobile = window.innerWidth < 1024;
+      setIsMobileView(mobile);
+      setIsSidebarOpen(!mobile);
     };
 
     handleResize();
@@ -42,9 +50,7 @@ export default function DashboardLayout({ children }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
   const toggleNotifications = () => {
     setShowNotifications((current) => !current);
@@ -54,11 +60,10 @@ export default function DashboardLayout({ children }) {
   const closeNotifications = () => setShowNotifications(false);
 
   const toggleProfileMenu = () => {
-    setShowProfileMenu(!showProfileMenu);
+    setShowProfileMenu((current) => !current);
     setShowNotifications(false);
   };
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
@@ -67,16 +72,11 @@ export default function DashboardLayout({ children }) {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setShowProfileMenu(false);
       }
-      if (isMobileView && isSidebarOpen && sidebarRef.current && !sidebarRef.current.contains(event.target)) {
-        setIsSidebarOpen(false);
-      }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isMobileView, isSidebarOpen]);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLogout = async (e) => {
     e.preventDefault();
@@ -84,98 +84,94 @@ export default function DashboardLayout({ children }) {
       await logout();
       toast.success("Déconnexion réussie");
       router.push("/login");
-    } catch (error) {
+    } catch {
       toast.error("Erreur lors de la déconnexion");
     }
   };
 
-  // Navigation items with role and permission requirements
   const allNavItems = useMemo(
     () => [
       {
         name: "Tableau de bord",
         path: "/dashboard",
-        icon: "📊",
+        icon: Squares2X2Icon,
       },
-      // --- NEW: Notifications Link ---
       {
         name: "Notifications",
         path: "/dashboard/notifications",
-        icon: "🔔",
-        // permissions: [PERMISSIONS.LIST_NOTIFICATIONS],
+        icon: BellIcon,
       },
       {
         name: "Salles",
         path: "/dashboard/salles",
-        icon: "🏢",
+        icon: BuildingOffice2Icon,
         permissions: [PERMISSIONS.LIST_SALLES],
       },
       {
         name: "Calendrier",
         path: "/dashboard/calendrier",
-        icon: "📅",
+        icon: CalendarDaysIcon,
       },
       {
         name: "Équipements",
         path: "/dashboard/equipements",
-        icon: "🖨️",
+        icon: CpuChipIcon,
         permissions: [PERMISSIONS.LIST_EQUIPEMENTS],
       },
       {
-        name: "Réservations",
+        name: "Mes Réservations",
         path: "/dashboard/mes-reservations",
-        icon: "📝",
+        icon: ClipboardDocumentListIcon,
         permissions: [PERMISSIONS.LIST_OWN_RESERVATIONS],
       },
       {
         name: "Gestion Réservations",
         path: "/dashboard/reservations",
-        icon: "📅",
+        icon: ClipboardDocumentCheckIcon,
         permissions: [PERMISSIONS.LIST_ALL_RESERVATIONS],
       },
       {
         name: "Documents",
         path: "/dashboard/documents",
-        icon: "📄",
+        icon: DocumentTextIcon,
         permissions: [PERMISSIONS.SHOW_DOCUMENTS],
       },
       {
         name: "Téléchargements",
         path: "/dashboard/telechargements",
-        icon: "⬇️",
+        icon: ArrowDownTrayIcon,
         permissions: [PERMISSIONS.TELECHARGEMENTS],
       },
       {
         name: "Utilisateurs",
         path: "/dashboard/users",
-        icon: "🧑‍🤝‍🧑",
+        icon: UsersIcon,
         roles: ["admin"],
         permissions: [PERMISSIONS.LIST_USERS],
       },
       {
         name: "Rôles",
         path: "/dashboard/roles",
-        icon: "👥",
+        icon: UserGroupIcon,
         roles: ["admin"],
         permissions: [PERMISSIONS.LIST_ROLES],
       },
       {
         name: "Permissions",
         path: "/dashboard/permissions",
-        icon: "🔒",
+        icon: ShieldCheckIcon,
         roles: ["admin"],
         permissions: [PERMISSIONS.LIST_PERMISSIONS],
       },
       {
-        name: "Profile",
+        name: "Profil",
         path: "/dashboard/profile",
-        icon: "👤",
+        icon: UserCircleIcon,
       },
     ],
     []
   );
 
-  // Filter navigation items based on user roles and permissions
   const navItems = useMemo(() => {
     return allNavItems.filter((item) => {
       if (!item.roles && !item.permissions) return true;
@@ -185,20 +181,24 @@ export default function DashboardLayout({ children }) {
     });
   }, [allNavItems, hasRole, hasPermission]);
 
-  // Update document title when pathname changes
   useEffect(() => {
     const currentNavItem = navItems.find((item) => item.path === pathname);
-    document.title = currentNavItem ? `${currentNavItem.name} | Dashboard` : "Dashboard";
+    document.title = currentNavItem ? `${currentNavItem.name} — EduSpace` : "EduSpace — Tableau de bord";
   }, [pathname, navItems]);
 
   return (
     <AuthMiddleware>
-      <div className="min-h-screen bg-gray-50 dark:bg-dark-bg">
-        {isMobileView && isSidebarOpen && <div className="fixed inset-0 bg-gray-900 bg-opacity-50 z-20 transition-opacity duration-300" onClick={() => setIsSidebarOpen(false)}></div>}
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <Sidebar
+          isSidebarOpen={isSidebarOpen}
+          toggleSidebar={toggleSidebar}
+          handleLogout={handleLogout}
+          navItems={navItems}
+          isMobileView={isMobileView}
+          setIsSidebarOpen={setIsSidebarOpen}
+        />
 
-        <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} handleLogout={handleLogout} navItems={navItems} isMobileView={isMobileView} setIsSidebarOpen={setIsSidebarOpen} />
-
-        <div className={`transition-all duration-300 ease-in-out ${isSidebarOpen ? "lg:ml-64" : "lg:ml-20"}`}>
+        <div className={`transition-[margin] duration-200 ${isSidebarOpen ? "lg:ml-64" : "lg:ml-[68px]"}`}>
           <TopBar
             pathname={pathname}
             isMobileView={isMobileView}
@@ -215,7 +215,7 @@ export default function DashboardLayout({ children }) {
             setShowProfileMenu={setShowProfileMenu}
           />
 
-          <main className="p-4 md:p-6 lg:p-8">{children}</main>
+          <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">{children}</main>
         </div>
       </div>
     </AuthMiddleware>

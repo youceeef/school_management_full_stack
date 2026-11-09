@@ -1,15 +1,18 @@
 import React from "react";
 
-const Card = ({ title, children, className = "", headerAction }) => {
+const Card = ({ title, subtitle, children, className = "", headerAction, noPadding = false }) => {
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden ${className}`}>
-      {title && (
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">{title}</h3>
-          {headerAction && <div className="flex items-center">{headerAction}</div>}
+    <div className={`bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden ${className}`}>
+      {(title || headerAction) && (
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            {title && <h2 className="text-base font-semibold font-display text-slate-900 dark:text-slate-100">{title}</h2>}
+            {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
+          </div>
+          {headerAction && <div className="flex items-center gap-2 shrink-0">{headerAction}</div>}
         </div>
       )}
-      <div className="p-4">{children}</div>
+      <div className={noPadding ? "" : "p-6"}>{children}</div>
     </div>
   );
 };

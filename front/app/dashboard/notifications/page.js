@@ -6,7 +6,14 @@ import toast from "../../utils/toast";
 import { Card, DataTable, StatsCard, PageHeader } from "../../components/ui";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { useNotifications } from "../../context/NotificationContext";
-import { BellIcon, EnvelopeOpenIcon, CheckCircleIcon, TrashIcon, CheckBadgeIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import {
+  BellIcon,
+  EnvelopeOpenIcon,
+  CheckCircleIcon,
+  TrashIcon,
+  CheckBadgeIcon,
+  ArrowTopRightOnSquareIcon,
+} from "@heroicons/react/24/outline";
 import { formatDistanceToNow, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -15,11 +22,20 @@ export default function NotificationsPageWrapper() {
 }
 
 function NotificationsPage() {
-  const { notifications, unreadCount, readCount, totalCount, loading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    readCount,
+    totalCount,
+    loading,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+  } = useNotifications();
 
   const formatDate = (date) => {
     const parsed = new Date(date);
-    if (!date || !isValid(parsed)) return "N/A";
+    if (!date || !isValid(parsed)) return "—";
     return formatDistanceToNow(parsed, { addSuffix: true, locale: fr });
   };
 
@@ -27,7 +43,10 @@ function NotificationsPage() {
     const notificationToDelete = notifications.find((n) => n.id === notificationId);
     if (!notificationToDelete) return;
 
-    const truncatedMessage = notificationToDelete.message.length > 50 ? `${notificationToDelete.message.substring(0, 50)}...` : notificationToDelete.message;
+    const truncatedMessage =
+      notificationToDelete.message.length > 50
+        ? `${notificationToDelete.message.substring(0, 50)}...`
+        : notificationToDelete.message;
 
     try {
       await toast.confirmDelete(
@@ -58,19 +77,40 @@ function NotificationsPage() {
 
   const columns = [
     {
-      header: "Notification",
+      header: "Message",
       accessor: "message",
       render: (row) => (
-        <div className="flex items-center">
-          <div className={`w-8 h-8 rounded flex-shrink-0 flex items-center justify-center mr-4 ${!row.read_at ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300" : "bg-gray-100 dark:bg-gray-700 text-gray-500"}`}>
-            {!row.read_at ? <BellIcon className="w-5 h-5" /> : <EnvelopeOpenIcon className="w-5 h-5" />}
+        <div className="flex items-start gap-3.5">
+          <div
+            className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center border mt-0.5 ${
+              !row.read_at
+                ? "bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 border-primary-200/70 dark:border-primary-900/60"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+            }`}
+          >
+            {!row.read_at ? (
+              <BellIcon className="w-4 h-4" />
+            ) : (
+              <EnvelopeOpenIcon className="w-4 h-4" />
+            )}
           </div>
           <div className="min-w-0">
-            <span className="text-sm text-gray-800 dark:text-dark-text break-words">{row.message}</span>
+            <span
+              className={`block text-sm break-words ${
+                !row.read_at
+                  ? "font-medium text-slate-900 dark:text-white"
+                  : "text-slate-600 dark:text-slate-300"
+              }`}
+            >
+              {row.message}
+            </span>
             {row.data?.action_url && (
-              <Link href={row.data.action_url} className="mt-1 flex items-center text-xs text-blue-600 dark:text-blue-400 hover:underline">
-                Ouvrir
-                <ArrowTopRightOnSquareIcon className="w-3 h-3 ml-1" />
+              <Link
+                href={row.data.action_url}
+                className="mt-1 inline-flex items-center text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
+              >
+                Consulter les détails
+                <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5 ml-1" />
               </Link>
             )}
           </div>
@@ -78,32 +118,52 @@ function NotificationsPage() {
       ),
     },
     {
-      header: "Date",
+      header: "Réception",
       accessor: "created_at",
-      render: (row) => <span className="text-sm text-gray-600 dark:text-gray-400">{formatDate(row.created_at)}</span>,
+      render: (row) => (
+        <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+          {formatDate(row.created_at)}
+        </span>
+      ),
     },
     {
-      header: "Statut",
+      header: "État",
       accessor: "read_at",
       render: (row) =>
         !row.read_at ? (
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Non lue</span>
+          <span className="inline-flex items-center gap-2 text-xs font-medium text-primary-700 dark:text-primary-300">
+            <span className="w-2 h-2 rounded-full bg-primary-600 dark:bg-primary-400" />
+            Non lue
+          </span>
         ) : (
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Lue</span>
+          <span className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            Lue
+          </span>
         ),
     },
     {
       header: "Actions",
       accessor: "actions",
       render: (row) => (
-        <div className="flex justify-center space-x-2">
+        <div className="flex items-center gap-1.5">
           {!row.read_at && (
-            <button onClick={() => handleMarkAsRead(row.id)} className="p-2 text-gray-500 hover:text-green-600 dark:hover:text-green-400" title="Marquer comme lu">
-              <CheckCircleIcon className="w-5 h-5" />
+            <button
+              type="button"
+              onClick={() => handleMarkAsRead(row.id)}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/40 transition-colors"
+              title="Marquer comme lue"
+            >
+              <CheckCircleIcon className="w-4 h-4" />
             </button>
           )}
-          <button onClick={() => handleDelete(row.id)} className="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-400" title="Supprimer">
-            <TrashIcon className="w-5 h-5" />
+          <button
+            type="button"
+            onClick={() => handleDelete(row.id)}
+            className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-950/40 transition-colors"
+            title="Supprimer"
+          >
+            <TrashIcon className="w-4 h-4" />
           </button>
         </div>
       ),
@@ -113,9 +173,21 @@ function NotificationsPage() {
   const readPercentage = totalCount > 0 ? Math.round((readCount / totalCount) * 100) : 0;
 
   const statsCards = [
-    { title: "Total des notifications", value: totalCount.toString(), icon: BellIcon },
-    { title: "Notifications non lues", value: unreadCount.toString(), icon: EnvelopeOpenIcon },
-    { title: "Taux de lecture", value: `${readPercentage}%`, icon: CheckBadgeIcon },
+    {
+      title: "Total des notifications",
+      value: totalCount.toLocaleString("fr-FR"),
+      icon: BellIcon,
+    },
+    {
+      title: "Notifications non lues",
+      value: unreadCount.toLocaleString("fr-FR"),
+      icon: EnvelopeOpenIcon,
+    },
+    {
+      title: "Taux de lecture",
+      value: `${readPercentage}%`,
+      icon: CheckBadgeIcon,
+    },
   ];
 
   const handleMarkAllAsRead = async () => {
@@ -131,18 +203,14 @@ function NotificationsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
-        title="Centre de Notifications"
-        description="Consultez et gérez toutes vos notifications"
+        title="Centre de notifications"
+        description="Suivez les validations de réservations, nouveaux comptes et alertes système."
         actions={[
           {
-            children: (
-              <span className="flex items-center">
-                <CheckCircleIcon className="w-4 h-4 mr-2" />
-                Marquer tout comme lu
-              </span>
-            ),
+            children: "Tout marquer comme lu",
+            icon: CheckCircleIcon,
             variant: "primary",
             onClick: handleMarkAllAsRead,
             disabled: unreadCount === 0 || loading,
@@ -150,22 +218,32 @@ function NotificationsPage() {
         ]}
       />
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {statsCards.map((stat, index) => (
-          <StatsCard key={index} title={stat.title} value={stat.value} icon={stat.icon} loading={loading} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {statsCards.map((stat) => (
+          <StatsCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            loading={loading}
+          />
         ))}
       </div>
 
-      {/* Notifications Table */}
-      <Card title="Liste des Notifications">
+      <Card title="Historique des notifications" subtitle="Classées de la plus récente à la plus ancienne">
         {loading ? (
           <div className="flex justify-center items-center py-16">
             <LoadingSpinner />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-              <p>Vous n&apos;avez aucune notification.</p>
+          <div className="text-center py-14">
+            <BellIcon className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Vous n&apos;avez aucune notification
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Les mises à jour concernant vos réservations apparaîtront ici.
+            </p>
           </div>
         ) : (
           <DataTable columns={columns} data={notifications} searchable={false} />

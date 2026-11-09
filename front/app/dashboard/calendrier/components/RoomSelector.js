@@ -1,59 +1,56 @@
-'use client';
-import { useState, useMemo } from 'react';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+"use client";
+
+import { useState, useMemo } from "react";
+import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 export default function RoomSelector({ rooms, selectedRooms, onRoomSelect }) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Filter rooms based on search query
   const filteredRooms = useMemo(() => {
     if (!searchQuery.trim()) return rooms;
-    
+
     const query = searchQuery.toLowerCase().trim();
-    return rooms.filter(room => 
-      room.name.toLowerCase().includes(query) ||
-      (room.description && room.description.toLowerCase().includes(query))
+    return rooms.filter(
+      (room) =>
+        room.name.toLowerCase().includes(query) ||
+        (room.description && room.description.toLowerCase().includes(query))
     );
   }, [rooms, searchQuery]);
 
   return (
     <div>
-      {/* Search input */}
-      <div className="relative mb-4">
+      <div className="relative mb-3">
         <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          <MagnifyingGlassIcon className="h-4 w-4 text-slate-400" />
         </div>
         <input
           type="text"
           placeholder="Rechercher une salle..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md 
-                   focus:outline-none focus:ring-2 focus:ring-indigo-500 
-                   bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                   placeholder-gray-500 dark:placeholder-gray-400"
+          className="w-full pl-9 pr-8 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
         />
         {searchQuery && (
           <button
-            onClick={() => setSearchQuery('')}
-            className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="absolute inset-y-0 right-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
           >
-            ×
+            <XMarkIcon className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Room list */}
-      <div className="space-y-1 max-h-64 overflow-y-auto pr-2">
+      <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
         {filteredRooms.length === 0 ? (
-          <p className="text-center py-4 text-gray-500 dark:text-gray-400">
-            Aucune salle trouvée
+          <p className="text-center py-6 text-xs text-slate-500 dark:text-slate-400">
+            Aucune salle correspondante
           </p>
         ) : (
-          filteredRooms.map(room => (
-            <label 
-              key={room.id} 
-              className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md cursor-pointer"
+          filteredRooms.map((room) => (
+            <label
+              key={room.id}
+              className="flex items-start gap-2.5 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 rounded-lg cursor-pointer transition-colors"
             >
               <input
                 type="checkbox"
@@ -62,16 +59,19 @@ export default function RoomSelector({ rooms, selectedRooms, onRoomSelect }) {
                   if (e.target.checked) {
                     onRoomSelect([...selectedRooms, room.id]);
                   } else {
-                    onRoomSelect(selectedRooms.filter(id => id !== room.id));
+                    onRoomSelect(selectedRooms.filter((id) => id !== room.id));
                   }
                 }}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 
-                         dark:border-gray-600 dark:bg-gray-700"
+                className="mt-0.5 rounded border-slate-300 dark:border-slate-700 text-primary-600 focus:ring-primary-500 dark:bg-slate-900"
               />
-              <div className="flex-1">
-                <span className="text-gray-700 dark:text-gray-200">{room.name}</span>
+              <div className="flex-1 min-w-0">
+                <span className="block text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+                  {room.name}
+                </span>
                 {room.description && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{room.description}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    {room.description}
+                  </p>
                 )}
               </div>
             </label>
@@ -80,4 +80,4 @@ export default function RoomSelector({ rooms, selectedRooms, onRoomSelect }) {
       </div>
     </div>
   );
-} 
+}

@@ -2,12 +2,26 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { Card, PageHeader } from "../../../components/ui";
 import Button from "../../../components/Button";
-import { ClockIcon, AcademicCapIcon, WrenchScrewdriverIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, UserCircleIcon, BuildingOfficeIcon } from "@heroicons/react/24/outline";
+import LoadingSpinner from "../../../components/LoadingSpinner";
+import {
+  ClockIcon,
+  WrenchScrewdriverIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  MapPinIcon,
+  UserCircleIcon,
+  BuildingOfficeIcon,
+  ArrowLeftIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import toast from "../../../utils/toast";
-import { getReservation, approveReservation, rejectReservation } from "../../../services/reservationService";
+import {
+  getReservation,
+  approveReservation,
+  rejectReservation,
+} from "../../../services/reservationService";
 
 export default function ReservationDetail() {
   const params = useParams();
@@ -50,7 +64,10 @@ export default function ReservationDetail() {
 
     try {
       setIsProcessing(true);
-      const response = newStatus === "approved" ? await approveReservation(reservation.id) : await rejectReservation(reservation.id, rejectionReason);
+      const response =
+        newStatus === "approved"
+          ? await approveReservation(reservation.id)
+          : await rejectReservation(reservation.id, rejectionReason);
 
       if (response.success) {
         toast.success(response.message);
@@ -61,7 +78,10 @@ export default function ReservationDetail() {
         toast.error(response.message || "Une erreur est survenue");
       }
     } catch (error) {
-      console.error(`Error ${newStatus === "approved" ? "approving" : "rejecting"} reservation:`, error);
+      console.error(
+        `Error ${newStatus === "approved" ? "approving" : "rejecting"} reservation:`,
+        error
+      );
       toast.error("Une erreur inattendue est survenue");
     } finally {
       setIsProcessing(false);
@@ -73,32 +93,38 @@ export default function ReservationDetail() {
     setRejectionReason("");
   };
 
-  const getStatusBadgeStyle = (status) => {
-    const styles = {
-      approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-      pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-      rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-      in_progress: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-      completed: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
-    };
-    return styles[status] || "bg-gray-100 text-gray-800";
-  };
-
-  const getStatusText = (status) => {
-    const texts = {
-      approved: "Approuvée",
-      pending: "En attente",
-      rejected: "Refusée",
-      in_progress: "En cours",
-      completed: "Terminée"
-    };
-    return texts[status] || status;
+  const statusMeta = {
+    approved: {
+      label: "Approuvée",
+      dot: "bg-emerald-500",
+      text: "text-emerald-700 dark:text-emerald-300",
+    },
+    pending: {
+      label: "En attente de décision",
+      dot: "bg-amber-500",
+      text: "text-amber-700 dark:text-amber-300",
+    },
+    rejected: {
+      label: "Refusée",
+      dot: "bg-red-500",
+      text: "text-red-700 dark:text-red-300",
+    },
+    in_progress: {
+      label: "En cours",
+      dot: "bg-primary-600 dark:bg-primary-400",
+      text: "text-primary-700 dark:text-primary-300",
+    },
+    completed: {
+      label: "Terminée",
+      dot: "bg-slate-400",
+      text: "text-slate-600 dark:text-slate-400",
+    },
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-48">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex justify-center items-center py-20">
+        <LoadingSpinner />
       </div>
     );
   }
@@ -110,191 +136,272 @@ export default function ReservationDetail() {
   const formatDateTime = (dateTimeStr) => {
     const date = new Date(dateTimeStr);
     return {
-      date: date.toLocaleDateString("fr-FR"),
+      date: date.toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
       time: date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
     };
   };
 
   const { date: startDate } = formatDateTime(reservation.start_time);
-  const timeSlot = `${formatDateTime(reservation.start_time).time} - ${formatDateTime(reservation.end_time).time}`;
+  const timeSlot = `${formatDateTime(reservation.start_time).time} – ${
+    formatDateTime(reservation.end_time).time
+  }`;
+  const currentStatus = statusMeta[reservation.status] || {
+    label: reservation.status,
+    dot: "bg-slate-400",
+    text: "text-slate-600 dark:text-slate-400",
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
-        title="Détails de la Réservation"
-        description="Consultez et gérez les détails de la réservation"
+        title={`Réservation #${reservation.id}`}
+        description="Détails complets de la demande, du demandeur et des équipements associés."
         actions={[
           {
             children: "Retour aux réservations",
+            icon: ArrowLeftIcon,
             variant: "secondary",
             onClick: () => router.push("/dashboard/reservations"),
           },
         ]}
       />
 
-      {/* Teacher Information Card */}
-      <Card>
-        <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg">
-          <h2 className="text-lg font-medium text-blue-800 dark:text-blue-200 mb-4">Informations du Demandeur</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-start space-x-3">
-              <UserCircleIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <div>
-                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Nom complet</p>
-                <p className="text-blue-900 dark:text-blue-100">{`${reservation.user.first_name} ${reservation.user.last_name}`}</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <EnvelopeIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <div>
-                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Email</p>
-                <p className="text-blue-900 dark:text-blue-100">{reservation.user.email}</p>
-              </div>
-            </div>
-            {reservation.user.phone && (
-              <div className="flex items-start space-x-3">
-                <PhoneIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <div>
-                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Téléphone</p>
-                  <p className="text-blue-900 dark:text-blue-100">{reservation.user.phone}</p>
-                </div>
-              </div>
-            )}
-            {reservation.user.address && (
-              <div className="flex items-start space-x-3">
-                <MapPinIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <div>
-                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Adresse</p>
-                  <p className="text-blue-900 dark:text-blue-100">{reservation.user.address}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-
-      {/* Reservation Details Card */}
-      <Card>
-        <div className="p-6 space-y-6">
-          {/* Status and Actions */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeStyle(reservation.status)}`}>{getStatusText(reservation.status)}</span>
-              {reservation.approver && (
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Approuvé par: {reservation.approver.first_name} {reservation.approver.last_name}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card
+            title="Informations de la réservation"
+            headerActions={
+              <div className="flex items-center gap-3">
+                <span
+                  className={`inline-flex items-center gap-2 text-xs font-semibold ${currentStatus.text}`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${currentStatus.dot}`} />
+                  {currentStatus.label}
                 </span>
-              )}
-            </div>
-            {reservation.status === "pending" && (
-              <div className="flex gap-2">
-                <Button variant="success" onClick={() => handleStatusChange("approved")} loading={isProcessing}>
-                  Approuver
-                </Button>
-                <Button variant="danger" onClick={() => handleStatusChange("rejected")} loading={isProcessing}>
-                  Refuser
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Basic Information */}
-          <div className="border-t pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-start space-x-3">
-                <ClockIcon className="w-5 h-5 text-gray-500" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Date et Heure</p>
-                  <p className="text-gray-900 dark:text-gray-100">{startDate}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{timeSlot}</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <BuildingOfficeIcon className="w-5 h-5 text-gray-500" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Salle</p>
-                  <p className="text-gray-900 dark:text-gray-100">{reservation.salle.name}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {reservation.salle.type} - Capacité: {reservation.salle.capacity} personnes
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Purpose */}
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Objectif de la réservation</h3>
-            <p className="text-gray-600 dark:text-gray-400">{reservation.purpose}</p>
-          </div>
-
-          {/* Equipment */}
-          {reservation.equipements && reservation.equipements.length > 0 && (
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                <WrenchScrewdriverIcon className="w-5 h-5 mr-2" />
-                Équipements demandés
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {reservation.equipements.map((item) => (
-                  <div key={item.id} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-gray-900 dark:text-gray-100 font-medium">{item.name}</span>
-                        {item.description && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{item.description}</p>}
-                      </div>
-                      <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">Quantité: {item.quantity_reserved}</span>
-                    </div>
+                {reservation.status === "pending" && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="success"
+                      size="sm"
+                      onClick={() => handleStatusChange("approved")}
+                      loading={isProcessing}
+                    >
+                      Approuver
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleStatusChange("rejected")}
+                      loading={isProcessing}
+                    >
+                      Refuser
+                    </Button>
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          )}
+            }
+          >
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0">
+                    <ClockIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Créneau horaire
+                    </p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white capitalize mt-0.5">
+                      {startDate}
+                    </p>
+                    <p className="text-xs font-mono tabular-nums text-slate-600 dark:text-slate-400 mt-0.5">
+                      {timeSlot}
+                    </p>
+                  </div>
+                </div>
 
-          {/* Metadata */}
-          <div className="border-t pt-6">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600 dark:text-gray-400">Créée le: </span>
-                <span className="text-gray-900 dark:text-gray-100">{new Date(reservation.created_at).toLocaleDateString("fr-FR")}</span>
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0">
+                    <BuildingOfficeIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Salle attribuée
+                    </p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5">
+                      {reservation.salle?.name}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 capitalize">
+                      {reservation.salle?.type} · Capacité :{" "}
+                      <span className="font-mono tabular-nums">
+                        {reservation.salle?.capacity}
+                      </span>{" "}
+                      places
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="text-gray-600 dark:text-gray-400">Dernière modification: </span>
-                <span className="text-gray-900 dark:text-gray-100">{new Date(reservation.updated_at).toLocaleDateString("fr-FR")}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
 
-      {/* Rejection Modal */}
-      {showRejectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
-            <div className="flex justify-between items-center border-b border-gray-200 dark:border-dark-border px-6 py-4">
-              <h2 className="text-lg font-medium text-gray-800 dark:text-white">Motif du rejet</h2>
-              <Button variant="secondary" onClick={handleCloseRejectModal}>
-                Fermer
-              </Button>
-            </div>
-            <div className="p-6">
-              <textarea
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-dark-card dark:border-dark-border dark:text-white"
-                rows="4"
-                placeholder="Veuillez saisir le motif du rejet..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-              />
-              <div className="mt-4 flex justify-end space-x-3">
-                <Button variant="secondary" onClick={handleCloseRejectModal}>
-                  Annuler
-                </Button>
-                <Button variant="danger" onClick={() => handleStatusChange("rejected")} loading={isProcessing}>
-                  Confirmer le rejet
-                </Button>
+              <div className="pt-5 border-t border-slate-100 dark:border-slate-800">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                  Objectif pédagogique
+                </h3>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                  {reservation.purpose || "Aucun motif renseigné."}
+                </p>
+              </div>
+
+              {reservation.equipements && reservation.equipements.length > 0 && (
+                <div className="pt-5 border-t border-slate-100 dark:border-slate-800">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-1.5">
+                    <WrenchScrewdriverIcon className="w-4 h-4" />
+                    Matériel réservé
+                  </h3>
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg">
+                    {reservation.equipements.map((item) => (
+                      <div
+                        key={item.id}
+                        className="px-4 py-3 flex items-center justify-between gap-4"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">
+                            {item.name}
+                          </p>
+                          {item.description && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              {item.description}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-xs font-mono font-semibold tabular-nums text-slate-700 dark:text-slate-300 shrink-0">
+                          {item.quantity_reserved} unité{item.quantity_reserved > 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
+                <span>
+                  Créée le{" "}
+                  <strong className="font-mono tabular-nums text-slate-700 dark:text-slate-300">
+                    {new Date(reservation.created_at).toLocaleDateString("fr-FR")}
+                  </strong>
+                </span>
+                <span>·</span>
+                <span>
+                  Mise à jour le{" "}
+                  <strong className="font-mono tabular-nums text-slate-700 dark:text-slate-300">
+                    {new Date(reservation.updated_at).toLocaleDateString("fr-FR")}
+                  </strong>
+                </span>
+                {reservation.approver && (
+                  <>
+                    <span>·</span>
+                    <span>
+                      Traitée par{" "}
+                      <strong className="text-slate-700 dark:text-slate-300">
+                        {reservation.approver.first_name} {reservation.approver.last_name}
+                      </strong>
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </Card>
+        </div>
+
+        <div>
+          <Card title="Profil du demandeur" subtitle="Coordonnées de l’enseignant">
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <UserCircleIcon className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Nom complet</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">
+                    {reservation.user?.first_name} {reservation.user?.last_name}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <EnvelopeIcon className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Adresse e-mail</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white break-all">
+                    {reservation.user?.email}
+                  </p>
+                </div>
+              </div>
+              {reservation.user?.phone && (
+                <div className="flex items-start gap-3">
+                  <PhoneIcon className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Téléphone</p>
+                    <p className="text-sm font-mono tabular-nums text-slate-900 dark:text-white">
+                      {reservation.user.phone}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {reservation.user?.address && (
+                <div className="flex items-start gap-3">
+                  <MapPinIcon className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Adresse</p>
+                    <p className="text-sm text-slate-900 dark:text-white">
+                      {reservation.user.address}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 px-6 py-4">
+              <h2 className="text-base font-display font-semibold text-slate-900 dark:text-white">
+                Motif du refus
+              </h2>
+              <button
+                type="button"
+                onClick={handleCloseRejectModal}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <textarea
+                className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                rows={4}
+                placeholder="Veuillez saisir le motif du refus..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+              />
+              <div className="flex justify-end gap-3">
+                <Button variant="secondary" onClick={handleCloseRejectModal}>
+                  Annuler
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => handleStatusChange("rejected")}
+                  loading={isProcessing}
+                >
+                  Confirmer le refus
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

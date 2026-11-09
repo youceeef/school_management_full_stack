@@ -5,11 +5,19 @@ import { useRouter } from "next/navigation";
 import { formatDistanceToNow, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
+  ArrowRightIcon,
   BellIcon,
   BuildingOfficeIcon,
+  CalendarDaysIcon,
+  CheckCircleIcon,
+  ClockIcon,
   ComputerDesktopIcon,
-  DocumentIcon,
+  DocumentArrowUpIcon,
+  DocumentTextIcon,
+  PlusIcon,
+  UserPlusIcon,
   UsersIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { Card, DataTable, PageHeader, StatsCard } from "../components/ui";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -20,19 +28,54 @@ import { getDashboardStats, getRecentReservations } from "../services/dashboardS
 import toast from "../utils/toast";
 
 const statusConfig = {
-  pending: { text: "En attente", className: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300" },
-  approved: { text: "Approuvée", className: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300" },
-  in_progress: { text: "En cours", className: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300" },
-  rejected: { text: "Rejetée", className: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300" },
-  completed: { text: "Terminée", className: "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300" },
+  pending: {
+    text: "En attente",
+    dotClass: "bg-amber-500",
+    textClass: "text-amber-700 dark:text-amber-300",
+  },
+  approved: {
+    text: "Approuvée",
+    dotClass: "bg-primary-600 dark:bg-primary-400",
+    textClass: "text-primary-700 dark:text-primary-300",
+  },
+  in_progress: {
+    text: "En cours",
+    dotClass: "bg-emerald-500",
+    textClass: "text-emerald-700 dark:text-emerald-300",
+  },
+  rejected: {
+    text: "Rejetée",
+    dotClass: "bg-red-500",
+    textClass: "text-red-700 dark:text-red-300",
+  },
+  completed: {
+    text: "Terminée",
+    dotClass: "bg-slate-400 dark:bg-slate-500",
+    textClass: "text-slate-600 dark:text-slate-400",
+  },
 };
 
 const activityConfig = {
-  reservation_submitted: { icon: "📝", className: "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" },
-  reservation_approved: { icon: "✓", className: "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300" },
-  reservation_rejected: { icon: "×", className: "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300" },
-  user_registered: { icon: "👤", className: "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300" },
-  new_user_for_admin: { icon: "👥", className: "bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300" },
+  reservation_submitted: {
+    icon: ClockIcon,
+    className: "bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 border-primary-200/60 dark:border-primary-900/60",
+  },
+  reservation_approved: {
+    icon: CheckCircleIcon,
+    className: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/60",
+  },
+  reservation_rejected: {
+    icon: XCircleIcon,
+    className: "bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border-red-200/60 dark:border-red-900/60",
+  },
+  user_registered: {
+    icon: UserPlusIcon,
+    className: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+  },
+  new_user_for_admin: {
+    icon: UsersIcon,
+    className: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+  },
 };
 
 export default function Dashboard() {
@@ -60,7 +103,10 @@ export default function Dashboard() {
       setReservationsLoading(true);
 
       try {
-        const [statsData, reservationsData] = await Promise.all([getDashboardStats(), getRecentReservations(5)]);
+        const [statsData, reservationsData] = await Promise.all([
+          getDashboardStats(),
+          getRecentReservations(5),
+        ]);
         setSummary(statsData);
         setReservations(reservationsData || []);
       } catch (error) {
@@ -79,30 +125,67 @@ export default function Dashboard() {
     const actions = [];
 
     if (hasPermission(PERMISSIONS.CREATE_RESERVATIONS)) {
-      actions.push({ label: "Nouvelle Réservation", icon: "📝", path: "/dashboard/mes-reservations?new=1", color: "blue" });
+      actions.push({
+        label: "Nouvelle réservation",
+        description: "Réserver une salle ou du matériel",
+        icon: PlusIcon,
+        path: "/dashboard/mes-reservations?new=1",
+      });
     }
     if (hasPermission(PERMISSIONS.LIST_ALL_RESERVATIONS)) {
-      actions.push({ label: "Gérer les Réservations", icon: "📅", path: "/dashboard/reservations", color: "indigo" });
+      actions.push({
+        label: "Gérer les réservations",
+        description: "Examiner et valider les demandes",
+        icon: CalendarDaysIcon,
+        path: "/dashboard/reservations",
+      });
     }
     if (hasPermission(PERMISSIONS.UPLOAD_DOCUMENTS)) {
-      actions.push({ label: "Partager un Document", icon: "📄", path: "/dashboard/documents", color: "green" });
+      actions.push({
+        label: "Partager un document",
+        description: "Publier un support pédagogique",
+        icon: DocumentArrowUpIcon,
+        path: "/dashboard/documents",
+      });
     }
 
-    actions.push({ label: "Voir les Notifications", icon: "🔔", path: "/dashboard/notifications", color: "purple" });
+    actions.push({
+      label: "Centre de notifications",
+      description: "Consulter les alertes récentes",
+      icon: BellIcon,
+      path: "/dashboard/notifications",
+    });
     return actions;
   }, [hasPermission]);
 
   const headerActions = quickActions.slice(0, 2).map((action, index) => ({
     children: action.label,
+    icon: action.icon,
     variant: index === 0 ? "primary" : "secondary",
     onClick: () => router.push(action.path),
   }));
 
   const stats = [
-    { title: "Utilisateurs", value: summary.users.toLocaleString(), icon: UsersIcon },
-    { title: "Salles", value: summary.rooms.toLocaleString(), icon: BuildingOfficeIcon },
-    { title: "Équipements", value: summary.equipments.toLocaleString(), icon: ComputerDesktopIcon },
-    { title: "Documents", value: summary.documents.toLocaleString(), icon: DocumentIcon },
+    {
+      title: "Utilisateurs actifs",
+      value: (summary.users ?? 0).toLocaleString("fr-FR"),
+      icon: UsersIcon,
+    },
+    {
+      title: "Salles & Laboratoires",
+      value: (summary.rooms ?? 0).toLocaleString("fr-FR"),
+      icon: BuildingOfficeIcon,
+    },
+    {
+      title: "Équipements recensés",
+      value: (summary.equipments ?? 0).toLocaleString("fr-FR"),
+      icon: ComputerDesktopIcon,
+    },
+    {
+      title: "Documents partagés",
+      value: (summary.documents ?? 0).toLocaleString("fr-FR"),
+      icon: DocumentTextIcon,
+    },
   ];
 
   const filteredReservations = reservations.filter((reservation) => {
@@ -115,7 +198,10 @@ export default function Dashboard() {
 
   const formatDate = (date) =>
     date
-      ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(date))
+      ? new Intl.DateTimeFormat("fr-FR", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(date))
       : "—";
 
   const formatRelativeDate = (date) => {
@@ -130,9 +216,17 @@ export default function Dashboard() {
       header: "Salle",
       accessor: "room",
       render: (row) => (
-        <button type="button" onClick={() => router.push(row.action_url)} className="flex items-center text-left hover:text-blue-600 dark:hover:text-blue-400">
-          <span className="w-8 h-8 rounded bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 flex items-center justify-center mr-3">🏢</span>
-          {row.room}
+        <button
+          type="button"
+          onClick={() => router.push(row.action_url)}
+          className="flex items-center gap-3 text-left group"
+        >
+          <span className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 group-hover:border-primary-300 dark:group-hover:border-primary-700 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+            <BuildingOfficeIcon className="w-4 h-4" />
+          </span>
+          <span className="font-medium text-slate-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+            {row.room}
+          </span>
         </button>
       ),
     },
@@ -140,73 +234,140 @@ export default function Dashboard() {
       header: "Statut",
       accessor: "status",
       render: (row) => {
-        const config = statusConfig[row.status] || { text: row.status, className: "bg-gray-100 text-gray-800" };
-        return <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${config.className}`}>{config.text}</span>;
+        const config = statusConfig[row.status] || {
+          text: row.status,
+          dotClass: "bg-slate-400",
+          textClass: "text-slate-700 dark:text-slate-300",
+        };
+        return (
+          <span className={`inline-flex items-center gap-2 text-xs font-medium ${config.textClass}`}>
+            <span className={`w-2 h-2 rounded-full ${config.dotClass}`} />
+            {config.text}
+          </span>
+        );
       },
     },
-    { header: "Demandeur", accessor: "professor" },
-    { header: "Date", accessor: "start_time", render: (row) => formatDate(row.start_time) },
+    {
+      header: "Demandeur",
+      accessor: "professor",
+      render: (row) => (
+        <span className="text-slate-700 dark:text-slate-300">{row.professor || "—"}</span>
+      ),
+    },
+    {
+      header: "Créneau",
+      accessor: "start_time",
+      render: (row) => (
+        <span className="font-mono text-xs tabular-nums text-slate-600 dark:text-slate-400">
+          {formatDate(row.start_time)}
+        </span>
+      ),
+    },
   ];
 
-  const quickActionClasses = {
-    blue: "from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700",
-    indigo: "from-indigo-500 to-indigo-600 dark:from-indigo-600 dark:to-indigo-700",
-    green: "from-green-500 to-green-600 dark:from-green-600 dark:to-green-700",
-    purple: "from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700",
-  };
+  const greetingName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "Utilisateur";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
-        title={`Bonjour, ${user?.first_name || ""} ${user?.last_name || ""}`.trim()}
-        description="Voici l’état actuel de votre espace EduSpace"
+        title={`Bonjour, ${greetingName}`}
+        description="Vue d’ensemble opérationnelle de vos réservations, ressources et documents pédagogiques."
         actions={headerActions}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <StatsCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} loading={loading} />
+          <StatsCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            loading={loading}
+          />
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card title="Statistiques Rapides">
-          <div className="space-y-5">
+        <Card title="Indicateurs en temps réel" subtitle="Suivi immédiat des demandes">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
             {[
-              ["Réservations actives", summary.active_reservations, "text-blue-600 dark:text-blue-400"],
-              ["Réservations en attente", summary.pending_reservations, "text-amber-600 dark:text-amber-400"],
-              ["Notifications non lues", unreadCount, "text-purple-600 dark:text-purple-400"],
-            ].map(([label, value, className]) => (
-              <div key={label} className="flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
-                <p className={`text-xl font-semibold ${className}`}>{loading ? "—" : value}</p>
+              {
+                label: "Réservations actives",
+                value: summary.active_reservations ?? 0,
+                dot: "bg-emerald-500",
+                valueClass: "text-slate-900 dark:text-white",
+              },
+              {
+                label: "Demandes en attente",
+                value: summary.pending_reservations ?? 0,
+                dot: "bg-amber-500",
+                valueClass: "text-amber-600 dark:text-amber-400",
+              },
+              {
+                label: "Sessions terminées",
+                value: summary.completed_reservations ?? 0,
+                dot: "bg-slate-400",
+                valueClass: "text-slate-700 dark:text-slate-300",
+              },
+              {
+                label: "Notifications non lues",
+                value: unreadCount ?? 0,
+                dot: "bg-primary-600",
+                valueClass: "text-primary-600 dark:text-primary-400",
+              },
+            ].map((item) => (
+              <div key={item.label} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className={`w-2 h-2 rounded-full ${item.dot}`} />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">{item.label}</span>
+                </div>
+                <span className={`text-lg font-mono font-semibold tabular-nums ${item.valueClass}`}>
+                  {loading ? "—" : item.value}
+                </span>
               </div>
             ))}
           </div>
         </Card>
 
-        <Card title="Activité Récente">
-          <div className="space-y-4">
+        <Card title="Activité récente" subtitle="Dernières notifications reçues">
+          <div className="space-y-2">
             {notifications.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">Aucune activité récente.</p>
+              <div className="py-8 text-center">
+                <BellIcon className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Aucune activité récente enregistrée.
+                </p>
+              </div>
             ) : (
-              notifications.slice(0, 3).map((notification) => {
+              notifications.slice(0, 4).map((notification) => {
                 const config = activityConfig[notification.data?.event] || {
-                  icon: "🔔",
-                  className: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
+                  icon: BellIcon,
+                  className:
+                    "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700",
                 };
+                const IconComponent = config.icon;
 
                 return (
                   <button
                     type="button"
                     key={notification.id}
-                    onClick={() => router.push(notification.data?.action_url || "/dashboard/notifications")}
-                    className="w-full flex items-center text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg p-1 transition-colors"
+                    onClick={() =>
+                      router.push(notification.data?.action_url || "/dashboard/notifications")
+                    }
+                    className="w-full flex items-start gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 rounded-lg p-2.5 transition-colors"
                   >
-                    <span className={`w-8 h-8 rounded-full ${config.className} flex items-center justify-center mr-3 flex-shrink-0 text-xs`}>{config.icon}</span>
-                    <span className="min-w-0">
-                      <span className="block text-sm text-gray-800 dark:text-gray-200 truncate">{notification.message}</span>
-                      <span className="block text-xs text-gray-500 dark:text-gray-400">{formatRelativeDate(notification.created_at)}</span>
+                    <span
+                      className={`w-8 h-8 rounded-lg border ${config.className} flex items-center justify-center shrink-0 mt-0.5`}
+                    >
+                      <IconComponent className="w-4 h-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-slate-800 dark:text-slate-200 line-clamp-1">
+                        {notification.message}
+                      </span>
+                      <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {formatRelativeDate(notification.created_at)}
+                      </span>
                     </span>
                   </button>
                 );
@@ -215,36 +376,57 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        <Card title="Actions Rapides">
-          <div className="space-y-3">
-            {quickActions.map((action) => (
-              <button
-                type="button"
-                key={action.path}
-                onClick={() => router.push(action.path)}
-                className={`w-full py-3 px-4 bg-gradient-to-r ${quickActionClasses[action.color]} text-white rounded-lg transition-all shadow-sm hover:shadow flex items-center justify-center`}
-              >
-                <span className="mr-2">{action.icon}</span>
-                {action.label}
-              </button>
-            ))}
+        <Card title="Accès directs" subtitle="Raccourcis fréquents">
+          <div className="space-y-2.5">
+            {quickActions.map((action) => {
+              const ActionIcon = action.icon;
+              return (
+                <button
+                  type="button"
+                  key={action.path}
+                  onClick={() => router.push(action.path)}
+                  className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 hover:border-primary-300 dark:hover:border-primary-700 transition-colors flex items-center justify-between text-left group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors shrink-0">
+                      <ActionIcon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                        {action.label}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {action.description}
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRightIcon className="w-4 h-4 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 shrink-0 ml-2 transition-colors" />
+                </button>
+              );
+            })}
           </div>
         </Card>
       </div>
 
-      <Card title="Réservations récentes">
+      <Card
+        title="Réservations récentes"
+        subtitle="Les 5 dernières demandes enregistrées sur la plateforme"
+        noPadding
+      >
         {reservationsLoading ? (
           <div className="flex justify-center items-center py-16">
             <LoadingSpinner />
           </div>
         ) : (
-          <DataTable
-            columns={columns}
-            data={filteredReservations}
-            searchable
-            onSearch={setSearchQuery}
-            searchPlaceholder="Rechercher une réservation..."
-          />
+          <div className="p-6">
+            <DataTable
+              columns={columns}
+              data={filteredReservations}
+              searchable
+              onSearch={setSearchQuery}
+              searchPlaceholder="Rechercher par salle, demandeur ou motif..."
+            />
+          </div>
         )}
       </Card>
     </div>

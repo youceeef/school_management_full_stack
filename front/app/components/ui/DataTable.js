@@ -1,52 +1,83 @@
-import React from "react";
-import SearchInput from "../SearchInput";
+"use client";
 
-const DataTable = ({ 
-  columns, 
-  data, 
-  searchable = true, 
-  onSearch, 
-  searchPlaceholder = "Rechercher...", 
+import React, { useState } from "react";
+import SearchInput from "../SearchInput";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+
+const DataTable = ({
+  columns,
+  data = [],
+  searchable = true,
+  onSearch,
+  searchPlaceholder = "Rechercher...",
   className = "",
+  emptyMessage = "Aucun résultat ne correspond à votre recherche.",
 }) => {
+  const [internalQuery, setInternalQuery] = useState("");
+
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setInternalQuery(val);
+    onSearch?.(val);
+  };
+
+  const handleClearSearch = () => {
+    setInternalQuery("");
+    onSearch?.("");
+  };
+
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`w-full space-y-4 ${className}`}>
       {searchable && (
-        <div className="mb-6">
-          <SearchInput placeholder={searchPlaceholder} onChange={(e) => onSearch?.(e.target.value)} />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="w-full sm:max-w-sm">
+            <SearchInput
+              placeholder={searchPlaceholder}
+              value={internalQuery}
+              onChange={handleSearchChange}
+              onClear={internalQuery ? handleClearSearch : undefined}
+            />
+          </div>
+          <div className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+            {data.length} {data.length > 1 ? "entrées" : "entrée"}
+          </div>
         </div>
       )}
 
-      <div className="relative overflow-hidden shadow-md rounded-xl border border-gray-200 dark:border-gray-700">
+      <div className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
         {data.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-700/50">
+                <tr className="bg-slate-50/80 dark:bg-slate-800/50">
                   {columns.map((column, index) => (
-                    <th 
-                      key={index} 
-                      scope="col" 
-                      className="px-4 sm:px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap bg-opacity-75 backdrop-blur-sm sticky top-0"
+                    <th
+                      key={index}
+                      scope="col"
+                      className={`px-4 sm:px-5 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 tracking-wide whitespace-nowrap ${
+                        column.align === "right" ? "text-right" : column.align === "center" ? "text-center" : "text-left"
+                      }`}
                     >
                       {column.header}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800/70 bg-white dark:bg-slate-900">
                 {data.map((row, rowIndex) => (
-                  <tr 
+                  <tr
                     key={row.id ?? rowIndex}
-                    className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors duration-150 ease-in-out group"
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group"
                   >
                     {columns.map((column, colIndex) => (
-                      <td 
-                        key={`${rowIndex}-${colIndex}`} 
-                        className={`px-4 sm:px-6 py-4 text-center text-sm ${
-                          colIndex === 0 ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'
+                      <td
+                        key={`${rowIndex}-${colIndex}`}
+                        className={`px-4 sm:px-5 py-3.5 text-sm align-middle ${
+                          colIndex === 0
+                            ? "font-medium text-slate-900 dark:text-slate-100"
+                            : "text-slate-600 dark:text-slate-300"
                         } ${
-                          typeof column.render === 'function' ? 'max-w-xs xl:max-w-lg' : ''
+                          column.align === "right" ? "text-right" : column.align === "center" ? "text-center" : "text-left"
                         }`}
                       >
                         <div className="break-words">
@@ -60,15 +91,20 @@ const DataTable = ({
             </table>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 bg-white dark:bg-gray-800 rounded-lg">
-            <div className="text-gray-400 dark:text-gray-500 mb-2">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 mb-3">
+              <MagnifyingGlassIcon className="w-5 h-5" />
             </div>
-            <p className="text-gray-500 dark:text-gray-400 text-center">
-              Aucun résultat ne correspond à votre recherche
-            </p>
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{emptyMessage}</p>
+            {internalQuery && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="mt-2 text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
+              >
+                Réinitialiser la recherche
+              </button>
+            )}
           </div>
         )}
       </div>

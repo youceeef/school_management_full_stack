@@ -3,10 +3,11 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
+import { EyeIcon, EyeSlashIcon, ExclamationCircleIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import toast from "../utils/toast";
 import { useAuth } from "../context/AuthContext";
 import ThemeToggle from "../components/ThemeToggle";
+import Button from "../components/Button";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -22,7 +23,6 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-      // Validation des champs
       if (!email && !password) {
         throw new Error("Veuillez remplir votre email et votre mot de passe");
       } else if (!email) {
@@ -30,115 +30,155 @@ export default function Login() {
       } else if (!password) {
         throw new Error("Veuillez remplir votre mot de passe");
       }
-      // Validation du format email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         throw new Error("Veuillez entrer une adresse email valide");
       }
-      // Appel à l'API de connexion via AuthContext
       await login(email, password);
-      toast.success("Connexion réussie!");
+      toast.success("Connexion réussie");
       router.push("/dashboard");
-    } catch (error) {
-      console.error("Login error:", error);
-      setError(error.message || "Une erreur est survenue lors de la connexion");
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(err.message || "Identifiants invalides ou serveur momentanément indisponible");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
-      <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Connexion</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Connectez-vous à votre compte</p>
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-slate-50 dark:bg-slate-950">
+      {/* Left Institutional Context Panel */}
+      <div className="hidden lg:flex lg:col-span-5 bg-slate-900 text-white p-12 flex-col justify-between border-r border-slate-800">
+        <div>
+          <Link href="/" className="inline-flex items-center gap-2 text-lg font-bold font-display tracking-tight text-white">
+            EduSpace
+          </Link>
+          <p className="mt-1 text-xs text-slate-400">
+            Plateforme de Gestion des Ressources Éducatives
+          </p>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
-            <div className="flex items-center">
-              <svg className="h-5 w-5 text-red-400 dark:text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={`w-full px-3 py-2 border ${error && !email ? "border-red-300 dark:border-red-700" : "border-gray-300 dark:border-gray-600"} dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              placeholder="votre@email.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Mot de passe
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`w-full px-3 py-2 border ${error && !password ? "border-red-300 dark:border-red-700" : "border-gray-300 dark:border-gray-600"} dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10`}
-                placeholder="••••••••"
-                required
-              />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                {showPassword ? <FaEyeSlash className="h-5 w-5 text-gray-400" /> : <FaEye className="h-5 w-5 text-gray-400" />}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="text-sm">
-              <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
-                Mot de passe oublié?
-              </Link>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ? "opacity-75 cursor-not-allowed" : ""}`}
-          >
-            {loading ? (
-              <div className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Connexion en cours...
-              </div>
-            ) : (
-              "Se connecter"
-            )}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-gray-600 dark:text-gray-400">
-            Pas encore de compte?{" "}
-            <Link href="/register" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
-              Créer un compte
-            </Link>
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold font-display tracking-tight text-balance leading-snug">
+            Centralisez vos réservations de salles, d&apos;équipements et vos supports de cours.
+          </h2>
+          <p className="text-sm text-slate-300 leading-relaxed">
+            Connectez-vous avec votre compte académique pour accéder à votre espace personnalisé selon votre rôle (Administrateur, Responsable Laboratoire, Enseignant ou Élève).
           </p>
+          <div className="pt-4 border-t border-slate-800 space-y-2 text-xs text-slate-400">
+            <p>Planification en temps réel des laboratoires et amphithéâtres</p>
+            <p>Suivi des stocks d&apos;équipements pédagogiques</p>
+            <p>Partage et téléchargement sécurisé des supports de cours</p>
+          </div>
+        </div>
+
+        <div className="text-xs text-slate-500">
+          © {new Date().getFullYear()} EduSpace · CSFT Tunisie
+        </div>
+      </div>
+
+      {/* Right Authentication Form Area */}
+      <div className="lg:col-span-7 flex flex-col justify-between p-6 sm:p-12">
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          >
+            <ArrowLeftIcon className="w-4 h-4" />
+            Retour à l&apos;accueil
+          </Link>
+          <ThemeToggle />
+        </div>
+
+        <div className="w-full max-w-md mx-auto my-12">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-white">
+                Connexion à EduSpace
+              </h1>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                Saisissez vos identifiants académiques pour continuer
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-6 p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-lg flex items-start gap-2.5">
+                <ExclamationCircleIcon className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                <p className="text-xs font-medium text-red-700 dark:text-red-300">{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  Adresse email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-950 border ${
+                    error && !email ? "border-red-500" : "border-slate-300 dark:border-slate-700"
+                  } rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600`}
+                  placeholder="nom.prenom@etablissement.tn"
+                  required
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Mot de passe
+                  </label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                  >
+                    Mot de passe oublié ?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`w-full pl-3.5 pr-10 py-2 text-sm bg-white dark:bg-slate-950 border ${
+                      error && !password ? "border-red-500" : "border-slate-300 dark:border-slate-700"
+                    } rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600`}
+                    placeholder="••••••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    {showPassword ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button type="submit" variant="primary" size="lg" loading={loading} className="w-full">
+                {loading ? "Connexion en cours..." : "Se connecter"}
+              </Button>
+            </form>
+
+            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                Vous n&apos;avez pas encore de compte ?{" "}
+                <Link href="/register" className="font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                  Créer un compte
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center text-xs text-slate-400 dark:text-slate-500 lg:hidden">
+          © {new Date().getFullYear()} EduSpace · CSFT Tunisie
         </div>
       </div>
     </div>

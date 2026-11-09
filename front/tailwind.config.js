@@ -4,8 +4,12 @@ module.exports = {
   darkMode: "class",
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-public-sans)", "system-ui", "-apple-system", "sans-serif"],
+        display: ["var(--font-plus-jakarta)", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["var(--font-jetbrains-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+      },
       colors: {
-        // Light mode colors
         primary: {
           50: "#f0f9ff",
           100: "#e0f2fe",
@@ -13,19 +17,19 @@ module.exports = {
           300: "#7dd3fc",
           400: "#38bdf8",
           500: "#0ea5e9",
-          600: "#0284c7",
-          700: "#0369a1",
-          800: "#075985",
-          900: "#0c4a6e",
+          600: "#0369a1",
+          700: "#075985",
+          800: "#0c4a6e",
+          900: "#082f49",
+          950: "#041f33",
         },
-        // Dark mode custom colors
         dark: {
-          bg: "#0f172a", // Dark background
-          card: "#1e293b", // Dark card background
-          border: "#334155", // Dark border color
-          text: "#f1f5f9", // Dark text color
-          muted: "#94a3b8", // Dark muted text
-          accent: "#38bdf8", // Dark accent color
+          bg: "#0f172a",
+          card: "#1e293b",
+          border: "#334155",
+          text: "#f1f5f9",
+          muted: "#94a3b8",
+          accent: "#38bdf8",
         },
       },
     },

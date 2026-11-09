@@ -6,12 +6,25 @@ import { Card, DataTable, StatsCard, PageHeader } from "../../components/ui";
 import Button from "../../components/Button";
 import FormInput from "../../components/FormInput";
 import FormTextArea from "../../components/FormTextArea";
-import { ComputerDesktopIcon, WrenchScrewdriverIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
-import { getEquipements, createEquipement, updateEquipement, deleteEquipement } from "../../services/equipementService";
+import {
+  ComputerDesktopIcon,
+  WrenchScrewdriverIcon,
+  CheckCircleIcon,
+  PlusIcon,
+  PencilSquareIcon,
+  TrashIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
+import {
+  getEquipements,
+  createEquipement,
+  updateEquipement,
+  deleteEquipement,
+} from "../../services/equipementService";
 import PermissionGate from "../../components/PermissionGate";
 import { PERMISSIONS } from "../../constants/permissions";
 import ProtectedRoute from "../../components/ProtectedRoute";
-import LoadingSpinner from "../../components/LoadingSpinner"; // Assuming LoadingSpinner is in the components folder
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 export default function EquipementsPageWrapper() {
   return (
@@ -35,58 +48,61 @@ function EquipementsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const totalUnits = (equipements.data || []).reduce(
+    (total, equipement) => total + (Number(equipement.quantity_available) || 0),
+    0
+  );
+
   const statsCards = [
     {
-      title: "Total des équipements",
-      value: `${equipements.meta?.total || 0} types`,
+      title: "Catégories d’équipements",
+      value: `${(equipements.meta?.total ?? equipements.data?.length ?? 0).toLocaleString("fr-FR")}`,
       icon: ComputerDesktopIcon,
     },
     {
-      title: "Quantité totale",
-      value: `${equipements.data.reduce((total, equipement) => total + (equipement.quantity_available || 0), 0)} unités`,
+      title: "Unités en stock",
+      value: `${totalUnits.toLocaleString("fr-FR")} unités`,
       icon: WrenchScrewdriverIcon,
     },
     {
-      title: "Équipements décrits",
-      value: equipements.data.filter((eq) => eq.description).length.toString(),
+      title: "Fiches documentées",
+      value: (equipements.data || []).filter((eq) => eq.description).length.toLocaleString("fr-FR"),
       icon: CheckCircleIcon,
     },
   ];
 
   const columns = [
     {
-      header: "Nom",
+      header: "Équipement",
       accessor: "name",
       render: (row) => (
-        <div className="flex items-center">
-          <div className="w-8 h-8 rounded bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 flex items-center justify-center mr-3">
-            <ComputerDesktopIcon className="w-5 h-5" />
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+            <ComputerDesktopIcon className="w-4 h-4" />
           </div>
-          <span className="font-medium">{row.name}</span>
+          <span className="font-medium text-slate-900 dark:text-slate-100">{row.name}</span>
         </div>
       ),
     },
     {
-      header: "Quantité",
+      header: "Disponibilité",
       accessor: "quantity_available",
       render: (row) => (
-        <div className="flex justify-center">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-green-50 text-green-700 dark:bg-green-900/50 dark:text-green-300 border border-green-100 dark:border-green-800">
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-            </svg>
-            {row.quantity_available} unités
+        <span className="font-mono text-sm font-medium tabular-nums text-slate-900 dark:text-slate-100">
+          {row.quantity_available}{" "}
+          <span className="font-sans font-normal text-slate-500 dark:text-slate-400">
+            unité{row.quantity_available > 1 ? "s" : ""}
           </span>
-        </div>
+        </span>
       ),
     },
     {
-      header: "Description",
+      header: "Spécifications",
       accessor: "description",
       render: (row) => (
         <div className="max-w-md">
-          <p className="text-sm text-gray-600 dark:text-gray-400 truncate" title={row.description}>
-            {row.description}
+          <p className="text-sm text-slate-600 dark:text-slate-400 truncate" title={row.description}>
+            {row.description || "—"}
           </p>
         </div>
       ),
@@ -95,25 +111,26 @@ function EquipementsPage() {
       header: "Actions",
       accessor: "actions",
       render: (row) => (
-        <div className="flex justify-center space-x-2">
+        <div className="flex items-center gap-2">
           <PermissionGate permission={PERMISSIONS.MODIFIER_EQUIPEMENT}>
-            <Button variant="table-action" size="sm" onClick={() => handleEdit(row)}>
-              <span className="flex items-center">
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Modifier
-              </span>
+            <Button
+              variant="table-action"
+              size="sm"
+              icon={PencilSquareIcon}
+              onClick={() => handleEdit(row)}
+            >
+              Modifier
             </Button>
           </PermissionGate>
           <PermissionGate permission={PERMISSIONS.SUPPRIMER_EQUIPEMENT}>
-            <Button variant="table-action" size="sm" onClick={() => handleDelete(row.id)}>
-              <span className="flex items-center text-red-600 dark:text-red-400">
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Supprimer
-              </span>
+            <Button
+              variant="table-action"
+              size="sm"
+              onClick={() => handleDelete(row.id)}
+              className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
+            >
+              <TrashIcon className="w-4 h-4 mr-1.5 shrink-0" />
+              Supprimer
             </Button>
           </PermissionGate>
         </div>
@@ -125,7 +142,7 @@ function EquipementsPage() {
     try {
       setLoading(true);
       const response = await getEquipements();
-      setEquipements(response); // The controller now returns the paginated object directly
+      setEquipements(response || { data: [], meta: {} });
     } catch (error) {
       console.error("Error fetching equipements:", error);
       toast.error(error.message || "Erreur lors du chargement des équipements");
@@ -142,7 +159,7 @@ function EquipementsPage() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "quantity_available" ? (value === "" ? "" : parseInt(value)) : value,
+      [name]: name === "quantity_available" ? (value === "" ? "" : parseInt(value, 10)) : value,
     }));
   };
 
@@ -153,29 +170,29 @@ function EquipementsPage() {
     setIsModalOpen(true);
   };
 
-  // --- THIS IS THE REFINED FUNCTION ---
   const handleEdit = (equipement) => {
-    // No API call needed. We use the data from the table row directly.
     setFormData(equipement);
     setEditMode(true);
     setIsModalOpen(true);
-    toast.info(`Modification de l'équipement ${equipement.name}`);
   };
 
   const handleDelete = (id) => {
-    const equipementToDelete = equipements.data.find((eq) => eq.id === id);
+    const equipementToDelete = (equipements.data || []).find((eq) => eq.id === id);
     if (!equipementToDelete) return;
 
-    toast.confirmDelete(`Êtes-vous sûr de vouloir supprimer l'équipement "${equipementToDelete.name}" ?`, async () => {
-      try {
-        await deleteEquipement(id);
-        fetchEquipements();
-        toast.success(`L'équipement ${equipementToDelete.name} a été supprimé`);
-      } catch (error) {
-        console.error("Error deleting equipement:", error);
-        toast.error(error.message || `Erreur lors de la suppression de l'équipement`);
+    toast.confirmDelete(
+      `Êtes-vous sûr de vouloir supprimer l'équipement "${equipementToDelete.name}" ?`,
+      async () => {
+        try {
+          await deleteEquipement(id);
+          fetchEquipements();
+          toast.success(`L'équipement ${equipementToDelete.name} a été supprimé`);
+        } catch (error) {
+          console.error("Error deleting equipement:", error);
+          toast.error(error.message || "Erreur lors de la suppression de l'équipement");
+        }
       }
-    });
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -187,7 +204,7 @@ function EquipementsPage() {
 
     const submitData = {
       name: formData.name,
-      quantity_available: parseInt(formData.quantity_available),
+      quantity_available: parseInt(formData.quantity_available, 10),
       description: formData.description,
     };
 
@@ -207,10 +224,13 @@ function EquipementsPage() {
       console.error("Error submitting equipement:", error);
       if (error.response?.data?.errors) {
         Object.values(error.response.data.errors).forEach((errors) => {
-          errors.forEach((error) => toast.error(error));
+          errors.forEach((err) => toast.error(err));
         });
       } else {
-        toast.error(error.message || (editMode ? `Erreur lors de la mise à jour` : `Erreur lors de l'ajout`));
+        toast.error(
+          error.message ||
+            (editMode ? "Erreur lors de la mise à jour" : "Erreur lors de l'ajout")
+        );
       }
     } finally {
       setIsSubmitting(false);
@@ -223,23 +243,19 @@ function EquipementsPage() {
     setIsModalOpen(false);
   };
 
-  const filteredEquipements = equipements.data?.filter((equipement) => equipement.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredEquipements = (equipements.data || []).filter((equipement) =>
+    equipement.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
-        title="Gestion des Équipements"
-        description="Gérez les équipements de votre établissement"
+        title="Inventaire des équipements"
+        description="Gérez le parc matériel et technique mis à disposition des enseignants."
         actions={[
           {
-            children: (
-              <span className="flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Ajouter un équipement
-              </span>
-            ),
+            children: "Ajouter un équipement",
+            icon: PlusIcon,
             variant: "primary",
             onClick: handleAdd,
             loading: isSubmitting,
@@ -248,45 +264,94 @@ function EquipementsPage() {
         ]}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {statsCards.map((stat, index) => (
-          <StatsCard key={index} title={stat.title} value={stat.value} icon={stat.icon} loading={loading} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {statsCards.map((stat) => (
+          <StatsCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            loading={loading}
+          />
         ))}
       </div>
 
-      <Card title="Liste des Équipements">
+      <Card
+        title="Catalogue du matériel"
+        subtitle="Disponibilités en temps réel pour les réservations"
+      >
         {loading ? (
-          <div className="flex justify-center items-center py-8">
+          <div className="flex justify-center items-center py-12">
             <LoadingSpinner />
           </div>
         ) : (
-          <DataTable columns={columns} data={filteredEquipements || []} searchable={true} onSearch={setSearchTerm} searchPlaceholder="Rechercher un équipement..." />
+          <DataTable
+            columns={columns}
+            data={filteredEquipements}
+            searchable
+            onSearch={setSearchTerm}
+            searchPlaceholder="Rechercher un équipement..."
+          />
         )}
       </Card>
 
       {isModalOpen && (
-        <PermissionGate permission={editMode ? PERMISSIONS.MODIFIER_EQUIPEMENT : PERMISSIONS.AJOUTER_EQUIPEMENT}>
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-lg">
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-4">{editMode ? "Modifier un équipement" : "Ajouter un nouvel équipement"}</h3>
-                <form onSubmit={handleSubmit}>
-                  <div className="space-y-4">
-                    <FormInput label="Nom de l'équipement" name="name" value={formData.name} onChange={handleChange} required />
-                    <FormInput label="Quantité disponible" name="quantity_available" type="number" value={formData.quantity_available} onChange={handleChange} required />
-                    <FormTextArea label="Description" name="description" value={formData.description} onChange={handleChange} required />
-                    <div className="flex justify-end space-x-3 mt-6">
-                      <Button variant="secondary" type="button" onClick={resetForm}>
-                        Annuler
-                      </Button>
-                      <Button variant="primary" type="submit" loading={isSubmitting}>
-                        {editMode ? "Mettre à jour" : "Ajouter"}
-                      </Button>
-                    </div>
-                  </div>
-                </form>
+        <PermissionGate
+          permission={editMode ? PERMISSIONS.MODIFIER_EQUIPEMENT : PERMISSIONS.AJOUTER_EQUIPEMENT}
+        >
+          <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <h3 className="text-base font-display font-semibold text-slate-900 dark:text-white">
+                  {editMode ? "Modifier l’équipement" : "Ajouter un nouvel équipement"}
+                </h3>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
               </div>
-            </Card>
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <FormInput
+                  label="Désignation de l’équipement"
+                  id="equipement-name"
+                  name="name"
+                  placeholder="Ex: Vidéoprojecteur Laser HD"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+                <FormInput
+                  label="Quantité en stock"
+                  id="equipement-qty"
+                  name="quantity_available"
+                  type="number"
+                  placeholder="Ex: 5"
+                  value={formData.quantity_available}
+                  onChange={handleChange}
+                  required
+                />
+                <FormTextArea
+                  label="Description et caractéristiques"
+                  id="equipement-desc"
+                  name="description"
+                  placeholder="Précisez les connectiques ou accessoires inclus..."
+                  value={formData.description}
+                  onChange={handleChange}
+                  required
+                />
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <Button variant="secondary" type="button" onClick={resetForm}>
+                    Annuler
+                  </Button>
+                  <Button variant="primary" type="submit" loading={isSubmitting}>
+                    {editMode ? "Enregistrer" : "Ajouter au stock"}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
         </PermissionGate>
       )}

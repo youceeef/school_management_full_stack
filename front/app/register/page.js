@@ -1,38 +1,106 @@
 "use client";
 
 import Link from "next/link";
+import { AcademicCapIcon, UserGroupIcon, BeakerIcon, ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import ThemeToggle from "../components/ThemeToggle";
+
+const accountTypes = [
+  {
+    title: "Enseignant / Formateur",
+    subtitle: "Planification & Pédagogie",
+    description:
+      "Réservez des salles et des équipements de laboratoire pour vos séances et partagez vos supports de cours avec les étudiants.",
+    href: "/register/professeur",
+    icon: AcademicCapIcon,
+  },
+  {
+    title: "Élève / Étudiant",
+    subtitle: "Consultation & Téléchargements",
+    description:
+      "Accédez aux ressources numériques publiées par vos enseignants, téléchargez les supports de TP et suivez vos notifications.",
+    href: "/register/eleve",
+    icon: UserGroupIcon,
+  },
+  {
+    title: "Responsable Laboratoire",
+    subtitle: "Supervision & Validation",
+    description:
+      "Validez ou refusez les demandes de réservation des laboratoires et supervisez la disponibilité des équipements techniques.",
+    href: "/register/responsable",
+    icon: BeakerIcon,
+  },
+];
 
 export default function Register() {
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
-      <div className="absolute top-4 right-4">
+    <div className="min-h-screen flex flex-col justify-between p-6 sm:p-12 bg-slate-50 dark:bg-slate-950">
+      <div className="max-w-5xl w-full mx-auto flex items-center justify-between">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+        >
+          <ArrowLeftIcon className="w-4 h-4" />
+          Retour à l&apos;accueil
+        </Link>
         <ThemeToggle />
       </div>
-      <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Inscription</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Choisissez votre type de compte</p>
+
+      <div className="max-w-4xl w-full mx-auto my-12">
+        <div className="text-center max-w-xl mx-auto mb-10">
+          <p className="text-xs font-semibold text-primary-600 dark:text-primary-400">
+            Création de Compte Académique
+          </p>
+          <h1 className="mt-2 text-2xl sm:text-3xl font-bold font-display text-slate-900 dark:text-white">
+            Sélectionnez votre profil institutionnel
+          </h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            Choisissez le type de compte correspondant à vos responsabilités au sein de l&apos;établissement.
+          </p>
         </div>
 
-        <div className="space-y-4">
-          <Link href="/register/professeur" className="block w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white font-medium rounded-md text-center transition duration-200">
-            Inscription Professeur
-          </Link>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {accountTypes.map((type) => {
+            const Icon = type.icon;
+            return (
+              <Link
+                key={type.href}
+                href={type.href}
+                className="group bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary-500 dark:hover:border-primary-500 p-6 flex flex-col justify-between transition-colors"
+              >
+                <div>
+                  <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-primary-600 dark:text-primary-400 mb-4">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{type.subtitle}</p>
+                  <h2 className="mt-1 text-lg font-bold font-display text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400">
+                    {type.title}
+                  </h2>
+                  <p className="mt-2.5 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {type.description}
+                  </p>
+                </div>
 
-          <Link href="/register/eleve" className="block w-full py-3 px-4 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white font-medium rounded-md text-center transition duration-200">
-            Inscription Élève
-          </Link>
+                <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-primary-600 dark:text-primary-400">
+                  <span>Continuer l&apos;inscription</span>
+                  <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </Link>
+            );
+          })}
         </div>
 
-        <div className="mt-6 text-center">
-          <p className="text-gray-600 dark:text-gray-400">
-            Déjà un compte?{" "}
-            <Link href="/login" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
+        <div className="mt-8 text-center">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            Vous possédez déjà un compte ?{" "}
+            <Link href="/login" className="font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400">
               Se connecter
             </Link>
           </p>
         </div>
+      </div>
+
+      <div className="text-center text-xs text-slate-400 dark:text-slate-500">
+        © {new Date().getFullYear()} EduSpace · CSFT Tunisie
       </div>
     </div>
   );

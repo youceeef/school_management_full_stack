@@ -3,25 +3,27 @@
 import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import toast from "../../../utils/toast";
 import Image from "next/image";
+import {
+  ArrowDownTrayIcon,
+  ArrowLeftIcon,
+  DocumentTextIcon,
+} from "@heroicons/react/24/outline";
+import toast from "../../../utils/toast";
+import Button from "../../../components/Button";
+import { Card, PageHeader } from "../../../components/ui";
+import LoadingSpinner from "../../../components/LoadingSpinner";
 import { getDocument, downloadDocument } from "../../../services/documentService";
-// Button, FormInput, FormTextArea removed as they are for editing
 
 export default function TelechargementDetailPage({ params }) {
   const router = useRouter();
-  // Use React.use() to unwrap the params promise
   const resolvedParams = use(params);
   const documentId = resolvedParams.id;
 
-  // État pour stocker les informations du document
   const [documentData, setDocumentData] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-
-  // État pour le chargement
   const [isLoading, setIsLoading] = useState(true);
 
-  // Charger les données du document
   useEffect(() => {
     let objectUrl;
     let cancelled = false;
@@ -55,16 +57,13 @@ export default function TelechargementDetailPage({ params }) {
     };
   }, [documentId]);
 
-  // Gérer le téléchargement
   const handleDownload = async () => {
     if (!documentData) return;
 
     try {
       toast.info("Téléchargement en cours...");
-
       const blob = await downloadDocument(documentId);
 
-      // Créer un URL objet et déclencher le téléchargement
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -72,7 +71,6 @@ export default function TelechargementDetailPage({ params }) {
       document.body.appendChild(link);
       link.click();
 
-      // Nettoyer
       window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
 
@@ -83,31 +81,24 @@ export default function TelechargementDetailPage({ params }) {
     }
   };
 
-  // handleDelete, handleInputChange, handleSubmit, handleCancelEdit functions removed
-
-  // Obtenir le nom d'utilisateur formaté
   const getFormattedAuthor = (user) => {
-    if (!user) return "Utilisateur inconnu";
+    if (!user) return "Enseignant";
     return `${user.first_name} ${user.last_name}`;
   };
 
-  // Extraire le type de fichier à partir du type MIME
   const getFileType = (mimeType) => {
-    if (!mimeType) return "Inconnu";
-
+    if (!mimeType) return "DOC";
     if (mimeType.includes("pdf")) return "PDF";
     if (mimeType.includes("word") || mimeType.includes("docx")) return "DOCX";
     if (mimeType.includes("excel") || mimeType.includes("xlsx")) return "XLSX";
     if (mimeType.includes("powerpoint") || mimeType.includes("pptx")) return "PPTX";
     if (mimeType.includes("image/jpeg") || mimeType.includes("image/jpg")) return "JPG";
     if (mimeType.includes("image/png")) return "PNG";
-
-    return mimeType.split("/")[1].toUpperCase();
+    return (mimeType.split("/")[1] || "DOC").toUpperCase();
   };
 
-  // Formater la date
   const formatDate = (dateString) => {
-    if (!dateString) return "";
+    if (!dateString) return { date: "—", time: "" };
     const date = new Date(dateString);
     return {
       date: date.toLocaleDateString("fr-FR", {
@@ -122,32 +113,29 @@ export default function TelechargementDetailPage({ params }) {
     };
   };
 
-  // Formater le contenu de la description pour l'affichage
-  const formatDescription = (desc) => {
-    if (!desc) return "Aucune description disponible.";
-    if (desc.length < 200) return desc;
-    return desc.replace(/([.!?])\s+/g, "$1<br><br>").replace(/<br><br>$/, "");
-  };
-
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex justify-center items-center py-20">
+        <LoadingSpinner />
       </div>
     );
   }
 
   if (!documentData) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <Card>
         <div className="text-center py-12">
-          <h1 className="text-xl font-semibold text-gray-800 mb-4">Document non trouvé</h1>
-          <p className="text-gray-600 mb-6">Le document demandé n&apos;existe pas ou a été supprimé.</p>
-          <Link href="/dashboard/telechargements" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-            Retour à la liste des téléchargements
+          <h1 className="text-lg font-display font-semibold text-slate-900 dark:text-white mb-2">
+            Document introuvable
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            Le document demandé n&apos;existe pas ou a été retiré.
+          </p>
+          <Link href="/dashboard/telechargements">
+            <Button variant="primary">Retour aux téléchargements</Button>
           </Link>
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -155,145 +143,105 @@ export default function TelechargementDetailPage({ params }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-2">{documentData.title}</h1>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Ajouté le {formatDate(documentData.created_at).date} à {formatDate(documentData.created_at).time}
-            </div>
-          </div>
-          <div>
-            {/* Using a simple Link for navigation back */}
-            <Link href="/dashboard/telechargements" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-              Retour aux Téléchargements
-            </Link>
-          </div>
-        </div>
+      <PageHeader
+        title={documentData.title}
+        description={`Publié le ${formatDate(documentData.created_at).date} à ${
+          formatDate(documentData.created_at).time
+        }`}
+        actions={[
+          {
+            children: "Retour au catalogue",
+            icon: ArrowLeftIcon,
+            variant: "secondary",
+            onClick: () => router.push("/dashboard/telechargements"),
+          },
+        ]}
+      />
 
-        {/* Aperçu du document */}
-        <div className="border border-gray-200 rounded-lg mb-6 overflow-hidden">
-          <div className="bg-gray-100 p-4 h-72 flex justify-center items-center">
-            {fileType === "PDF" ? (
-              <div className="text-center">
-                <svg className="w-16 h-16 text-red-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="text-gray-600">Aperçu du document PDF non disponible</p>
-                <p className="text-sm text-gray-500 mt-1">Cliquez sur Télécharger pour ouvrir le fichier</p>
-              </div>
-            ) : fileType === "JPG" || fileType === "PNG" ? (
-              <div className="text-center">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card title="Aperçu du document" subtitle={`Format ${fileType}`}>
+            <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl p-6 min-h-64 flex flex-col justify-center items-center text-center">
+              {fileType === "JPG" || fileType === "PNG" ? (
                 <Image
-                  src={previewUrl || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="}
+                  src={
+                    previewUrl ||
+                    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+                  }
                   alt={documentData.title}
                   width={500}
                   height={300}
                   unoptimized
-                  className="max-h-full max-w-full object-contain"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath fill='%23ccc' d='M30 50h40v5H30z'/%3E%3Cpath fill='%23ccc' d='M50 30v40h-5V30z'/%3E%3C/svg%3E";
-                    toast.error("Impossible de charger l&apos;aperçu de l&apos;image");
-                  }}
+                  className="max-h-72 max-w-full object-contain rounded-lg"
                 />
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 mb-3">
+                    <DocumentTextIcon className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                    Aperçu direct non disponible pour ce fichier {fileType}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Cliquez sur « Télécharger le support » pour l&apos;ouvrir sur votre appareil.
+                  </p>
+                </>
+              )}
+            </div>
+          </Card>
+
+          <Card title="Informations pédagogiques">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Auteur
+                  </p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">
+                    {getFormattedAuthor(documentData.user)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Date de mise en ligne
+                  </p>
+                  <p className="text-sm font-mono tabular-nums text-slate-900 dark:text-white mt-1">
+                    {formatDate(documentData.created_at).date}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Format
+                  </p>
+                  <p className="text-sm font-mono font-semibold text-slate-900 dark:text-white mt-1">
+                    {fileType}
+                  </p>
+                </div>
               </div>
-            ) : fileType === "DOCX" ? (
-              <div className="text-center">
-                <svg className="w-16 h-16 text-blue-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="text-gray-600">Aperçu du document Word non disponible</p>
-                <p className="text-sm text-gray-500 mt-1">Cliquez sur Télécharger pour ouvrir le fichier</p>
+
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                  Description du support
+                </h3>
+                <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                  {documentData.description || "Aucune description disponible."}
+                </p>
               </div>
-            ) : (
-              <div className="text-center">
-                <svg className="w-16 h-16 text-gray-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="text-gray-600">Aperçu non disponible pour ce type de fichier</p>
-                <p className="text-sm text-gray-500 mt-1">Cliquez sur Télécharger pour ouvrir le fichier</p>
-              </div>
-            )}
-          </div>
+            </div>
+          </Card>
         </div>
 
-        {/* Détails du document */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-3 bg-white dark:bg-dark-card rounded-lg shadow-sm p-6">
-            {/* Editing form removed */}
-            <>
-              <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-6">
-                <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Informations du document</h2>
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
-                    <p className="text-sm text-blue-600 dark:text-blue-400">Auteur</p>
-                    <div className="mt-1">
-                      <p className="text-gray-900 dark:text-white font-medium">{documentData.user ? getFormattedAuthor(documentData.user) : "Utilisateur inconnu"}</p>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800">
-                    <p className="text-sm text-purple-600 dark:text-purple-400">Date d&apos;ajout</p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="text-gray-900 dark:text-white font-medium">{formatDate(documentData.created_at).date}</span>
-                      <span className="text-purple-600 dark:text-purple-400">•</span>
-                      <span className="text-purple-600 dark:text-purple-400 font-medium">{formatDate(documentData.created_at).time}</span>
-                    </div>
-                  </div>
-
-                  {documentData.updated_at && documentData.updated_at !== documentData.created_at && (
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
-                      <p className="text-sm text-green-600 dark:text-green-400">Dernière modification</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="text-gray-900 dark:text-white font-medium">{formatDate(documentData.updated_at).date}</span>
-                        <span className="text-green-600 dark:text-green-400">•</span>
-                        <span className="text-green-600 dark:text-green-400 font-medium">{formatDate(documentData.updated_at).time}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800">
-                    <p className="text-sm text-amber-600 dark:text-amber-400">Format</p>
-                    <div className="mt-1">
-                      <p className="text-gray-900 dark:text-white font-medium">{fileType}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {documentData.description && (
-                  <div className="mt-6">
-                    <p className="text-sm text-indigo-600 dark:text-indigo-400 mb-2">Description</p>
-                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-100 dark:border-indigo-800">
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{documentData.description}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          </div>
-
-          {/* Actions Section - Only Download Button */}
-          <div className="lg:col-span-1 bg-white dark:bg-dark-card rounded-lg shadow-sm p-6 h-fit">
-            <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Actions</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Action disponible</p>
-            </div>
-            <div className="flex flex-col space-y-3">
-              {/* Using a simple button for download, as the Button component might not be needed if only one style is used */}
-              <button onClick={handleDownload} className="w-full justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Télécharger
-              </button>
-              {/* Edit and Delete buttons removed */}
-            </div>
-          </div>
+        <div>
+          <Card title="Téléchargement" subtitle="Accès direct au fichier">
+            <Button
+              onClick={handleDownload}
+              variant="primary"
+              icon={ArrowDownTrayIcon}
+              className="w-full"
+            >
+              Télécharger le support
+            </Button>
+          </Card>
         </div>
       </div>
     </div>

@@ -1,5 +1,7 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import RegisterForm from "../../components/RegisterForm";
 
 export default function RegisterResponsable() {
-  redirect("/register");
+  return <RegisterForm userType="responsable" />;
 }

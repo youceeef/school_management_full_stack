@@ -2,28 +2,47 @@
 
 import React from "react";
 
-export default function FormInput({ label, type = "text", id, name, value, onChange, placeholder, required = false, error, className = "", ...props }) {
+export default function FormInput({
+  label,
+  type = "text",
+  id,
+  name,
+  value,
+  onChange,
+  placeholder,
+  required = false,
+  error,
+  hint,
+  className = "",
+  ...props
+}) {
+  const inputId = id || name;
   return (
-    <div className={`mb-4 ${className}`}>
+    <div className={className}>
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
       <input
         type={type}
-        id={id}
+        id={inputId}
         name={name}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         required={required}
-        className={`w-full px-3 py-2 border ${error ? "border-red-500 dark:border-red-500" : "border-gray-300 dark:border-dark-border"} rounded-md focus:outline-none focus:ring-2 ${
-          error ? "focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-500 dark:focus:border-red-500" : "focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-primary-400 dark:focus:border-primary-400"
-        } dark:bg-dark-card dark:text-dark-text dark:placeholder-dark-muted transition-colors duration-200`}
+        className={`w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-900 border ${
+          error ? "border-red-500 dark:border-red-500" : "border-slate-300 dark:border-slate-700"
+        } rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 ${
+          error
+            ? "focus:ring-red-500/20 focus:border-red-500"
+            : "focus:ring-primary-500/20 focus:border-primary-600 dark:focus:border-primary-400"
+        } disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-500`}
         {...props}
       />
-      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+      {hint && !error && <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{hint}</p>}
+      {error && <p className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">{error}</p>}
     </div>
   );
 }

@@ -1,25 +1,24 @@
 import React from "react";
 
-export default function StatsCard({ title, value, icon: Icon, loading = false }) {
+export default function StatsCard({ title, value, subtitle, icon: Icon, loading = false }) {
   return (
-    <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm p-6 transition-all">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</h3>
-          {loading ? (
-            <div className="animate-pulse mt-2">
-              <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            </div>
-          ) : (
-            <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">{value}</p>
-          )}
-        </div>
-        {Icon && (
-          <div className={`flex-shrink-0 rounded-full p-3 ${loading ? "bg-gray-100 dark:bg-gray-800" : "bg-blue-50 dark:bg-blue-900/20"}`}>
-            <Icon className={`w-6 h-6 ${loading ? "text-gray-400 dark:text-gray-600" : "text-blue-600 dark:text-blue-400"}`} />
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 flex items-start justify-between gap-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">{title}</p>
+        {loading ? (
+          <div className="animate-pulse mt-2.5">
+            <div className="h-7 w-20 bg-slate-200 dark:bg-slate-800 rounded-md" />
           </div>
+        ) : (
+          <p className="mt-2 text-2xl font-semibold font-mono tabular-nums tracking-tight text-slate-900 dark:text-slate-100">{value}</p>
         )}
+        {subtitle && !loading && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
       </div>
+      {Icon && (
+        <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-center shrink-0 text-primary-600 dark:text-primary-400">
+          <Icon className="w-5 h-5" aria-hidden="true" />
+        </div>
+      )}
     </div>
   );
 }

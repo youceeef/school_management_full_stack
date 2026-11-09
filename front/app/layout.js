@@ -1,22 +1,52 @@
 import "./globals.css";
 import "./styles/datepicker.css";
 import { Toaster } from "react-hot-toast";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans, Public_Sans, JetBrains_Mono } from "next/font/google";
 import { AuthProvider } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
-const inter = Inter({ subsets: ["latin"] });
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
+});
+
+const publicSans = Public_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-public-sans",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 export const metadata = {
-  title: "Gestion de Salles",
-  description: "Application de gestion de salles et d'équipements",
+  title: "EduSpace — Gestion des Ressources Éducatives",
+  description:
+    "Plateforme institutionnelle centralisée pour la gestion des salles, des équipements de laboratoire, des réservations et des ressources pédagogiques.",
+  openGraph: {
+    title: "EduSpace — Gestion des Ressources Éducatives",
+    description:
+      "Plateforme institutionnelle centralisée pour la gestion des salles, des équipements de laboratoire, des réservations et des ressources pédagogiques.",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fr" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
+    <html
+      lang="fr"
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+      className={`${plusJakarta.variable} ${publicSans.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className="font-sans antialiased bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 selection:bg-primary-600 selection:text-white" suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
             <NotificationProvider>
@@ -24,23 +54,26 @@ export default function RootLayout({ children }) {
               <Toaster
                 position="top-right"
                 toastOptions={{
-                  duration: 3000,
+                  duration: 3500,
+                  className: "text-sm font-medium border border-slate-200 dark:border-slate-800 shadow-lg",
                   style: {
-                    background: "#363636",
-                    color: "#fff",
+                    background: "#0f172a",
+                    color: "#f8fafc",
+                    borderRadius: "0.75rem",
+                    padding: "12px 16px",
                   },
                   success: {
                     duration: 3000,
-                    style: {
-                      background: "#22c55e",
-                      color: "#fff",
+                    iconTheme: {
+                      primary: "#16a34a",
+                      secondary: "#ffffff",
                     },
                   },
                   error: {
                     duration: 4000,
-                    style: {
-                      background: "#ef4444",
-                      color: "#fff",
+                    iconTheme: {
+                      primary: "#dc2626",
+                      secondary: "#ffffff",
                     },
                   },
                 }}

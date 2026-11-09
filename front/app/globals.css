@@ -2,19 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base transitions for all elements */
-* {
-  transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out, color 0.5s ease-in-out, box-shadow 0.5s ease-in-out, transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-}
-
 :root {
-  --background: #ffffff;
-  --foreground: #333333;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card-bg: #ffffff;
-  --card-border: #e5e7eb;
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #6b7280;
+  --card-border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
 }
 
 .dark {
@@ -23,37 +18,46 @@
   --card-bg: #1e293b;
   --card-border: #334155;
   --text-primary: #f1f5f9;
-  --text-secondary: #e2e8f0;
+  --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-public-sans), system-ui, -apple-system, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.02em;
+  }
 }
 
-/* Enhanced transitions for specific elements */
-.dashboard-card,
-.btn-primary,
-.btn-secondary,
-header,
-aside,
-.stats-card {
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+/* Fast, compositor-friendly transitions for interactive elements */
+button,
+a,
+input,
+select,
+textarea {
+  transition: background-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 150ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Theme toggle animation */
-.theme-toggle-icon {
-  transform-origin: center;
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-in-out;
-}
-
-.theme-toggle-icon.active {
-  transform: rotate(360deg);
-}
-
-/* Hide scrollbars but keep functionality */
 @layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none;
@@ -64,118 +68,15 @@ aside,
     display: none;
   }
 
-  html {
-    scroll-behavior: smooth;
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-balance {
+    text-wrap: balance;
   }
 }
 
-/* Custom dashboard styles */
 .dashboard-card {
-  @apply bg-white dark:bg-dark-card rounded-lg shadow-sm hover:shadow-md dark:shadow-dark-border/10;
-}
-
-/* Dark mode text styles with smooth transitions */
-.dark .text-gray-800 {
-  @apply text-gray-100;
-}
-
-.dark .text-gray-700 {
-  @apply text-gray-200;
-}
-
-.dark .text-gray-600 {
-  @apply text-gray-300;
-}
-
-.dark .text-gray-500 {
-  @apply text-gray-400;
-}
-
-/* Dark mode background styles with enhanced transitions */
-.dark .bg-white {
-  @apply bg-dark-card;
-}
-
-.dark .bg-gray-100 {
-  @apply bg-dark-border/20;
-}
-
-.dark .bg-gray-50 {
-  @apply bg-dark-bg;
-}
-
-/* Dark mode hover styles with smooth transitions */
-.dark .hover\:bg-gray-100:hover {
-  @apply hover:bg-dark-border/30;
-}
-
-.dark .hover\:bg-gray-50:hover {
-  @apply hover:bg-dark-border/20;
-}
-
-/* Form and input styles for dark mode */
-.dark input[type="text"],
-.dark input[type="email"],
-.dark input[type="password"],
-.dark input[type="number"],
-.dark input[type="search"],
-.dark input[type="tel"],
-.dark input[type="url"],
-.dark input[type="date"],
-.dark input[type="datetime-local"],
-.dark input[type="month"],
-.dark input[type="week"],
-.dark input[type="time"],
-.dark select,
-.dark textarea {
-  @apply bg-dark-card border-dark-border text-dark-text placeholder:text-dark-muted focus:border-primary-500 focus:ring-primary-500/20;
-}
-
-/* Search input specific styles */
-.dark .search-input {
-  @apply bg-dark-card border-dark-border text-dark-text placeholder:text-dark-muted;
-}
-
-/* Stats card styles for dark mode */
-.dark .stats-card {
-  @apply bg-gradient-to-br from-dark-card to-dark-card/90 border border-dark-border/50 shadow-dark-border/5;
-}
-
-/* Stats overview section styles */
-.stats-overview {
-  @apply transition-all duration-300;
-}
-
-.dark .stats-overview .stats-icon-container {
-  @apply bg-dark-border/20 text-primary-300;
-}
-
-.dark .stats-value {
-  @apply text-dark-text;
-}
-
-.dark .stats-title {
-  @apply text-dark-muted;
-}
-
-/* Button styles in dark mode */
-.dark .btn-primary {
-  @apply bg-primary-600 hover:bg-primary-700 text-white;
-}
-
-.dark .btn-secondary {
-  @apply bg-dark-border hover:bg-dark-border/80 text-dark-text;
-}
-
-/* Table styles in dark mode */
-.dark table thead th {
-  @apply bg-dark-card/80 text-dark-muted border-dark-border/50;
-}
-
-.dark table tbody td {
-  @apply border-dark-border/30;
-}
-
-.dark table tbody tr:hover {
-  @apply bg-dark-border/10;
+  @apply bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800;
 }
