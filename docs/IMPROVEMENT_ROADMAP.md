@@ -471,8 +471,9 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P0.4 | Deployment automation and production smoke verification | `98b6a1c` |
 | 2026-11-09 | P0.5 | Credential hygiene runbook and automated secret scanning | `f170d1f` |
 | 2026-11-09 | P0 Baseline Complete | Production synchronized at 0d7b75b across Vercel and Render | `0d7b75b` |
+| 2026-11-09 | P1.1 | Dedicated account requests approval API with metrics and filters | `d10c2e4` |
 
 ## Next action
 
-Start **P1.1 — Approval API**. Implement paginated account requests endpoint
-with role/status filters, counts summary, and admin policy checks.
+Start **P1.2 — Approval Center page**. Build `/dashboard/account-requests` with
+status tabs (Pending, Approved, Rejected, Suspended), responsive layout, and role labels.
