@@ -96,10 +96,16 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` Confirm an unapproved staff account receives the pending-login
       message.
 
-- `[~]` **P0.2 — Versioned health endpoint**
+- `[x]` **P0.2 — Versioned health endpoint**
   - Add deployed Git SHA and build timestamp to `/health`.
   - Report database and storage connectivity without exposing credentials.
   - Keep the endpoint inexpensive and safe for uptime monitors.
+  - Production verification:
+    - `[x]` Version matches `8b5a86e1062bb3c74be05f21c6d9af2e2daa75cb`.
+    - `[x]` Docker build timestamp is present.
+    - `[x]` Database connectivity reports `ok`.
+    - `[x]` Profile storage connectivity reports `ok`.
+    - `[x]` Document storage connectivity reports `ok`.
 
 - `[ ]` **P0.3 — Frontend/API compatibility check**
   - Expose the expected API schema version in the frontend build.
@@ -426,6 +432,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | Baseline | UI/UX redesign, i18n, profile storage fix | `53b50a7` |
 | 2026-11-09 | Approval foundation | Pending staff registration and admin review | `5bb0de3` |
 | 2026-11-09 | Approval backfill | Existing staff converted to pending requests | `c12365f` |
+| 2026-11-09 | P0.2 | Versioned liveness and readiness health endpoints | `8b5a86e` |
 
 ## Next action
 
