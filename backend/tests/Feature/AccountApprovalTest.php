@@ -103,6 +103,48 @@ class AccountApprovalTest extends TestCase
         $this->assertSame(User::APPROVAL_PENDING, $teacher->fresh()->approval_status);
     }
 
+    public function test_backfill_converts_existing_staff_roles_to_pending_requests(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $teacher = User::factory()->create();
+        $teacher->assignRole('enseignant');
+        $teacher->createToken('teacher-session');
+
+        $manager = User::factory()->create();
+        $manager->assignRole('responsable_laboratoire');
+
+        $student = User::factory()->create();
+        $student->assignRole('eleve');
+
+        $migration = require database_path(
+            'migrations/2026_11_09_000002_backfill_staff_account_approvals.php'
+        );
+        $migration->up();
+
+        $teacher->refresh();
+        $manager->refresh();
+        $admin->refresh();
+        $student->refresh();
+
+        $this->assertSame(User::APPROVAL_PENDING, $teacher->approval_status);
+        $this->assertSame('enseignant', $teacher->requested_role);
+        $this->assertTrue($teacher->roles->isEmpty());
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'tokenable_id' => $teacher->id,
+        ]);
+
+        $this->assertSame(User::APPROVAL_PENDING, $manager->approval_status);
+        $this->assertSame('responsable_laboratoire', $manager->requested_role);
+        $this->assertTrue($manager->roles->isEmpty());
+
+        $this->assertSame(User::APPROVAL_APPROVED, $admin->approval_status);
+        $this->assertTrue($admin->hasRole('admin'));
+        $this->assertSame(User::APPROVAL_APPROVED, $student->approval_status);
+        $this->assertTrue($student->hasRole('eleve'));
+    }
+
     private function pendingApplicant(string $requestedRole): User
     {
         return User::factory()->create([

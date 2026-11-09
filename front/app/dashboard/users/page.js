@@ -80,6 +80,9 @@ function UsersPage() {
   };
 
   const approvalBadge = (status) => {
+    const normalizedStatus = ["approved", "pending", "rejected"].includes(status)
+      ? status
+      : "approved";
     const styles = {
       approved:
         "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900",
@@ -97,10 +100,10 @@ function UsersPage() {
     return (
       <span
         className={`inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-medium ${
-          styles[status] || styles.pending
+          styles[normalizedStatus]
         }`}
       >
-        {tr(labels[status] || labels.pending)}
+        {tr(labels[normalizedStatus])}
       </span>
     );
   };
