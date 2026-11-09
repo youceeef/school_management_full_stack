@@ -13,6 +13,10 @@ const imagePattern = (url) => ({
 const nextConfig = {
   images: {
     remotePatterns: [imagePattern(apiUrl), imagePattern(storageUrl)],
+    // Next.js 16 blocks private-IP image optimization by default. Permit it
+    // only for the local API used during development; production remains
+    // protected from server-side request forgery through local addresses.
+    dangerouslyAllowLocalIP: !isProduction,
   },
   async headers() {
     const contentSecurityPolicy = [

@@ -9,7 +9,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --max-warnings=0"
+    "lint": "eslint . --max-warnings=0",
+    "test:i18n": "node --test app/i18n/translations.test.mjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

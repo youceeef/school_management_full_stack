@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
 
 class UserController extends Controller
 {
@@ -61,56 +65,82 @@ class UserController extends Controller
 
     public function updateProfile(Request $request)
     {
+        // Keep validation outside the catch block so Laravel can return its
+        // normal 422 response instead of turning invalid images into a 500.
+        $validatedData = $this->validateProfileData($request);
+        $user = Auth::user();
+        $diskName = config('filesystems.uploads_disk');
+        $oldPicture = $user->picture;
+        $newPicture = null;
+
+        DB::beginTransaction();
+
         try {
-            $user = Auth::user();
-            DB::beginTransaction();
-
-            try {
-                $validatedData = $this->validateProfileData($request);
-
-                // Handle file upload if picture is present
-                $pictureUploaded = false;
-                if ($request->hasFile('picture')) {
-                    $pictureResult = $this->handleProfilePicture($request, $user);
-                    if (! $pictureResult['success']) {
-                        DB::rollBack();
-
-                        return response()->json(['message' => $pictureResult['message']], 500);
-                    }
-                    $pictureUploaded = true;
-                }
-
-                // Update other user fields
-                $this->updateUserFields($user, $validatedData);
-
-                // Save if changes were made
-                $hasTextChanges = $user->isDirty();
-
-                if ($hasTextChanges || $pictureUploaded) {
-                    $user->save();
-                    DB::commit();
-
-                    return response()->json([
-                        'message' => 'Profile updated successfully',
-                        'user' => new UserResource($user),
-                    ]);
-                } else {
-                    DB::commit();
-
-                    return response()->json([
-                        'message' => 'No changes detected in the profile data',
-                        'user' => new UserResource($user),
-                    ]);
-                }
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
+            if ($request->hasFile('picture')) {
+                $newPicture = $this->storeProfilePicture(
+                    $request->file('picture'),
+                    $diskName
+                );
+                $user->picture = $newPicture;
             }
-        } catch (\Exception $e) {
-            Log::error('Error updating user profile: '.$e->getMessage());
 
-            return response()->json(['message' => 'Error updating profile'], 500);
+            $this->updateUserFields($user, $validatedData);
+
+            $hasTextChanges = $user->isDirty([
+                'first_name',
+                'last_name',
+                'address',
+                'phone',
+                'bio',
+            ]);
+            $pictureUploaded = $newPicture !== null;
+
+            if ($hasTextChanges || $pictureUploaded) {
+                $user->save();
+            }
+
+            DB::commit();
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            // A stored object is not covered by the database transaction.
+            // Remove it if the database update failed.
+            if ($newPicture) {
+                $this->deleteStoredPicture($newPicture, $diskName);
+            }
+
+            Log::error('Error updating user profile', [
+                'user_id' => $user->id,
+                'disk' => $diskName,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => $request->hasFile('picture')
+                    ? 'Failed to upload profile picture'
+                    : 'Error updating profile',
+            ], 500);
         }
+
+        // Only remove the previous object after both the replacement upload
+        // and the database commit succeeded.
+        if ($newPicture && $oldPicture && $oldPicture !== $newPicture) {
+            $this->deleteStoredPicture($oldPicture, $diskName);
+        }
+
+        $user->load('roles');
+
+        return response()->json([
+            'message' => ($hasTextChanges || $pictureUploaded)
+                ? 'Profile updated successfully'
+                : 'No changes detected in the profile data',
+            'user' => new UserResource($user),
+            'updated' => [
+                'text_fields' => $hasTextChanges,
+                'picture' => $pictureUploaded,
+            ],
+        ]);
     }
 
     private function validateProfileData(Request $request)
@@ -137,52 +167,44 @@ class UserController extends Controller
         return $request->validate($rules);
     }
 
-    private function handleProfilePicture(Request $request, User $user)
+    private function storeProfilePicture(UploadedFile $picture, string $diskName): string
     {
+        if (! $picture->isValid()) {
+            throw new RuntimeException('The uploaded profile picture is not valid.');
+        }
+
+        $extension = strtolower($picture->extension() ?: 'jpg');
+        $fileName = Str::uuid().'.'.$extension;
+
+        // Object-storage disks do not require explicit directory creation.
+        // Avoiding exists()/makeDirectory() also improves compatibility with
+        // S3-compatible providers that implement only object operations.
+        $path = $picture->storeAs('profile_pictures', $fileName, $diskName);
+
+        if (! is_string($path) || $path === '') {
+            throw new RuntimeException('The profile picture could not be stored.');
+        }
+
+        return $path;
+    }
+
+    private function deleteStoredPicture(?string $path, string $diskName): void
+    {
+        if (! $path) {
+            return;
+        }
+
         try {
-            $diskName = config('filesystems.uploads_disk');
-            $disk = Storage::disk($diskName);
-
-            // Verify the file is valid
-            if (! $request->file('picture')->isValid()) {
-                return [
-                    'success' => false,
-                    'message' => 'The uploaded file is not valid',
-                ];
-            }
-
-            // Delete old picture if exists
-            if ($user->picture && $disk->exists($user->picture)) {
-                $disk->delete($user->picture);
-            }
-
-            // Create the directory if it doesn't exist
-            $directory = 'profile_pictures';
-            if (! $disk->exists($directory)) {
-                $disk->makeDirectory($directory);
-            }
-
-            // Store with unique filename
-            $fileName = time().'_'.uniqid().'.'.$request->file('picture')->getClientOriginalExtension();
-            $path = $request->file('picture')->storeAs($directory, $fileName, $diskName);
-
-            if (! $path) {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to store the uploaded file',
-                ];
-            }
-
-            $user->picture = $path;
-
-            return ['success' => true];
-        } catch (\Exception $e) {
-            Log::error('File Upload Failed: '.$e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Failed to upload profile picture',
-            ];
+            // S3 deletes are idempotent, so a preliminary exists() request is
+            // unnecessary and may not be supported by every compatible API.
+            Storage::disk($diskName)->delete($path);
+        } catch (Throwable $e) {
+            Log::warning('Failed to delete stored profile picture', [
+                'path' => $path,
+                'disk' => $diskName,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
         }
     }
 
@@ -195,15 +217,14 @@ class UserController extends Controller
                 return response()->json(['message' => 'No profile picture to delete'], 404);
             }
 
-            $disk = Storage::disk(config('filesystems.uploads_disk'));
-            if ($disk->exists($user->picture)) {
-                $disk->delete($user->picture);
-            }
+            $picturePath = $user->picture;
+            $diskName = config('filesystems.uploads_disk');
 
-            // Clear stale database paths even if an ephemeral filesystem already
-            // removed the underlying file.
+            // Clear the database reference even if the remote object has
+            // already expired or cannot be deleted immediately.
             $user->picture = null;
             $user->save();
+            $this->deleteStoredPicture($picturePath, $diskName);
 
             return response()->json([
                 'message' => 'Profile picture deleted successfully',
@@ -246,14 +267,10 @@ class UserController extends Controller
 
         if ($user->delete()) {
             // If user deletion is successful, then delete the profile picture
-            $disk = Storage::disk(config('filesystems.uploads_disk'));
-            if ($picturePath && $disk->exists($picturePath)) {
-                try {
-                    $disk->delete($picturePath);
-                } catch (\Exception $e) {
-                    Log::error('Failed to delete profile picture: '.$e->getMessage());
-                }
-            }
+            $this->deleteStoredPicture(
+                $picturePath,
+                config('filesystems.uploads_disk')
+            );
 
             return response()->json(['message' => 'Your profile has been deleted successfully.']);
         } else {

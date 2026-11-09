@@ -67,13 +67,19 @@ return [
 
         'profile_s3' => [
             'driver' => 's3',
-            'key' => env('PROFILE_AWS_ACCESS_KEY_ID'),
-            'secret' => env('PROFILE_AWS_SECRET_ACCESS_KEY'),
-            'region' => env('PROFILE_AWS_DEFAULT_REGION', 'auto'),
-            'bucket' => env('PROFILE_AWS_BUCKET'),
-            'url' => env('PROFILE_AWS_URL'),
-            'endpoint' => env('PROFILE_AWS_ENDPOINT'),
-            'use_path_style_endpoint' => env('PROFILE_AWS_USE_PATH_STYLE_ENDPOINT', false),
+            // Fall back to the standard AWS variables so deployments that use
+            // one credential for both buckets do not silently build a disk
+            // with empty credentials.
+            'key' => env('PROFILE_AWS_ACCESS_KEY_ID') ?: env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('PROFILE_AWS_SECRET_ACCESS_KEY') ?: env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('PROFILE_AWS_DEFAULT_REGION') ?: env('AWS_DEFAULT_REGION', 'auto'),
+            'bucket' => env('PROFILE_AWS_BUCKET') ?: env('AWS_BUCKET'),
+            'url' => env('PROFILE_AWS_URL') ?: env('AWS_URL'),
+            'endpoint' => env('PROFILE_AWS_ENDPOINT') ?: env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env(
+                'PROFILE_AWS_USE_PATH_STYLE_ENDPOINT',
+                env('AWS_USE_PATH_STYLE_ENDPOINT', false)
+            ),
             'throw' => true,
         ],
 

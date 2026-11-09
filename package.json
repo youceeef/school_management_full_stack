@@ -12,7 +12,8 @@
     "dev": "npm --prefix front run dev -- --hostname 0.0.0.0",
     "build": "npm --prefix front run build",
     "start": "npm --prefix front run start -- --hostname 0.0.0.0",
-    "lint": "npm --prefix front run lint"
+    "lint": "npm --prefix front run lint",
+    "test:i18n": "npm --prefix front run test:i18n"
   },
   "overrides": {
     "@typescript-eslint/typescript-estree": {

@@ -13,6 +13,8 @@ export const getUserProfile = async () => {
 // Update user profile
 export const updateUserProfile = async (formData) => {
   try {
+    // Override the Axios instance's JSON default. Axios detects FormData and
+    // adds the required multipart boundary in the browser.
     const response = await axiosInstance.post("/api/user/profile", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
@@ -20,7 +22,16 @@ export const updateUserProfile = async (formData) => {
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: "Erreur lors de la mise à jour du profil" };
+    const responseData = error.response?.data;
+    const validationMessage = responseData?.errors?.picture?.[0];
+
+    throw {
+      ...(responseData || {}),
+      message:
+        validationMessage ||
+        responseData?.message ||
+        "Erreur lors de la mise à jour du profil",
+    };
   }
 };
 
@@ -51,11 +62,11 @@ export const getStorageImageUrl = (picturePath) => {
   // If the picture path already has a full URL, return it
   if (picturePath.startsWith("http")) return picturePath;
 
-  // Get the base URL from axios instance, removing any trailing slash
-  const baseUrl = axiosInstance.defaults.baseURL.replace(/\/$/, '');
+  const storageUrl = process.env.NEXT_PUBLIC_STORAGE_URL || axiosInstance.defaults.baseURL;
+  const baseUrl = storageUrl.replace(/\/$/, "");
   
   // If the path starts with a slash, remove it to avoid double slashes
-  const cleanPath = picturePath.replace(/^\//, '');
+  const cleanPath = picturePath.replace(/^\//, "");
 
   // Combine the base URL with the clean path
   return `${baseUrl}/${cleanPath}`;
