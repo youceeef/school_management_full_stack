@@ -50,17 +50,36 @@ export const getAccountRequestById = async (id) => {
 };
 
 /**
- * Review an account request (approve or reject).
+ * Review an account request (approve, reject, suspend, or reactivate).
  *
  * @param {number|string} id
- * @param {'approved'|'rejected'} status
+ * @param {'approved'|'rejected'|'suspended'} status
+ * @param {string|null} [reason]
  */
-export const reviewAccountRequest = async (id, status) => {
+export const reviewAccountRequest = async (id, status, reason = null) => {
   try {
-    const response = await axiosInstance.patch(`/api/account-requests/${id}`, { status });
+    const payload = { status };
+    if (reason && reason.trim()) {
+      payload.reason = reason.trim();
+    }
+    const response = await axiosInstance.patch(`/api/account-requests/${id}`, payload);
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: "Erreur lors de la révision de la demande" };
+  }
+};
+
+/**
+ * Resubmit a previously rejected account application with updated identity/proof (P3.2).
+ *
+ * @param {FormData} formData
+ */
+export const resubmitAccountRequest = async (formData) => {
+  try {
+    const response = await axiosInstance.post("/api/account-requests/resubmit", formData);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Erreur lors de la nouvelle soumission de la demande" };
   }
 };
 

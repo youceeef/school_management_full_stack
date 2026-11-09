@@ -20,6 +20,8 @@ class User extends Authenticatable
 
     public const APPROVAL_REJECTED = 'rejected';
 
+    public const APPROVAL_SUSPENDED = 'suspended';
+
     public const APPROVAL_ROLES = ['enseignant', 'responsable_laboratoire'];
 
     /**
@@ -46,9 +48,11 @@ class User extends Authenticatable
         'proof_document_size',
         'proof_submitted_at',
         'approval_status',
+        'rejection_reason',
         'requested_role',
         'reviewed_at',
         'reviewed_by',
+        'suspended_at',
     ];
 
     /**
@@ -70,6 +74,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'reviewed_at' => 'datetime',
+        'suspended_at' => 'datetime',
     ];
 
     public function reviewer()
@@ -77,9 +82,29 @@ class User extends Authenticatable
         return $this->belongsTo(self::class, 'reviewed_by');
     }
 
+    public function reviews()
+    {
+        return $this->hasMany(AccountReview::class)->orderByDesc('created_at');
+    }
+
     public function isApproved(): bool
     {
         return $this->approval_status === self::APPROVAL_APPROVED;
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->approval_status === self::APPROVAL_SUSPENDED;
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->approval_status === self::APPROVAL_REJECTED;
+    }
+
+    public function isPending(): bool
+    {
+        return $this->approval_status === self::APPROVAL_PENDING;
     }
 
     public function requiresAccountApproval(): bool

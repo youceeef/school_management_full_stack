@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\UserResource;
+use App\Models\AccountReview;
 use App\Models\User;
 use App\Notifications\AccountApprovalStatusNotification;
 use Illuminate\Http\Request;
@@ -59,7 +60,14 @@ class UserController extends Controller
         $validated = $request->validate([
             'status' => [
                 'required',
-                Rule::in([User::APPROVAL_APPROVED, User::APPROVAL_REJECTED]),
+                Rule::in([User::APPROVAL_APPROVED, User::APPROVAL_REJECTED, User::APPROVAL_SUSPENDED]),
+            ],
+            'reason' => [
+                Rule::requiredIf(fn () => in_array($request->input('status'), [User::APPROVAL_REJECTED, User::APPROVAL_SUSPENDED], true)),
+                'nullable',
+                'string',
+                'min:5',
+                'max:1000',
             ],
         ]);
 
@@ -71,29 +79,77 @@ class UserController extends Controller
             ], 422);
         }
 
+        $fromStatus = $user->approval_status;
         $status = $validated['status'];
+        $reason = $validated['reason'] ?? null;
 
-        DB::transaction(function () use ($request, $user, $status) {
+        if ($fromStatus === User::APPROVAL_APPROVED && $status === User::APPROVAL_REJECTED) {
+            return response()->json([
+                'message' => 'Un compte approuvé et actif ne peut pas être rejeté. Utilisez l’action de suspension.',
+            ], 422);
+        }
+
+        if ($fromStatus === User::APPROVAL_PENDING && $status === User::APPROVAL_SUSPENDED) {
+            return response()->json([
+                'message' => 'Une demande en attente ne peut pas être suspendue. Utilisez l’action de refus.',
+            ], 422);
+        }
+
+        $action = match ($status) {
+            User::APPROVAL_APPROVED => ($fromStatus === User::APPROVAL_SUSPENDED ? AccountReview::ACTION_REACTIVATED : AccountReview::ACTION_APPROVED),
+            User::APPROVAL_SUSPENDED => AccountReview::ACTION_SUSPENDED,
+            User::APPROVAL_REJECTED => AccountReview::ACTION_REJECTED,
+        };
+
+        DB::transaction(function () use ($request, $user, $status, $fromStatus, $action, $reason) {
+            $now = now();
+            $adminId = $request->user()->id;
+
             if ($status === User::APPROVAL_APPROVED) {
                 $user->syncRoles([$user->requested_role]);
+                $user->forceFill([
+                    'approval_status' => $status,
+                    'rejection_reason' => null,
+                    'suspended_at' => null,
+                    'reviewed_at' => $now,
+                    'reviewed_by' => $adminId,
+                ])->save();
             } else {
                 $user->syncRoles([]);
                 $user->tokens()->delete();
+
+                $user->forceFill([
+                    'approval_status' => $status,
+                    'rejection_reason' => $reason,
+                    'suspended_at' => $status === User::APPROVAL_SUSPENDED ? $now : null,
+                    'reviewed_at' => $now,
+                    'reviewed_by' => $adminId,
+                ])->save();
             }
 
-            $user->forceFill([
-                'approval_status' => $status,
-                'reviewed_at' => now(),
-                'reviewed_by' => $request->user()->id,
-            ])->save();
+            AccountReview::create([
+                'user_id' => $user->id,
+                'reviewer_id' => $adminId,
+                'action' => $action,
+                'from_status' => $fromStatus,
+                'to_status' => $status,
+                'reason' => $reason,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
         });
 
-        $user->notify(new AccountApprovalStatusNotification($status));
+        $user->notify(new AccountApprovalStatusNotification($action, $reason));
+
+        $message = match ($action) {
+            AccountReview::ACTION_APPROVED => 'Compte approuvé et rôle attribué avec succès.',
+            AccountReview::ACTION_REACTIVATED => 'Compte réactivé et accès restauré avec succès.',
+            AccountReview::ACTION_SUSPENDED => 'Compte suspendu et sessions révoquées.',
+            AccountReview::ACTION_REJECTED => 'Demande de compte refusée avec motif.',
+        };
 
         return response()->json([
-            'message' => $status === User::APPROVAL_APPROVED
-                ? 'Compte approuvé et rôle attribué avec succès.'
-                : 'Demande de compte refusée.',
+            'message' => $message,
             'user' => new UserResource($user->fresh()->load('roles')),
         ]);
     }

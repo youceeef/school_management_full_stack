@@ -28,14 +28,18 @@ class AuthenticatedSessionController extends Controller
         }
 
         if (! $user->isApproved()) {
-            $message = $user->approval_status === User::APPROVAL_REJECTED
-                ? 'Votre demande de compte a été refusée. Contactez l’administration.'
-                : 'Votre compte est en attente d’approbation par un administrateur.';
+            $message = match ($user->approval_status) {
+                User::APPROVAL_REJECTED => 'Votre demande de compte a été refusée.',
+                User::APPROVAL_SUSPENDED => 'Votre compte a été suspendu par l’administration.',
+                default => 'Votre compte est en attente d’approbation par un administrateur.',
+            };
 
             return response()->json([
                 'message' => $message,
                 'code' => 'ACCOUNT_'.strtoupper($user->approval_status),
                 'approval_status' => $user->approval_status,
+                'rejection_reason' => $user->rejection_reason,
+                'can_resubmit' => $user->approval_status === User::APPROVAL_REJECTED,
             ], 403);
         }
 

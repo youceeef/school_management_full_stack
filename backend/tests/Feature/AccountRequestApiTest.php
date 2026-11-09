@@ -210,6 +210,7 @@ class AccountRequestApiTest extends TestCase
         $response = $this->withToken($this->tokenFor($admin))
             ->patchJson("/api/account-requests/{$teacher->id}", [
                 'status' => User::APPROVAL_REJECTED,
+                'reason' => 'Dossier administratif incomplet.',
             ]);
 
         $response->assertOk()

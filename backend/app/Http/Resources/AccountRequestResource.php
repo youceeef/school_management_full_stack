@@ -38,9 +38,11 @@ class AccountRequestResource extends JsonResource
                 'is_pdf' => $this->proof_document_mime === 'application/pdf' || str_ends_with(strtolower($this->proof_document_name ?? ''), '.pdf'),
             ] : null,
             'approval_status' => $this->approval_status,
+            'rejection_reason' => $this->rejection_reason,
             'requested_role' => $this->requested_role,
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')),
             'reviewed_at' => $this->reviewed_at,
+            'suspended_at' => $this->suspended_at,
             'reviewed_by' => $this->whenLoaded('reviewer', function () {
                 if (! $this->reviewer) {
                     return null;
@@ -53,6 +55,7 @@ class AccountRequestResource extends JsonResource
                     'email' => $this->reviewer->email,
                 ];
             }),
+            'reviews' => AccountReviewResource::collection($this->whenLoaded('reviews')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

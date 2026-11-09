@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\AccountRequestResource;
+use App\Models\AccountReview;
 use App\Models\User;
 use App\Notifications\AccountApprovalStatusNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -16,7 +19,7 @@ class AccountRequestController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['auth:sanctum', 'role:admin']);
+        $this->middleware(['auth:sanctum', 'role:admin'])->except(['resubmit']);
     }
 
     /**
@@ -27,7 +30,7 @@ class AccountRequestController extends Controller
         $baseQuery = User::query()
             ->where(function ($q) {
                 $q->whereIn('requested_role', User::APPROVAL_ROLES)
-                    ->orWhereIn('approval_status', [User::APPROVAL_PENDING, User::APPROVAL_REJECTED]);
+                    ->orWhereIn('approval_status', [User::APPROVAL_PENDING, User::APPROVAL_REJECTED, User::APPROVAL_SUSPENDED]);
             });
 
         // Compute summary counts across all requests before applying view filters
@@ -41,7 +44,7 @@ class AccountRequestController extends Controller
             'pending' => (int) ($rawCounts[User::APPROVAL_PENDING] ?? 0),
             'approved' => (int) ($rawCounts[User::APPROVAL_APPROVED] ?? 0),
             'rejected' => (int) ($rawCounts[User::APPROVAL_REJECTED] ?? 0),
-            'suspended' => (int) ($rawCounts['suspended'] ?? 0),
+            'suspended' => (int) ($rawCounts[User::APPROVAL_SUSPENDED] ?? 0),
         ];
 
         $query = (clone $baseQuery)->with(['roles', 'reviewer']);
@@ -157,10 +160,10 @@ class AccountRequestController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $user = User::with(['roles', 'reviewer'])
+        $user = User::with(['roles', 'reviewer', 'reviews.reviewer'])
             ->where(function ($q) {
                 $q->whereIn('requested_role', User::APPROVAL_ROLES)
-                    ->orWhereIn('approval_status', [User::APPROVAL_PENDING, User::APPROVAL_REJECTED]);
+                    ->orWhereIn('approval_status', [User::APPROVAL_PENDING, User::APPROVAL_REJECTED, User::APPROVAL_SUSPENDED]);
             })
             ->findOrFail($id);
 
@@ -177,7 +180,7 @@ class AccountRequestController extends Controller
         $baseQuery = User::query()
             ->where(function ($q) {
                 $q->whereIn('requested_role', User::APPROVAL_ROLES)
-                    ->orWhereIn('approval_status', [User::APPROVAL_PENDING, User::APPROVAL_REJECTED]);
+                    ->orWhereIn('approval_status', [User::APPROVAL_PENDING, User::APPROVAL_REJECTED, User::APPROVAL_SUSPENDED]);
             });
 
         $rawCounts = $baseQuery
@@ -190,19 +193,26 @@ class AccountRequestController extends Controller
             'pending' => (int) ($rawCounts[User::APPROVAL_PENDING] ?? 0),
             'approved' => (int) ($rawCounts[User::APPROVAL_APPROVED] ?? 0),
             'rejected' => (int) ($rawCounts[User::APPROVAL_REJECTED] ?? 0),
-            'suspended' => (int) ($rawCounts['suspended'] ?? 0),
+            'suspended' => (int) ($rawCounts[User::APPROVAL_SUSPENDED] ?? 0),
         ]);
     }
 
     /**
-     * Approve or reject an account request.
+     * Review an account request: approve, reject, suspend, or reactivate.
      */
     public function review(Request $request, int $id): JsonResponse
     {
         $validated = $request->validate([
             'status' => [
                 'required',
-                Rule::in([User::APPROVAL_APPROVED, User::APPROVAL_REJECTED]),
+                Rule::in([User::APPROVAL_APPROVED, User::APPROVAL_REJECTED, User::APPROVAL_SUSPENDED]),
+            ],
+            'reason' => [
+                Rule::requiredIf(fn () => in_array($request->input('status'), [User::APPROVAL_REJECTED, User::APPROVAL_SUSPENDED], true)),
+                'nullable',
+                'string',
+                'min:5',
+                'max:1000',
             ],
         ]);
 
@@ -214,30 +224,84 @@ class AccountRequestController extends Controller
             ], 422);
         }
 
-        $status = $validated['status'];
+        $fromStatus = $user->approval_status;
+        $toStatus = $validated['status'];
+        $reason = $validated['reason'] ?? null;
 
-        DB::transaction(function () use ($request, $user, $status) {
-            if ($status === User::APPROVAL_APPROVED) {
+        // Lifecycle guards (P3.3)
+        // 1. An active approved account cannot be rejected directly; must be suspended.
+        if ($fromStatus === User::APPROVAL_APPROVED && $toStatus === User::APPROVAL_REJECTED) {
+            return response()->json([
+                'message' => 'Un compte approuvé et actif ne peut pas être rejeté. Utilisez l’action de suspension.',
+            ], 422);
+        }
+
+        // 2. A pending application cannot be suspended; must be rejected.
+        if ($fromStatus === User::APPROVAL_PENDING && $toStatus === User::APPROVAL_SUSPENDED) {
+            return response()->json([
+                'message' => 'Une demande en attente ne peut pas être suspendue. Utilisez l’action de refus.',
+            ], 422);
+        }
+
+        // Determine specific audit action
+        $action = match ($toStatus) {
+            User::APPROVAL_APPROVED => ($fromStatus === User::APPROVAL_SUSPENDED ? AccountReview::ACTION_REACTIVATED : AccountReview::ACTION_APPROVED),
+            User::APPROVAL_SUSPENDED => AccountReview::ACTION_SUSPENDED,
+            User::APPROVAL_REJECTED => AccountReview::ACTION_REJECTED,
+        };
+
+        DB::transaction(function () use ($request, $user, $toStatus, $fromStatus, $action, $reason) {
+            $now = now();
+            $adminId = $request->user()->id;
+
+            if ($toStatus === User::APPROVAL_APPROVED) {
                 $user->syncRoles([$user->requested_role]);
+                $user->forceFill([
+                    'approval_status' => User::APPROVAL_APPROVED,
+                    'rejection_reason' => null,
+                    'suspended_at' => null,
+                    'reviewed_at' => $now,
+                    'reviewed_by' => $adminId,
+                ])->save();
             } else {
+                // Immediately revoke roles and terminate all active Sanctum sessions (P3.3)
                 $user->syncRoles([]);
                 $user->tokens()->delete();
+
+                $user->forceFill([
+                    'approval_status' => $toStatus,
+                    'rejection_reason' => $reason,
+                    'suspended_at' => $toStatus === User::APPROVAL_SUSPENDED ? $now : null,
+                    'reviewed_at' => $now,
+                    'reviewed_by' => $adminId,
+                ])->save();
             }
 
-            $user->forceFill([
-                'approval_status' => $status,
-                'reviewed_at' => now(),
-                'reviewed_by' => $request->user()->id,
-            ])->save();
+            // Append chronological audit history (P3.4)
+            AccountReview::create([
+                'user_id' => $user->id,
+                'reviewer_id' => $adminId,
+                'action' => $action,
+                'from_status' => $fromStatus,
+                'to_status' => $toStatus,
+                'reason' => $reason,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
         });
 
-        $user->notify(new AccountApprovalStatusNotification($status));
+        $user->notify(new AccountApprovalStatusNotification($action, $reason));
+
+        $successMessage = match ($action) {
+            AccountReview::ACTION_APPROVED => 'Compte approuvé et rôle attribué avec succès.',
+            AccountReview::ACTION_REACTIVATED => 'Compte réactivé et accès restauré avec succès.',
+            AccountReview::ACTION_SUSPENDED => 'Compte suspendu et sessions révoquées.',
+            AccountReview::ACTION_REJECTED => 'Demande de compte refusée avec motif.',
+        };
 
         return response()->json([
-            'message' => $status === User::APPROVAL_APPROVED
-                ? 'Compte approuvé et rôle attribué avec succès.'
-                : 'Demande de compte refusée.',
-            'data' => new AccountRequestResource($user->fresh()->load(['roles', 'reviewer'])),
+            'message' => $successMessage,
+            'data' => new AccountRequestResource($user->fresh()->load(['roles', 'reviewer', 'reviews.reviewer'])),
         ]);
     }
 
@@ -307,5 +371,97 @@ class AccountRequestController extends Controller
             'Content-Disposition' => 'attachment; filename="'.addslashes($fileName).'"',
             'Cache-Control' => 'private, no-cache, no-store, must-revalidate',
         ]);
+    }
+
+    /**
+     * Correct and resubmit a rejected application (P3.2).
+     */
+    public function resubmit(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'string', 'email'],
+            'password' => ['required', 'string'],
+            'institution' => ['required', 'string', 'max:255'],
+            'department' => ['required', 'string', 'max:255'],
+            'staff_id' => ['required', 'string', 'max:100'],
+            'professional_phone' => ['nullable', 'string', 'max:30'],
+            'proof_document' => [
+                'nullable',
+                'file',
+                'mimes:pdf,jpeg,png,jpg',
+                'max:5120',
+            ],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $user = User::where('email', $validated['email'])->first();
+
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+            return response()->json([
+                'message' => 'Identifiants invalides.',
+            ], 401);
+        }
+
+        if ($user->approval_status !== User::APPROVAL_REJECTED) {
+            return response()->json([
+                'message' => 'Seules les demandes refusées peuvent faire l’objet d’une nouvelle soumission.',
+            ], 422);
+        }
+
+        $disk = config('filesystems.documents_disk');
+        $oldPath = $user->proof_document_path;
+        $documentData = [];
+
+        if ($request->hasFile('proof_document')) {
+            $file = $request->file('proof_document');
+            $dir = 'proofs/'.date('Y/m');
+            $path = $file->store($dir, $disk);
+
+            $documentData = [
+                'proof_document_path' => $path,
+                'proof_document_name' => $file->getClientOriginalName(),
+                'proof_document_mime' => $file->getClientMimeType() ?: $file->getMimeType(),
+                'proof_document_size' => $file->getSize(),
+                'proof_submitted_at' => now(),
+            ];
+        }
+
+        DB::transaction(function () use ($user, $validated, $documentData, $request) {
+            $updatePayload = array_merge([
+                'institution' => $validated['institution'],
+                'department' => $validated['department'],
+                'staff_id' => $validated['staff_id'],
+                'professional_phone' => $validated['professional_phone'] ?? null,
+                'approval_status' => User::APPROVAL_PENDING,
+                'rejection_reason' => null,
+            ], $documentData);
+
+            $user->forceFill($updatePayload)->save();
+
+            AccountReview::create([
+                'user_id' => $user->id,
+                'reviewer_id' => null,
+                'action' => AccountReview::ACTION_RESUBMITTED,
+                'from_status' => User::APPROVAL_REJECTED,
+                'to_status' => User::APPROVAL_PENDING,
+                'reason' => $validated['notes'] ?? 'Informations et justificatif corrigés par le demandeur',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        });
+
+        // Clean up old proof file if a new file was uploaded
+        if ($request->hasFile('proof_document') && $oldPath && $oldPath !== ($documentData['proof_document_path'] ?? null)) {
+            try {
+                Storage::disk($disk)->delete($oldPath);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to delete old proof document on resubmission: '.$e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'message' => 'Votre demande a été corrigée et renvoyée avec succès. Elle est désormais en attente de validation.',
+            'approval_status' => User::APPROVAL_PENDING,
+        ], 200);
     }
 }

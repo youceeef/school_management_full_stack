@@ -39,13 +39,17 @@ Route::prefix('register')->middleware('throttle:registration')->group(function (
     Route::post('/responsable_labo', [RegisteredUserController::class, 'registerManager']);
 });
 
+Route::post('/account-requests/resubmit', [AccountRequestController::class, 'resubmit'])
+    ->middleware('throttle:registration')
+    ->name('account-requests.resubmit');
+
 /*
 |--------------------------------------------------------------------------
 | PROTECTED ROUTES
 |--------------------------------------------------------------------------
 | Routes requiring authentication via Sanctum.
 */
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'account.approved'])->group(function () {
 
     // Privileged accounts may only be created by an authenticated administrator.
     Route::prefix('register')->middleware('role:admin')->group(function () {

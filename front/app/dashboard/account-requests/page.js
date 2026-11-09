@@ -58,6 +58,12 @@ export default function AccountRequestsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedApplicantId, setSelectedApplicantId] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [reasonModal, setReasonModal] = useState({
+    isOpen: false,
+    applicant: null,
+    status: null,
+    reason: "",
+  });
 
   const formatRoleLabel = useCallback(
     (role) => {
@@ -148,18 +154,49 @@ export default function AccountRequestsPage() {
     fetchRequests(1);
   };
 
+  const promptReviewWithReason = (applicant, status) => {
+    setReasonModal({
+      isOpen: true,
+      applicant,
+      status,
+      reason: "",
+    });
+  };
+
+  const handleConfirmReasonModal = async () => {
+    if (!reasonModal.applicant || !reasonModal.status) return;
+    if (!reasonModal.reason || reasonModal.reason.trim().length < 5) {
+      toast.error(tr("Veuillez indiquer un motif d'au moins 5 caractères."));
+      return;
+    }
+
+    try {
+      setReviewingId(reasonModal.applicant.id);
+      const res = await reviewAccountRequest(
+        reasonModal.applicant.id,
+        reasonModal.status,
+        reasonModal.reason.trim()
+      );
+      toast.success(tr(res.message));
+      setReasonModal({ isOpen: false, applicant: null, status: null, reason: "" });
+      await fetchRequests(currentPage);
+    } catch (err) {
+      toast.error(
+        tr(err.message || "Erreur lors de la mise à jour de la demande")
+      );
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
   const handleReview = async (applicant, status) => {
-    const isApproval = status === "approved";
+    const isReactivation = applicant.approval_status === "suspended";
     const roleLabel = formatRoleLabel(applicant.requested_role);
     const applicantName = `${applicant.first_name} ${applicant.last_name}`;
 
-    const promptText = isApproval
-      ? tr(
-          `Approuver la demande de ${applicantName} et lui attribuer le rôle ${roleLabel} ?`
-        )
-      : tr(
-          `Refuser la demande de ${applicantName} et lui refuser l'accès au tableau de bord ?`
-        );
+    const promptText = isReactivation
+      ? tr(`Réactiver le compte de ${applicantName} et lui restituer ses accès ?`)
+      : tr(`Approuver la demande de ${applicantName} et lui attribuer le rôle ${roleLabel} ?`);
 
     const confirmed = await toast.confirm(promptText);
     if (!confirmed) return;
@@ -664,7 +701,7 @@ export default function AccountRequestsPage() {
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    handleReview(applicant, "rejected")
+                                    promptReviewWithReason(applicant, "rejected")
                                   }
                                   disabled={isProcessing}
                                   className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
@@ -679,13 +716,29 @@ export default function AccountRequestsPage() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  handleReview(applicant, "rejected")
+                                  promptReviewWithReason(applicant, "suspended")
                                 }
                                 disabled={isProcessing}
                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
+                                title={tr("Suspendre le compte")}
                               >
-                                <XMarkIcon className="w-3.5 h-3.5" />
-                                {tr("Révoquer")}
+                                <NoSymbolIcon className="w-3.5 h-3.5" />
+                                {tr("Suspendre")}
+                              </button>
+                            )}
+
+                            {applicant.approval_status === "suspended" && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleReview(applicant, "approved")
+                                }
+                                disabled={isProcessing}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors disabled:opacity-50"
+                                title={tr("Réactiver le compte")}
+                              >
+                                <ArrowPathIcon className="w-3.5 h-3.5" />
+                                {tr("Réactiver")}
                               </button>
                             )}
 
@@ -822,7 +875,7 @@ export default function AccountRequestsPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleReview(applicant, "rejected")}
+                              onClick={() => promptReviewWithReason(applicant, "rejected")}
                               disabled={isProcessing}
                               className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
                             >
@@ -835,12 +888,24 @@ export default function AccountRequestsPage() {
                         {isApproved && (
                           <button
                             type="button"
-                            onClick={() => handleReview(applicant, "rejected")}
+                            onClick={() => promptReviewWithReason(applicant, "suspended")}
                             disabled={isProcessing}
                             className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
                           >
-                            <XMarkIcon className="w-4 h-4" />
-                            {tr("Révoquer l'accès")}
+                            <NoSymbolIcon className="w-4 h-4" />
+                            {tr("Suspendre le compte")}
+                          </button>
+                        )}
+
+                        {applicant.approval_status === "suspended" && (
+                          <button
+                            type="button"
+                            onClick={() => handleReview(applicant, "approved")}
+                            disabled={isProcessing}
+                            className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50 shadow-sm"
+                          >
+                            <ArrowPathIcon className="w-4 h-4" />
+                            {tr("Réactiver le compte")}
                           </button>
                         )}
 
@@ -907,6 +972,94 @@ export default function AccountRequestsPage() {
           await fetchRequests(currentPage);
         }}
       />
+
+      {/* Reason prompt modal for Rejection / Suspension (P3.1 / P3.3) */}
+      {reasonModal.isOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+            onClick={() =>
+              setReasonModal({ isOpen: false, applicant: null, status: null, reason: "" })
+            }
+          />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              className={`relative transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 text-start shadow-2xl transition-all w-full max-w-md border border-slate-200 dark:border-slate-800 p-6 space-y-4 ${
+                isRtl ? "text-right" : "text-left"
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  {reasonModal.status === "suspended"
+                    ? tr("Motif de la suspension administrative")
+                    : tr("Motif du refus de la demande")}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReasonModal({ isOpen: false, applicant: null, status: null, reason: "" })
+                  }
+                  className="rounded-lg p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+
+              {reasonModal.applicant && (
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  {tr("Demandeur")}:{" "}
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">
+                    {reasonModal.applicant.first_name} {reasonModal.applicant.last_name}
+                  </span>{" "}
+                  ({reasonModal.applicant.email})
+                </p>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  {tr("Motif (obligatoire, minimum 5 caractères)")}
+                </label>
+                <textarea
+                  rows={3}
+                  value={reasonModal.reason}
+                  onChange={(e) =>
+                    setReasonModal((prev) => ({ ...prev, reason: e.target.value }))
+                  }
+                  placeholder={
+                    reasonModal.status === "suspended"
+                      ? tr("Indiquez la raison de suspension...")
+                      : tr("Indiquez la raison du refus (ex: document non conforme)...")
+                  }
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setReasonModal({ isOpen: false, applicant: null, status: null, reason: "" })
+                  }
+                >
+                  {tr("Annuler")}
+                </Button>
+                <button
+                  type="button"
+                  disabled={reviewingId || reasonModal.reason.trim().length < 5}
+                  onClick={handleConfirmReasonModal}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 transition-colors shadow-sm"
+                >
+                  {reasonModal.status === "suspended"
+                    ? tr("Confirmer la suspension")
+                    : tr("Confirmer le refus")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminRoute>
   );
 }

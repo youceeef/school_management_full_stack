@@ -10,7 +10,10 @@ class AccountApprovalStatusNotification extends Notification implements ShouldQu
 {
     use Queueable;
 
-    public function __construct(private readonly string $status) {}
+    public function __construct(
+        private readonly string $status,
+        private readonly ?string $reason = null
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -19,14 +22,21 @@ class AccountApprovalStatusNotification extends Notification implements ShouldQu
 
     public function toArray(object $notifiable): array
     {
-        $approved = $this->status === 'approved';
+        $approved = in_array($this->status, ['approved', 'reactivated'], true);
+
+        $message = match ($this->status) {
+            'approved' => 'Votre compte a été approuvé. Vous pouvez maintenant vous connecter.',
+            'reactivated' => 'Votre compte a été réactivé par l’administration.',
+            'suspended' => 'Votre compte a été suspendu par l’administration.',
+            'rejected' => 'Votre demande de compte a été refusée par l’administration.',
+            default => 'Mise à jour du statut de votre compte.',
+        };
 
         return [
-            'event' => $approved ? 'account_approved' : 'account_rejected',
+            'event' => 'account_'.$this->status,
             'approval_status' => $this->status,
-            'message' => $approved
-                ? 'Votre compte a été approuvé. Vous pouvez maintenant vous connecter.'
-                : 'Votre demande de compte a été refusée. Contactez l’administration pour plus d’informations.',
+            'message' => $message,
+            'reason' => $this->reason,
             'action_url' => $approved ? '/login' : '/',
         ];
     }

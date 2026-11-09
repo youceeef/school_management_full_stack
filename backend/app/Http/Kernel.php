@@ -94,5 +94,6 @@ class Kernel extends HttpKernel
         'role' => RoleMiddleware::class,
         'permission' => PermissionMiddleware::class,
         'role_or_permission' => RoleOrPermissionMiddleware::class,
+        'account.approved' => \App\Http\Middleware\EnsureAccountIsApproved::class,
     ];
 }

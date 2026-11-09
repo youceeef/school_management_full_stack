@@ -19,6 +19,9 @@ import {
   EyeIcon,
   DocumentTextIcon,
   PhotoIcon,
+  ExclamationTriangleIcon,
+  NoSymbolIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import Button from "./Button";
 import LoadingSpinner from "./LoadingSpinner";
@@ -45,6 +48,11 @@ export default function AccountRequestDetailsModal({
   const [previewData, setPreviewData] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [reasonInputState, setReasonInputState] = useState({
+    isOpen: false,
+    status: null,
+    reason: "",
+  });
 
   const cleanupPreview = useCallback(() => {
     if (previewData?.url) {
@@ -78,6 +86,7 @@ export default function AccountRequestDetailsModal({
       setApplicant(null);
       setError(null);
       cleanupPreview();
+      setReasonInputState({ isOpen: false, status: null, reason: "" });
     }
   }, [isOpen, applicantId, fetchDetails, cleanupPreview]);
 
@@ -138,30 +147,45 @@ export default function AccountRequestDetailsModal({
     }
   };
 
-  const handleReview = async (status) => {
+  const formatReviewActionLabel = (action) => {
+    switch (action) {
+      case "approved":
+        return tr("Demande approuvée");
+      case "reactivated":
+        return tr("Compte réactivé");
+      case "suspended":
+        return tr("Compte suspendu");
+      case "rejected":
+        return tr("Demande refusée");
+      case "resubmitted":
+        return tr("Demande corrigée et renvoyée");
+      default:
+        return action;
+    }
+  };
+
+  const handleInitiateReviewWithReason = (status) => {
+    setReasonInputState({ isOpen: true, status, reason: "" });
+  };
+
+  const handleConfirmReviewWithReason = async () => {
+    if (!reasonInputState.reason || reasonInputState.reason.trim().length < 5) {
+      toast.error(tr("Veuillez indiquer un motif d'au moins 5 caractères."));
+      return;
+    }
+    await executeReview(reasonInputState.status, reasonInputState.reason.trim());
+  };
+
+  const executeReview = async (status, reason = null) => {
     if (!applicant) return;
-    const isApproval = status === "approved";
-    const roleName = getRoleLabel(applicant.requested_role);
-    const applicantName = `${applicant.first_name} ${applicant.last_name}`;
-
-    const promptText = isApproval
-      ? tr(
-          `Approuver la demande de ${applicantName} et lui attribuer le rôle ${roleName} ?`
-        )
-      : tr(
-          `Refuser la demande de ${applicantName} et lui refuser l'accès au tableau de bord ?`
-        );
-
-    const confirmed = await toast.confirm(promptText);
-    if (!confirmed) return;
-
     try {
       setReviewing(true);
-      const res = await reviewAccountRequest(applicant.id, status);
+      const res = await reviewAccountRequest(applicant.id, status, reason);
       toast.success(tr(res.message));
       if (onReviewSuccess) {
         onReviewSuccess(res.data);
       }
+      setReasonInputState({ isOpen: false, status: null, reason: "" });
       cleanupPreview();
       onClose();
     } catch (err) {
@@ -171,6 +195,22 @@ export default function AccountRequestDetailsModal({
     } finally {
       setReviewing(false);
     }
+  };
+
+  const handleApproveOrReactivate = async () => {
+    if (!applicant) return;
+    const isReactivation = applicant.approval_status === "suspended";
+    const applicantName = `${applicant.first_name} ${applicant.last_name}`;
+    const roleName = getRoleLabel(applicant.requested_role);
+
+    const promptText = isReactivation
+      ? tr(`Réactiver le compte de ${applicantName} et lui restituer ses accès ?`)
+      : tr(`Approuver la demande de ${applicantName} et lui attribuer le rôle ${roleName} ?`);
+
+    const confirmed = await toast.confirm(promptText);
+    if (!confirmed) return;
+
+    await executeReview("approved");
   };
 
   const handlePreviewProof = async () => {
@@ -273,6 +313,23 @@ export default function AccountRequestDetailsModal({
               </div>
             ) : applicant ? (
               <div className="space-y-6">
+                {/* Rejection / Suspension Notice Banner (P3.1 / P3.3) */}
+                {applicant.rejection_reason && (
+                  <div className="p-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50/80 dark:bg-red-950/40 text-xs text-red-700 dark:text-red-300 space-y-1">
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <ExclamationTriangleIcon className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+                      <span>
+                        {applicant.approval_status === "suspended"
+                          ? tr("Motif de suspension")
+                          : tr("Motif du refus")}
+                      </span>
+                    </div>
+                    <p className="leading-relaxed pl-5.5 text-slate-800 dark:text-slate-200">
+                      {applicant.rejection_reason}
+                    </p>
+                  </div>
+                )}
+
                 {/* Profile Card */}
                 <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
                   {applicant.picture ? (
@@ -551,12 +608,56 @@ export default function AccountRequestDetailsModal({
                   )}
                 </div>
 
-                {/* Review Metadata */}
-                <div className="p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/20 text-xs space-y-1.5">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    {tr("Historique de révision")}
+                {/* Full Chronological Review History (P3.4) */}
+                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/20 text-xs space-y-3">
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                    {tr("Historique complet des révisions")}
                   </span>
-                  {applicant.reviewed_by ? (
+
+                  {applicant.reviews && applicant.reviews.length > 0 ? (
+                    <div className="relative pl-4 border-l-2 border-slate-200 dark:border-slate-700 space-y-4">
+                      {applicant.reviews.map((rev) => {
+                        const isPositive = rev.action === "approved" || rev.action === "reactivated";
+                        const isResubmission = rev.action === "resubmitted";
+
+                        return (
+                          <div key={rev.id} className="relative">
+                            <span
+                              className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-slate-900 ${
+                                isPositive
+                                  ? "bg-emerald-500"
+                                  : isResubmission
+                                  ? "bg-indigo-500"
+                                  : "bg-red-500"
+                              }`}
+                            />
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                {formatReviewActionLabel(rev.action)}
+                              </span>
+                              <span className="text-[11px] text-slate-400">
+                                {formatDate(rev.created_at)}
+                              </span>
+                            </div>
+                            {rev.reviewer ? (
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                {tr("Par")}: {rev.reviewer.first_name} {rev.reviewer.last_name} ({rev.reviewer.email})
+                              </p>
+                            ) : isResubmission ? (
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                {tr("Par le demandeur (nouvelle soumission)")}
+                              </p>
+                            ) : null}
+                            {rev.reason && (
+                              <p className="mt-1.5 p-2 rounded bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs italic">
+                                &ldquo;{rev.reason}&rdquo;
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : applicant.reviewed_by ? (
                     <div className="space-y-1 text-slate-600 dark:text-slate-400">
                       <p>
                         <span className="text-slate-400">{tr("Traité par")}:</span>{" "}
@@ -588,68 +689,133 @@ export default function AccountRequestDetailsModal({
 
           {/* Modal Footer / Review Actions */}
           <div className="border-t border-slate-200 dark:border-slate-800 px-6 py-4 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                cleanupPreview();
-                onClose();
-              }}
-              disabled={reviewing}
-              className="w-full sm:w-auto"
-            >
-              {tr("Fermer")}
-            </Button>
-
-            {applicant && (
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                {applicant.approval_status === "pending" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleReview("approved")}
-                      disabled={reviewing}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50 shadow-sm"
-                    >
-                      <CheckIcon className="w-4 h-4" />
-                      {tr("Approuver la demande")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleReview("rejected")}
-                      disabled={reviewing}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
-                    >
-                      <XMarkIcon className="w-4 h-4" />
-                      {tr("Refuser la demande")}
-                    </button>
-                  </>
-                )}
-
-                {applicant.approval_status === "approved" && (
+            {reasonInputState.isOpen ? (
+              <div className="w-full space-y-3 p-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-xs text-red-700 dark:text-red-300">
+                    {reasonInputState.status === "suspended"
+                      ? tr("Motif de suspension (obligatoire)")
+                      : tr("Motif du refus (obligatoire)")}
+                  </span>
                   <button
                     type="button"
-                    onClick={() => handleReview("rejected")}
-                    disabled={reviewing}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
+                    onClick={() =>
+                      setReasonInputState({ isOpen: false, status: null, reason: "" })
+                    }
+                    className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                   >
-                    <XMarkIcon className="w-4 h-4" />
-                    {tr("Révoquer l'accès")}
+                    {tr("Annuler")}
                   </button>
-                )}
-
-                {applicant.approval_status === "rejected" && (
+                </div>
+                <textarea
+                  rows={3}
+                  value={reasonInputState.reason}
+                  onChange={(e) =>
+                    setReasonInputState((s) => ({ ...s, reason: e.target.value }))
+                  }
+                  placeholder={tr("Veuillez détailler le motif (minimum 5 caractères)...")}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:outline-none"
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setReasonInputState({ isOpen: false, status: null, reason: "" })
+                    }
+                  >
+                    {tr("Annuler")}
+                  </Button>
                   <button
                     type="button"
-                    onClick={() => handleReview("approved")}
-                    disabled={reviewing}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
+                    disabled={reviewing || reasonInputState.reason.trim().length < 5}
+                    onClick={handleConfirmReviewWithReason}
+                    className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 transition-colors shadow-sm"
                   >
-                    <CheckIcon className="w-4 h-4" />
-                    {tr("Réexaminer et approuver")}
+                    {reasonInputState.status === "suspended"
+                      ? tr("Confirmer la suspension")
+                      : tr("Confirmer le refus")}
                   </button>
-                )}
+                </div>
               </div>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    cleanupPreview();
+                    onClose();
+                  }}
+                  disabled={reviewing}
+                  className="w-full sm:w-auto"
+                >
+                  {tr("Fermer")}
+                </Button>
+
+                {applicant && (
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    {applicant.approval_status === "pending" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleApproveOrReactivate}
+                          disabled={reviewing}
+                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50 shadow-sm"
+                        >
+                          <CheckIcon className="w-4 h-4" />
+                          {tr("Approuver la demande")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInitiateReviewWithReason("rejected")}
+                          disabled={reviewing}
+                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
+                        >
+                          <XMarkIcon className="w-4 h-4" />
+                          {tr("Refuser la demande")}
+                        </button>
+                      </>
+                    )}
+
+                    {applicant.approval_status === "approved" && (
+                      <button
+                        type="button"
+                        onClick={() => handleInitiateReviewWithReason("suspended")}
+                        disabled={reviewing}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
+                      >
+                        <NoSymbolIcon className="w-4 h-4" />
+                        {tr("Suspendre le compte")}
+                      </button>
+                    )}
+
+                    {applicant.approval_status === "suspended" && (
+                      <button
+                        type="button"
+                        onClick={handleApproveOrReactivate}
+                        disabled={reviewing}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50 shadow-sm"
+                      >
+                        <ArrowPathIcon className="w-4 h-4" />
+                        {tr("Réactiver le compte")}
+                      </button>
+                    )}
+
+                    {applicant.approval_status === "rejected" && (
+                      <button
+                        type="button"
+                        onClick={handleApproveOrReactivate}
+                        disabled={reviewing}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50 shadow-sm"
+                      >
+                        <CheckIcon className="w-4 h-4" />
+                        {tr("Réexaminer et approuver")}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

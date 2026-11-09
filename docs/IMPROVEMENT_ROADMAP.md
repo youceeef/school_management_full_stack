@@ -302,25 +302,47 @@ and preserve a complete history of every review.
 
 ### Tasks
 
-- `[ ]` **P3.1 — Required rejection reason**
+- `[x]` **P3.1 — Required rejection reason**
   - Require a reason before rejection.
   - Store the reason and reviewer.
   - Display it to the applicant safely.
+  - Verification evidence:
+    - `[x]` Migration `2026_11_09_000005_create_account_reviews_and_lifecycle_fields.php` adds `rejection_reason` (text, nullable) and `suspended_at` to `users`.
+    - `[x]` `AccountRequestController@review` strictly validates that rejection requires a reason string (min 5 characters).
+    - `[x]` Authenticated login endpoint (`POST /api/login`) returns 403 Forbidden with `code: ACCOUNT_REJECTED`, `rejection_reason`, and `can_resubmit: true`.
+    - `[x]` Login page (`front/app/login/page.js`) catches rejection, shows clear alert banner with administrator reason, and provides direct link to resubmit.
 
-- `[ ]` **P3.2 — Correct and resubmit**
+- `[x]` **P3.2 — Correct and resubmit**
   - Allow rejected applicants to edit identity/proof information.
   - Resubmission changes status back to pending.
   - Preserve previous reviews instead of overwriting them.
+  - Verification evidence:
+    - `[x]` Resubmission endpoint `POST /api/account-requests/resubmit` allows rejected applicants to update institutional fields and upload a corrected proof document.
+    - `[x]` Proof replacement cleans up previous file on private disk and records fresh metadata.
+    - `[x]` Account approval status resets to `pending`, clears `rejection_reason`, and logs `resubmitted` action in `account_reviews` preserving full audit trail.
+    - `[x]` Dedicated correction page `front/app/resubmit/page.js` pre-authenticates applicant, exposes editable fields and proof replacement, and redirects to login on success.
 
-- `[ ]` **P3.3 — Suspend and reactivate**
+- `[x]` **P3.3 — Suspend and reactivate**
   - Add `suspended` for approved accounts.
   - Suspension revokes active sessions and permissions.
   - Reactivation restores the approved role.
   - Never use application rejection to suspend an employee.
+  - Verification evidence:
+    - `[x]` State machine enforces strict separation: approved accounts cannot be rejected directly (must be suspended); pending requests cannot be suspended (must be rejected).
+    - `[x]` Suspending an account revokes all active Sanctum tokens (`tokens()->delete()`) and removes Spatie roles.
+    - `[x]` `EnsureAccountIsApproved` middleware rejects suspended and pending user requests with 403 `ACCOUNT_NOT_APPROVED` or `ACCOUNT_SUSPENDED`.
+    - `[x]` Reactivation restores approved status and re-assigns original requested Spatie role.
+    - `[x]` Approval Center UI provides dedicated "Suspendre" action with required reason modal and "Réactiver" action for suspended accounts.
 
-- `[ ]` **P3.4 — Review-history model**
+- `[x]` **P3.4 — Review-history model**
   - Record actor, action, old/new status, role, reason, timestamp, and IP.
   - Show a chronological timeline in the request details panel.
+  - Verification evidence:
+    - `[x]` Eloquent model `AccountReview` mapped to `account_reviews` table logging `user_id`, `reviewer_id`, `action`, `from_status`, `to_status`, `reason`, `ip_address`, and `user_agent`.
+    - `[x]` Every review action (`approved`, `rejected`, `suspended`, `reactivated`, `resubmitted`) appends an immutable review record.
+    - `[x]` `AccountRequestResource` and `AccountReviewResource` expose formatted review timeline with reviewer name, role, email, and humanized timestamps.
+    - `[x]` Slide-over details modal (`AccountRequestDetailsModal.js`) displays full chronological review timeline with status badges, reviewer identity, and reason quotes.
+    - `[x]` Automated feature test suite `AccountLifecycleTest.php` covers state transitions, required reasons, session termination, resubmission with proof, and history retention.
 
 ### Acceptance criteria
 
@@ -519,8 +541,9 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P1 Complete | Dedicated Account Approval Center UI, Navigation, and Details Modal | `3a73214` |
 | 2026-11-09 | P2.1 | Institutional identity fields in registration, models, approval center, and tests | `4311584` |
 | 2026-11-09 | P2 Complete | Staff identity, proof documents, private storage, and admin viewer | `a951787` |
+| 2026-11-09 | P3 Complete | Full account-review lifecycle: rejection reason, resubmission, suspension, and review history | `73ed59a` |
 
 ## Next action
 
-Start **P3.1 — Explicit review actions and status transitions** (Phase P3: Full account-review lifecycle).
-Implement state machine for approve, reject, suspend, and reactivate with reason capture.
+Start **P4.1 — Notification templates and mail delivery** (Phase P4: Approval emails and notification reliability).
+Configure notification jobs, email templates, and delivery testing for approvals, rejections, suspensions, and reactivations.

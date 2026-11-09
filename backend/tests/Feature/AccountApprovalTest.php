@@ -71,6 +71,7 @@ class AccountApprovalTest extends TestCase
         $this->withToken($admin->createToken('admin-review')->plainTextToken)
             ->patchJson("/api/users/{$teacher->id}/approval", [
                 'status' => User::APPROVAL_REJECTED,
+                'reason' => 'Justificatif professionnel manquant ou non conforme.',
             ])
             ->assertOk();
 

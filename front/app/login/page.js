@@ -17,6 +17,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [accountRejection, setAccountRejection] = useState(null);
   const router = useRouter();
   const { login } = useAuth();
   const { t, tr, isRtl } = useLanguage();
@@ -25,6 +26,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setAccountRejection(null);
     try {
       if (!email && !password) {
         throw new Error(tr("Veuillez remplir votre email et votre mot de passe"));
@@ -42,6 +44,14 @@ export default function Login() {
       router.push("/dashboard");
     } catch (err) {
       console.error("Login error:", err);
+      if (err.code === "ACCOUNT_REJECTED") {
+        setAccountRejection({
+          reason: err.rejection_reason || null,
+          email,
+        });
+      } else {
+        setAccountRejection(null);
+      }
       setError(tr(err.message || "Identifiants invalides ou serveur momentanément indisponible"));
     } finally {
       setLoading(false);
@@ -115,6 +125,29 @@ export default function Login() {
               <div className="mb-6 p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-lg flex items-start gap-2.5">
                 <ExclamationCircleIcon className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
                 <p className="text-xs font-medium text-red-700 dark:text-red-300">{error}</p>
+              </div>
+            )}
+
+            {accountRejection && (
+              <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-900 dark:text-amber-200 space-y-2">
+                <div className="flex items-center gap-2 font-semibold">
+                  <ExclamationCircleIcon className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>{tr("Demande de compte refusée par l'administration")}</span>
+                </div>
+                {accountRejection.reason && (
+                  <p className="pl-6 text-slate-700 dark:text-slate-300 italic">
+                    &ldquo;{accountRejection.reason}&rdquo;
+                  </p>
+                )}
+                <div className="pl-6 pt-1">
+                  <Link
+                    href={`/resubmit?email=${encodeURIComponent(accountRejection.email)}`}
+                    className="inline-flex items-center gap-1.5 font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                  >
+                    <span>{tr("Corriger et renvoyer la demande")}</span>
+                    <span aria-hidden="true">&rarr;</span>
+                  </Link>
+                </div>
               </div>
             )}
 
