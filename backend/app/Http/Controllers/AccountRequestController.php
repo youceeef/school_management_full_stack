@@ -240,6 +240,7 @@ class AccountRequestController extends Controller
             'data' => new AccountRequestResource($user->fresh()->load(['roles', 'reviewer'])),
         ]);
     }
+
     /**
      * Authenticated preview stream for applicant proof document.
      */
