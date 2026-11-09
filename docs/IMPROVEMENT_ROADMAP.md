@@ -107,7 +107,7 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` Profile storage connectivity reports `ok`.
     - `[x]` Document storage connectivity reports `ok`.
 
-- `[~]` **P0.3 — Frontend/API compatibility check**
+- `[x]` **P0.3 — Frontend/API compatibility check**
   - Expose the expected API schema version in the frontend build.
   - Show an admin-visible warning when frontend and API versions differ.
   - Add a small System Status page for administrators.
@@ -441,6 +441,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | Approval foundation | Pending staff registration and admin review | `5bb0de3` |
 | 2026-11-09 | Approval backfill | Existing staff converted to pending requests | `c12365f` |
 | 2026-11-09 | P0.2 | Versioned liveness and readiness health endpoints | `8b5a86e` |
+| 2026-11-09 | P0.3 | Frontend/API compatibility monitoring and admin status page | `9cc75d5` |
 
 ## Next action
 
