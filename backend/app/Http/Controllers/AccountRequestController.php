@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class AccountRequestController extends Controller
 {
@@ -454,7 +455,7 @@ class AccountRequestController extends Controller
         if ($request->hasFile('proof_document') && $oldPath && $oldPath !== ($documentData['proof_document_path'] ?? null)) {
             try {
                 Storage::disk($disk)->delete($oldPath);
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 Log::warning('Failed to delete old proof document on resubmission: '.$e->getMessage());
             }
         }
