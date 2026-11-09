@@ -2,6 +2,10 @@
 .DS_Store
 Thumbs.db
 /node_modules
+/DEPLOYMENT_SECRETS.txt
+/RENDER_ENV_COPY_PASTE.txt
+*.secrets.local
+*.credentials.local
 
 # Backend (Laravel)
 /backend/node_modules

@@ -136,11 +136,19 @@ and establish a trustworthy production baseline before adding more features.
     - `[ ]` GitHub accepts and successfully runs the Production Smoke workflow.
     - `[ ]` Production frontend and API both report the P0.4 commit.
 
-- `[ ]` **P0.5 — Credential hygiene**
+- `[~]` **P0.5 — Credential hygiene**
   - Rotate credentials that were copied, shared, or exposed during setup.
   - Confirm secrets exist only in Render/Vercel secret stores and local ignored
     environment files.
   - Remove obsolete credentials and verify bucket/email access afterward.
+  - Verification evidence:
+    - `[x]` Git history checked for known live Neon/database patterns.
+    - `[x]` Local plaintext credential files identified.
+    - `[x]` Repository-level ignore rules protect local credential files.
+    - `[x]` Gitleaks scans every push and pull request.
+    - `[x]` Zero-downtime credential rotation order is documented.
+    - `[ ]` Provider credentials are rotated and old values revoked.
+    - `[ ]` Local plaintext credential files are securely removed.
 
 ### Acceptance criteria
 
