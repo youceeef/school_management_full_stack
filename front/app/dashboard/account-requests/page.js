@@ -544,10 +544,18 @@ export default function AccountRequestsPage() {
                         {/* Applicant details */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 font-semibold flex items-center justify-center shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedApplicantId(applicant.id);
+                                setIsDetailsOpen(true);
+                              }}
+                              className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 font-semibold flex items-center justify-center shrink-0 hover:ring-2 hover:ring-indigo-500 transition-all cursor-pointer"
+                              title={tr("Examiner")}
+                            >
                               {applicant.first_name?.[0]?.toUpperCase()}
                               {applicant.last_name?.[0]?.toUpperCase()}
-                            </div>
+                            </button>
                             <div className="min-w-0">
                               <button
                                 type="button"
@@ -555,7 +563,7 @@ export default function AccountRequestsPage() {
                                   setSelectedApplicantId(applicant.id);
                                   setIsDetailsOpen(true);
                                 }}
-                                className="font-medium text-slate-900 dark:text-white truncate hover:text-indigo-600 dark:hover:text-indigo-400 text-start"
+                                className="font-medium text-slate-900 dark:text-white truncate hover:text-indigo-600 dark:hover:text-indigo-400 text-start cursor-pointer"
                               >
                                 {applicant.first_name} {applicant.last_name}
                               </button>
@@ -627,6 +635,19 @@ export default function AccountRequestsPage() {
                         {/* Action buttons */}
                         <td className="py-3.5 px-4 text-end">
                           <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedApplicantId(applicant.id);
+                                setIsDetailsOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                              title={tr("Examiner les détails de la demande")}
+                            >
+                              <EyeIcon className="w-3.5 h-3.5" />
+                              {tr("Examiner")}
+                            </button>
+
                             {isPending && (
                               <>
                                 <button
@@ -774,53 +795,67 @@ export default function AccountRequestsPage() {
                     )}
 
                     {/* Mobile Action Buttons */}
-                    <div className="pt-2 flex items-center gap-2">
-                      {isPending && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleReview(applicant, "approved")}
-                            disabled={isProcessing}
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
-                          >
-                            <CheckIcon className="w-4 h-4" />
-                            {tr("Approuver")}
-                          </button>
+                    <div className="pt-2 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedApplicantId(applicant.id);
+                          setIsDetailsOpen(true);
+                        }}
+                        className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors"
+                      >
+                        <EyeIcon className="w-4 h-4" />
+                        {tr("Examiner")}
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        {isPending && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleReview(applicant, "approved")}
+                              disabled={isProcessing}
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
+                            >
+                              <CheckIcon className="w-4 h-4" />
+                              {tr("Approuver")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleReview(applicant, "rejected")}
+                              disabled={isProcessing}
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
+                            >
+                              <XMarkIcon className="w-4 h-4" />
+                              {tr("Refuser")}
+                            </button>
+                          </>
+                        )}
+
+                        {isApproved && (
                           <button
                             type="button"
                             onClick={() => handleReview(applicant, "rejected")}
                             disabled={isProcessing}
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
+                            className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
                           >
                             <XMarkIcon className="w-4 h-4" />
-                            {tr("Refuser")}
+                            {tr("Révoquer l'accès")}
                           </button>
-                        </>
-                      )}
+                        )}
 
-                      {isApproved && (
-                        <button
-                          type="button"
-                          onClick={() => handleReview(applicant, "rejected")}
-                          disabled={isProcessing}
-                          className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900 transition-colors disabled:opacity-50"
-                        >
-                          <XMarkIcon className="w-4 h-4" />
-                          {tr("Révoquer l'accès")}
-                        </button>
-                      )}
-
-                      {isRejected && (
-                        <button
-                          type="button"
-                          onClick={() => handleReview(applicant, "approved")}
-                          disabled={isProcessing}
-                          className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 transition-colors disabled:opacity-50"
-                        >
-                          <CheckIcon className="w-4 h-4" />
-                          {tr("Réexaminer et approuver")}
-                        </button>
-                      )}
+                        {isRejected && (
+                          <button
+                            type="button"
+                            onClick={() => handleReview(applicant, "approved")}
+                            disabled={isProcessing}
+                            className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 transition-colors disabled:opacity-50"
+                          >
+                            <CheckIcon className="w-4 h-4" />
+                            {tr("Réexaminer et approuver")}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </Card>
                 );
@@ -859,6 +894,19 @@ export default function AccountRequestsPage() {
           </div>
         )}
       </div>
+
+      {/* Account Request Details & Proof Viewer Modal */}
+      <AccountRequestDetailsModal
+        isOpen={isDetailsOpen}
+        applicantId={selectedApplicantId}
+        onClose={() => {
+          setIsDetailsOpen(false);
+          setSelectedApplicantId(null);
+        }}
+        onReviewSuccess={async () => {
+          await fetchRequests(currentPage);
+        }}
+      />
     </AdminRoute>
   );
 }
