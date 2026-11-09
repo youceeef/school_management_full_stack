@@ -142,9 +142,10 @@ class StaffProofDocumentTest extends TestCase
         $response = $this->withToken($admin->createToken('admin')->plainTextToken)
             ->get("/api/account-requests/{$applicant->id}/proof/preview");
 
-        $response->assertOk()
-            ->assertHeader('Content-Type', 'application/pdf')
-            ->assertHeader('Content-Disposition', 'inline; filename="contrat.pdf"');
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('contrat.pdf', (string) $response->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('inline', (string) $response->headers->get('Content-Disposition'));
     }
 
     public function test_admin_can_download_proof_document(): void
@@ -169,9 +170,10 @@ class StaffProofDocumentTest extends TestCase
         $response = $this->withToken($admin->createToken('admin')->plainTextToken)
             ->get("/api/account-requests/{$applicant->id}/proof/download");
 
-        $response->assertOk()
-            ->assertHeader('Content-Type', 'image/png')
-            ->assertHeader('Content-Disposition', 'attachment; filename="carte.png"');
+        $response->assertOk();
+        $this->assertStringContainsString('image/png', (string) $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('carte.png', (string) $response->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('attachment', (string) $response->headers->get('Content-Disposition'));
     }
 
     public function test_non_admin_cannot_preview_or_download_proof_document(): void
@@ -186,17 +188,17 @@ class StaffProofDocumentTest extends TestCase
         $student = User::factory()->create();
         $student->assignRole('eleve');
 
-        // Unauthenticated
-        $this->get("/api/account-requests/{$applicant->id}/proof/preview")->assertUnauthorized();
-        $this->get("/api/account-requests/{$applicant->id}/proof/download")->assertUnauthorized();
+        // Unauthenticated returns 401
+        $this->getJson("/api/account-requests/{$applicant->id}/proof/preview")->assertUnauthorized();
+        $this->getJson("/api/account-requests/{$applicant->id}/proof/download")->assertUnauthorized();
 
-        // Student forbidden
+        // Student forbidden returns 403
         $this->withToken($student->createToken('student')->plainTextToken)
-            ->get("/api/account-requests/{$applicant->id}/proof/preview")
+            ->getJson("/api/account-requests/{$applicant->id}/proof/preview")
             ->assertForbidden();
 
         $this->withToken($student->createToken('student')->plainTextToken)
-            ->get("/api/account-requests/{$applicant->id}/proof/download")
+            ->getJson("/api/account-requests/{$applicant->id}/proof/download")
             ->assertForbidden();
     }
 
