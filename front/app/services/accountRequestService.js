@@ -127,3 +127,19 @@ export const downloadProofDocument = async (id, fileName = "justificatif.pdf") =
     throw error.response?.data || { message: "Erreur lors du téléchargement du justificatif" };
   }
 };
+
+/**
+ * Send a test email to verify SMTP configuration and deliverability.
+ *
+ * @param {string|null} [email]
+ */
+export const sendTestEmail = async (email = null) => {
+  try {
+    const payload = email && email.trim() ? { email: email.trim() } : {};
+    const response = await axiosInstance.post("/api/account-requests/test-email", payload);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Erreur lors de l'envoi de l'email de test" };
+  }
+};
+

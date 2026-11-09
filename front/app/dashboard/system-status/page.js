@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import {
   ArrowPathIcon,
   CheckCircleIcon,
   CircleStackIcon,
   CloudIcon,
   CodeBracketIcon,
+  EnvelopeIcon,
   ExclamationTriangleIcon,
   ServerStackIcon,
 } from "@heroicons/react/24/outline";
@@ -14,6 +16,7 @@ import LoadingSpinner from "../../components/LoadingSpinner";
 import { Card, PageHeader, StatsCard } from "../../components/ui";
 import { useLanguage } from "../../context/LanguageContext";
 import { useSystemHealth } from "../../context/SystemHealthContext";
+import { sendTestEmail } from "../../services/accountRequestService";
 import { shortVersion } from "../../utils/systemCompatibility";
 
 const STATUS_STYLES = {
@@ -35,6 +38,32 @@ function SystemStatusPage() {
     expectedApiSchemaVersion,
     refresh,
   } = useSystemHealth();
+
+  const [testEmail, setTestEmail] = useState("");
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [emailTestResult, setEmailTestResult] = useState(null);
+
+  const handleSendTestEmail = async (e) => {
+    e.preventDefault();
+    setTestingEmail(true);
+    setEmailTestResult(null);
+    try {
+      const res = await sendTestEmail(testEmail || undefined);
+      setEmailTestResult({
+        ok: true,
+        message: res.message || "Email de test envoyé avec succès !",
+        details: res,
+      });
+    } catch (err) {
+      setEmailTestResult({
+        ok: false,
+        message: err.message || "Échec de l'envoi de l'email de test.",
+        error: err.error || err.message,
+      });
+    } finally {
+      setTestingEmail(false);
+    }
+  };
 
   const formatDate = (value) => {
     if (!value) return "—";
@@ -202,6 +231,71 @@ function SystemStatusPage() {
                 );
               })}
             </div>
+          </Card>
+
+          <Card
+            title={tr("Diagnostic de messagerie (SMTP)")}
+            subtitle={tr("Envoyez un email de test en direct pour vérifier le transport SMTP et la délivrabilité")}
+          >
+            <form onSubmit={handleSendTestEmail} className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder={tr("Email du destinataire (par défaut : votre adresse)")}
+                  className="flex-1 px-3.5 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <button
+                  type="submit"
+                  disabled={testingEmail}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                >
+                  {testingEmail ? (
+                    <>
+                      <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                      <span>{tr("Envoi en cours...")}</span>
+                    </>
+                  ) : (
+                    <>
+                      <EnvelopeIcon className="w-4 h-4" />
+                      <span>{tr("Tester l’envoi d’email")}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {emailTestResult && (
+                <div
+                  className={`p-4 rounded-xl border text-sm ${
+                    emailTestResult.ok
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900"
+                      : "bg-red-50 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {emailTestResult.ok ? (
+                      <CheckCircleIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                    ) : (
+                      <ExclamationTriangleIcon className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                    )}
+                    <div className="space-y-1">
+                      <p className="font-semibold">{emailTestResult.message}</p>
+                      {emailTestResult.error && (
+                        <p className="font-mono text-xs opacity-90 break-all">
+                          {emailTestResult.error}
+                        </p>
+                      )}
+                      {emailTestResult.details?.host && (
+                        <p className="text-xs opacity-75">
+                          Mailer: {emailTestResult.details.mailer} | Host: {emailTestResult.details.host}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </form>
           </Card>
         </>
       )}

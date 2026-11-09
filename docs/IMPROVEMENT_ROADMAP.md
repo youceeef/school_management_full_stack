@@ -559,6 +559,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | D007 | One roadmap phase or increment per implementation cycle. | Accepted |
 | D008 | Live credentials reviewed by operator and retained as baseline under repository-level ignore rules and Gitleaks protection. | Accepted |
 | D009 | Email notifications use a safe non-blocking dispatch pattern so SMTP or queue hiccups cannot corrupt or roll back account approval status transitions. | Accepted |
+| D010 | Personal Gmail address (@gmail.com) sender requires native Google SMTP (smtp.gmail.com:587 with Google App Password) to guarantee DMARC/SPF inbox delivery without custom domain DNS records. | Accepted |
 
 ## Progress log
 
@@ -578,6 +579,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P2 Complete | Staff identity, proof documents, private storage, and admin viewer | `a951787` |
 | 2026-11-09 | P3 Complete | Full account-review lifecycle: rejection reason, resubmission, suspension, and review history | `3d3bc4a` |
 | 2026-11-09 | P4 Complete | Approval emails, admin notifications, localized templates (FR/EN/AR), retry safety, and test suite | `a4ca245` |
+| 2026-11-09 | P4.1 Diagnostics | SMTP diagnostic test suite, CLI mail:test command, admin system-status tester, Render mail env sync | Pending |
 
 ## Next action
 

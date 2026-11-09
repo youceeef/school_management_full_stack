@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -493,5 +494,44 @@ class AccountRequestController extends Controller
             'message' => 'Votre demande a été corrigée et renvoyée avec succès. Elle est désormais en attente de validation.',
             'approval_status' => User::APPROVAL_PENDING,
         ], 200);
+    }
+
+    /**
+     * Send a test email to verify SMTP configuration from the admin dashboard.
+     */
+    public function sendTestEmail(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['nullable', 'email'],
+        ]);
+
+        $recipient = $validated['email'] ?? $request->user()->email;
+
+        try {
+            Mail::raw('Bonjour, ceci est un email de test envoyé depuis EduSpace pour vérifier la configuration SMTP.', function ($message) use ($recipient) {
+                $message->to($recipient)
+                    ->subject('[EduSpace] Test de configuration de messagerie');
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Email de test envoyé avec succès à {$recipient}.",
+                'mailer' => config('mail.default'),
+                'host' => config('mail.mailers.smtp.host'),
+            ]);
+        } catch (Throwable $e) {
+            Log::error('SMTP test email failed: '.$e->getMessage(), [
+                'recipient' => $recipient,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Échec de l’envoi de l’email de test.',
+                'error' => $e->getMessage(),
+                'mailer' => config('mail.default'),
+                'host' => config('mail.mailers.smtp.host'),
+            ], 422);
+        }
     }
 }
