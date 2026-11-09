@@ -28,7 +28,13 @@ jobs:
           extensions: mbstring, pdo_sqlite
           coverage: none
       - run: composer install --no-interaction --prefer-dist
-      - run: vendor/bin/pint --test -v --format=github
+      - name: Code style (Pint)
+        run: |
+          if ! vendor/bin/pint --test; then
+            DIFF=$(vendor/bin/pint && git diff)
+            echo "::error title=Pint Diff::$DIFF"
+            exit 1
+          fi
       - run: php artisan test
       - run: composer audit --locked
 
