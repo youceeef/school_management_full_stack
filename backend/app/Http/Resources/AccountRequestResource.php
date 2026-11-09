@@ -30,6 +30,13 @@ class AccountRequestResource extends JsonResource
             'address' => $this->address,
             'bio' => $this->bio,
             'picture' => $this->profilePictureUrl(),
+            'proof_document' => $this->proof_document_path ? [
+                'name' => $this->proof_document_name,
+                'mime' => $this->proof_document_mime,
+                'size' => $this->proof_document_size,
+                'submitted_at' => $this->proof_submitted_at,
+                'is_pdf' => $this->proof_document_mime === 'application/pdf' || str_ends_with(strtolower($this->proof_document_name ?? ''), '.pdf'),
+            ] : null,
             'approval_status' => $this->approval_status,
             'requested_role' => $this->requested_role,
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')),

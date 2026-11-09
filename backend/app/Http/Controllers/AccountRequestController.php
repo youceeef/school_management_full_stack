@@ -8,7 +8,9 @@ use App\Notifications\AccountApprovalStatusNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AccountRequestController extends Controller
 {
@@ -236,6 +238,73 @@ class AccountRequestController extends Controller
                 ? 'Compte approuvé et rôle attribué avec succès.'
                 : 'Demande de compte refusée.',
             'data' => new AccountRequestResource($user->fresh()->load(['roles', 'reviewer'])),
+        ]);
+    }
+    /**
+     * Authenticated preview stream for applicant proof document.
+     */
+    public function previewProof(int $id): StreamedResponse|JsonResponse
+    {
+        $user = User::findOrFail($id);
+
+        if (! $user->proof_document_path) {
+            return response()->json(['message' => 'Aucun document justificatif associé à cette demande.'], 404);
+        }
+
+        $disk = config('filesystems.documents_disk');
+        $storage = Storage::disk($disk);
+
+        if (! $storage->exists($user->proof_document_path)) {
+            return response()->json(['message' => 'Le fichier justificatif est introuvable sur le stockage.'], 404);
+        }
+
+        $mime = $user->proof_document_mime ?: 'application/octet-stream';
+        $fileName = $user->proof_document_name ?: basename($user->proof_document_path);
+        $stream = $storage->readStream($user->proof_document_path);
+
+        return response()->stream(function () use ($stream) {
+            fpassthru($stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="'.addslashes($fileName).'"',
+            'Cache-Control' => 'private, no-cache, no-store, must-revalidate',
+        ]);
+    }
+
+    /**
+     * Authenticated download for applicant proof document.
+     */
+    public function downloadProof(int $id): StreamedResponse|JsonResponse
+    {
+        $user = User::findOrFail($id);
+
+        if (! $user->proof_document_path) {
+            return response()->json(['message' => 'Aucun document justificatif associé à cette demande.'], 404);
+        }
+
+        $disk = config('filesystems.documents_disk');
+        $storage = Storage::disk($disk);
+
+        if (! $storage->exists($user->proof_document_path)) {
+            return response()->json(['message' => 'Le fichier justificatif est introuvable sur le stockage.'], 404);
+        }
+
+        $mime = $user->proof_document_mime ?: 'application/octet-stream';
+        $fileName = $user->proof_document_name ?: basename($user->proof_document_path);
+        $stream = $storage->readStream($user->proof_document_path);
+
+        return response()->stream(function () use ($stream) {
+            fpassthru($stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'attachment; filename="'.addslashes($fileName).'"',
+            'Cache-Control' => 'private, no-cache, no-store, must-revalidate',
         ]);
     }
 }

@@ -63,3 +63,48 @@ export const reviewAccountRequest = async (id, status) => {
     throw error.response?.data || { message: "Erreur lors de la révision de la demande" };
   }
 };
+
+/**
+ * Fetch a blob preview URL for an applicant's proof document.
+ * Returns an object URL (e.g. blob:...) that can be rendered in an iframe or image tag.
+ *
+ * @param {number|string} id
+ */
+export const previewProofDocument = async (id) => {
+  try {
+    const response = await axiosInstance.get(`/api/account-requests/${id}/proof/preview`, {
+      responseType: "blob",
+    });
+    return {
+      blob: response.data,
+      url: URL.createObjectURL(response.data),
+      contentType: response.headers["content-type"],
+    };
+  } catch (error) {
+    throw error.response?.data || { message: "Erreur lors du chargement de l'aperçu du justificatif" };
+  }
+};
+
+/**
+ * Trigger an authenticated download for an applicant's proof document.
+ *
+ * @param {number|string} id
+ * @param {string} fileName
+ */
+export const downloadProofDocument = async (id, fileName = "justificatif.pdf") => {
+  try {
+    const response = await axiosInstance.get(`/api/account-requests/${id}/proof/download`, {
+      responseType: "blob",
+    });
+    const blobUrl = URL.createObjectURL(response.data);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  } catch (error) {
+    throw error.response?.data || { message: "Erreur lors du téléchargement du justificatif" };
+  }
+};

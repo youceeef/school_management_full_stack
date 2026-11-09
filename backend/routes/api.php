@@ -100,6 +100,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/counts', [AccountRequestController::class, 'counts'])->name('account-requests.counts');
         Route::get('/{id}', [AccountRequestController::class, 'show'])->name('account-requests.show');
         Route::patch('/{id}', [AccountRequestController::class, 'review'])->name('account-requests.review');
+        Route::get('/{id}/proof/preview', [AccountRequestController::class, 'previewProof'])->name('account-requests.proof.preview');
+        Route::get('/{id}/proof/download', [AccountRequestController::class, 'downloadProof'])->name('account-requests.proof.download');
     });
     Route::delete('/users/{userId}', [UserController::class, 'deleteUserByAdmin'])->name('users.destroy');
     Route::delete('/users/{userId}/roles', [RoleController::class, 'removeRoleFromUser']);

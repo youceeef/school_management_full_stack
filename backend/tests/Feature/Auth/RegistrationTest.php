@@ -5,6 +5,8 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
@@ -36,6 +38,7 @@ class RegistrationTest extends TestCase
     public function test_teacher_registration_requires_admin_approval(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
+        Storage::fake(config('filesystems.documents_disk'));
 
         $response = $this->postJson('/api/register/enseignant', [
             'first_name' => 'Pending',
@@ -46,6 +49,7 @@ class RegistrationTest extends TestCase
             'institution' => 'Faculte des Sciences de Tunis',
             'department' => 'Informatique',
             'staff_id' => 'ENS-2026-001',
+            'proof_document' => UploadedFile::fake()->create('proof.pdf', 300, 'application/pdf'),
         ]);
 
         $response
@@ -66,6 +70,7 @@ class RegistrationTest extends TestCase
     public function test_laboratory_manager_can_submit_a_public_pending_application(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
+        Storage::fake(config('filesystems.documents_disk'));
 
         $this->postJson('/api/register/responsable_labo', [
             'first_name' => 'Pending',
@@ -76,6 +81,7 @@ class RegistrationTest extends TestCase
             'institution' => 'INSAT',
             'department' => 'Laboratoire Informatique',
             'staff_id' => 'LAB-2026-001',
+            'proof_document' => UploadedFile::fake()->create('proof.pdf', 300, 'application/pdf'),
         ])
             ->assertCreated()
             ->assertJsonMissingPath('token')

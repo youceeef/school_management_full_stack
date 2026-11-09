@@ -23,6 +23,7 @@ import {
   ShieldCheckIcon,
   EyeIcon,
   BuildingOffice2Icon,
+  PaperClipIcon,
 } from "@heroicons/react/24/outline";
 import {
   getAccountRequests,
@@ -569,7 +570,18 @@ export default function AccountRequestsPage() {
                         {/* Requested Role & Institution */}
                         <td className="py-3.5 px-4">
                           <div className="flex flex-col gap-1">
-                            <div>{getRoleBadge(applicant.requested_role)}</div>
+                            <div className="flex items-center gap-1.5">
+                              {getRoleBadge(applicant.requested_role)}
+                              {applicant.proof_document && (
+                                <span
+                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-900"
+                                  title={`${applicant.proof_document.name} (${applicant.proof_document.is_pdf ? 'PDF' : 'IMG'})`}
+                                >
+                                  <PaperClipIcon className="w-3 h-3" />
+                                  {applicant.proof_document.is_pdf ? "PDF" : "IMG"}
+                                </span>
+                              )}
+                            </div>
                             {applicant.institution && (
                               <span
                                 className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 max-w-[220px] truncate"
@@ -730,6 +742,15 @@ export default function AccountRequestsPage() {
                         <span className="truncate">
                           {applicant.institution}
                           {applicant.department ? ` (${applicant.department})` : ""}
+                        </span>
+                      </div>
+                    )}
+
+                    {applicant.proof_document && (
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                        <PaperClipIcon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">
+                          {applicant.proof_document.name}
                         </span>
                       </div>
                     )}

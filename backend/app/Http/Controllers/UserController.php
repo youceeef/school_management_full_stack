@@ -338,14 +338,19 @@ class UserController extends Controller
         }
 
         $picturePath = $user->picture;
+        $proofPath = $user->proof_document_path;
 
         $user->tokens()->delete();
 
         if ($user->delete()) {
-            // If user deletion is successful, then delete the profile picture
+            // If user deletion is successful, then delete the profile picture and proof document
             $this->deleteStoredPicture(
                 $picturePath,
                 config('filesystems.uploads_disk')
+            );
+            $this->deleteStoredPicture(
+                $proofPath,
+                config('filesystems.documents_disk')
             );
 
             return response()->json(['message' => 'Your profile has been deleted successfully.']);
@@ -371,8 +376,14 @@ class UserController extends Controller
             ], 422);
         }
 
+        $picturePath = $user->picture;
+        $proofPath = $user->proof_document_path;
+
         $user->tokens()->delete();
         $user->delete();
+
+        $this->deleteStoredPicture($picturePath, config('filesystems.uploads_disk'));
+        $this->deleteStoredPicture($proofPath, config('filesystems.documents_disk'));
 
         return response()->json(['message' => 'User deleted successfully']);
     }

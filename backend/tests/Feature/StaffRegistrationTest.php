@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class StaffRegistrationTest extends TestCase
@@ -29,11 +31,15 @@ class StaffRegistrationTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['institution', 'department', 'staff_id']);
+            ->assertJsonValidationErrors(['institution', 'department', 'staff_id', 'proof_document']);
     }
 
     public function test_teacher_registration_succeeds_with_institutional_fields_and_enters_pending_status(): void
     {
+        Storage::fake(config('filesystems.documents_disk'));
+
+        $proofFile = UploadedFile::fake()->create('attestation_travail.pdf', 1024, 'application/pdf');
+
         $response = $this->postJson('/api/register/enseignant', [
             'first_name' => 'Ahmed',
             'last_name' => 'Ben Ali',
@@ -44,6 +50,7 @@ class StaffRegistrationTest extends TestCase
             'department' => 'Département Informatique',
             'staff_id' => 'ENS-2026-084',
             'professional_phone' => '+216 71 870 000',
+            'proof_document' => $proofFile,
         ]);
 
         $response->assertStatus(201)
@@ -58,16 +65,21 @@ class StaffRegistrationTest extends TestCase
             'department' => 'Département Informatique',
             'staff_id' => 'ENS-2026-084',
             'professional_phone' => '+216 71 870 000',
+            'proof_document_name' => 'attestation_travail.pdf',
             'approval_status' => User::APPROVAL_PENDING,
             'requested_role' => 'enseignant',
         ]);
 
         $user = User::where('email', 'ahmed.benali@fst.utm.tn')->firstOrFail();
         $this->assertTrue($user->roles->isEmpty());
+        $this->assertNotNull($user->proof_document_path);
+        Storage::disk(config('filesystems.documents_disk'))->assertExists($user->proof_document_path);
     }
 
     public function test_lab_manager_registration_requires_and_persists_institutional_fields(): void
     {
+        Storage::fake(config('filesystems.documents_disk'));
+
         // Missing fields fail validation
         $failResponse = $this->postJson('/api/register/responsable_labo', [
             'first_name' => 'Sonia',
@@ -78,7 +90,9 @@ class StaffRegistrationTest extends TestCase
         ]);
 
         $failResponse->assertStatus(422)
-            ->assertJsonValidationErrors(['institution', 'department', 'staff_id']);
+            ->assertJsonValidationErrors(['institution', 'department', 'staff_id', 'proof_document']);
+
+        $proofFile = UploadedFile::fake()->create('carte_professionnelle.png', 512, 'image/png');
 
         // Complete submission succeeds
         $successResponse = $this->postJson('/api/register/responsable_labo', [
@@ -91,6 +105,7 @@ class StaffRegistrationTest extends TestCase
             'department' => 'Laboratoire de Physique des Matériaux',
             'staff_id' => 'LAB-2026-012',
             'professional_phone' => '+216 71 703 829',
+            'proof_document' => $proofFile,
         ]);
 
         $successResponse->assertStatus(201)
@@ -103,6 +118,7 @@ class StaffRegistrationTest extends TestCase
             'institution' => 'INSAT',
             'department' => 'Laboratoire de Physique des Matériaux',
             'staff_id' => 'LAB-2026-012',
+            'proof_document_name' => 'carte_professionnelle.png',
             'approval_status' => User::APPROVAL_PENDING,
         ]);
     }
@@ -127,6 +143,7 @@ class StaffRegistrationTest extends TestCase
             'approval_status' => User::APPROVAL_APPROVED,
             'institution' => null,
             'staff_id' => null,
+            'proof_document_path' => null,
         ]);
     }
 

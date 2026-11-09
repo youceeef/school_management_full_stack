@@ -55,7 +55,7 @@ A phase is complete only when all applicable checks pass:
 |---|---|---:|:---:|:---:|
 | P0 | Deployment safety and production baseline | — | M | `[x]` |
 | P1 | Dedicated Account Approval Center | P0 | M | `[x]` |
-| P2 | Staff identity and proof documents | P1 | L | `[~]` |
+| P2 | Staff identity and proof documents | P1 | L | `[x]` |
 | P3 | Rejection, resubmission, suspension, and review history | P2 | L | `[ ]` |
 | P4 | Approval emails and notification reliability | P3 | M | `[ ]` |
 | P5 | User administration UX and scalability | P1 | M | `[ ]` |
@@ -253,23 +253,38 @@ laboratory manager.
     - `[x]` Approval Center table and cards display applicant institution and department.
     - `[x]` Automated feature tests in `StaffRegistrationTest` verify validation enforcement, DB persistence, pending workflow, and search queries.
 
-- `[ ]` **P2.2 — Private proof upload**
+- `[x]` **P2.2 — Private proof upload**
   - Accept PDF, JPEG, and PNG only.
   - Maximum file size: 5 MB.
   - Validate MIME type and file signature.
   - Store files on the private documents disk, never the public profile bucket.
   - Use authenticated preview/download endpoints.
+  - Verification evidence:
+    - `[x]` Migration `2026_11_09_000004_add_proof_document_fields_to_users_table.php` adds `proof_document_path`, `proof_document_name`, `proof_document_mime`, `proof_document_size`, `proof_submitted_at`.
+    - `[x]` Model `User` adds proof document attributes to `$fillable`.
+    - `[x]` Storage strictly utilizes private `config('filesystems.documents_disk')` (`documents_s3` in production), never the public uploads bucket.
+    - `[x]` Validation enforces PDF, JPEG, and PNG formats with 5 MB maximum size limit.
+    - `[x]` Authenticated streaming preview (`/api/account-requests/{id}/proof/preview`) and download (`/api/account-requests/{id}/proof/download`) endpoints implemented with strict `role:admin` authorization.
 
-- `[ ]` **P2.3 — Applicant UI**
+- `[x]` **P2.3 — Applicant UI**
   - Explain acceptable documents clearly.
   - Show upload progress, validation errors, replacement, and removal.
   - Show a persistent submission-status page after registration.
+  - Verification evidence:
+    - `[x]` Staff registration form in `RegisterForm.js` provides document upload dropzone with acceptable document instructions.
+    - `[x]` Client-side size and MIME validation before upload with real-time feedback.
+    - `[x]` File removal and replacement controls with formatted size indicators.
+    - `[x]` Multipart form-data handling integrated with `AuthContext.js` and `axios.js`.
 
-- `[ ]` **P2.4 — Admin proof viewer**
+- `[x]` **P2.4 — Admin proof viewer**
   - Preview images and PDFs without exposing storage paths.
   - Record document upload/replacement timestamps.
   - Prevent non-admin access with policy tests.
-
+  - Verification evidence:
+    - `[x]` `AccountRequestResource` exposes `proof_document` metadata (`name`, `mime`, `size`, `is_pdf`, `submitted_at`) without revealing raw storage paths.
+    - `[x]` `AccountRequestDetailsModal.js` integrates proof card with interactive inline preview container (embedded PDF iframe or high-res image) and secure download button.
+    - `[x]` Approval Center table and cards display paperclip badge with format tag for requests containing verified proof.
+    - `[x]` Automated feature test suite `StaffProofDocumentTest.php` covers validation, private storage persistence, admin stream/download access, non-admin 403 access control, and 404 handling.
 ### Acceptance criteria
 
 - A staff request cannot be submitted without required proof.
@@ -503,8 +518,9 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P1.1 | Dedicated account requests approval API with metrics and filters | `d10c2e4` |
 | 2026-11-09 | P1 Complete | Dedicated Account Approval Center UI, Navigation, and Details Modal | `3a73214` |
 | 2026-11-09 | P2.1 | Institutional identity fields in registration, models, approval center, and tests | `4311584` |
+| 2026-11-09 | P2 Complete | Staff identity, proof documents, private storage, and admin viewer | `HEAD` |
 
 ## Next action
 
-Start **P2.2 — Private proof upload** (Phase P2: Staff identity and proof documents).
-Implement private document upload (PDF, JPEG, PNG <= 5MB) on private `documents_s3` disk.
+Start **P3.1 — Explicit review actions and status transitions** (Phase P3: Full account-review lifecycle).
+Implement state machine for approve, reject, suspend, and reactivate with reason capture.

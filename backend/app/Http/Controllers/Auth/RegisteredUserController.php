@@ -7,8 +7,10 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 
 class RegisteredUserController extends Controller
@@ -25,7 +27,36 @@ class RegisteredUserController extends Controller
     ): JsonResponse {
         $validated = $request->validate($validationRules);
 
-        $user = DB::transaction(function () use ($validated, $role, $requiresApproval) {
+        $proofPath = null;
+        $proofName = null;
+        $proofMime = null;
+        $proofSize = null;
+        $proofSubmittedAt = null;
+
+        if ($request->hasFile('proof_document')) {
+            $proofFile = $request->file('proof_document');
+            if ($proofFile instanceof UploadedFile) {
+                $disk = config('filesystems.documents_disk');
+                $proofName = $proofFile->getClientOriginalName();
+                $proofMime = $proofFile->getClientMimeType() ?: $proofFile->getMimeType();
+                $proofSize = $proofFile->getSize();
+                $proofSubmittedAt = now();
+                $extension = strtolower($proofFile->getClientOriginalExtension() ?: 'bin');
+                $fileName = Str::uuid()->toString().'.'.$extension;
+                $proofPath = $proofFile->storeAs('proof_documents', $fileName, $disk);
+            }
+        }
+
+        $user = DB::transaction(function () use (
+            $validated,
+            $role,
+            $requiresApproval,
+            $proofPath,
+            $proofName,
+            $proofMime,
+            $proofSize,
+            $proofSubmittedAt
+        ) {
             $user = User::create([
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'],
@@ -35,6 +66,11 @@ class RegisteredUserController extends Controller
                 'department' => $validated['department'] ?? null,
                 'staff_id' => $validated['staff_id'] ?? null,
                 'professional_phone' => $validated['professional_phone'] ?? null,
+                'proof_document_path' => $proofPath,
+                'proof_document_name' => $proofName,
+                'proof_document_mime' => $proofMime,
+                'proof_document_size' => $proofSize,
+                'proof_submitted_at' => $proofSubmittedAt,
                 'approval_status' => $requiresApproval
                     ? User::APPROVAL_PENDING
                     : User::APPROVAL_APPROVED,
@@ -101,6 +137,7 @@ class RegisteredUserController extends Controller
                 'department' => ['required', 'string', 'max:255'],
                 'staff_id' => ['required', 'string', 'max:100'],
                 'professional_phone' => ['nullable', 'string', 'max:30'],
+                'proof_document' => ['required', 'file', 'mimes:pdf,jpeg,png,jpg', 'max:5120'],
             ],
             'enseignant',
             false,
@@ -124,6 +161,7 @@ class RegisteredUserController extends Controller
                 'department' => ['required', 'string', 'max:255'],
                 'staff_id' => ['required', 'string', 'max:100'],
                 'professional_phone' => ['nullable', 'string', 'max:30'],
+                'proof_document' => ['required', 'file', 'mimes:pdf,jpeg,png,jpg', 'max:5120'],
             ],
             'responsable_laboratoire',
             false,
@@ -147,6 +185,7 @@ class RegisteredUserController extends Controller
                 'department' => ['nullable', 'string', 'max:255'],
                 'staff_id' => ['nullable', 'string', 'max:100'],
                 'professional_phone' => ['nullable', 'string', 'max:30'],
+                'proof_document' => ['nullable', 'file', 'mimes:pdf,jpeg,png,jpg', 'max:5120'],
             ],
             'admin',
             false
