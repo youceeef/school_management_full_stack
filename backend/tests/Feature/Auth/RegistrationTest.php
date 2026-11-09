@@ -43,6 +43,9 @@ class RegistrationTest extends TestCase
             'email' => 'pending-teacher@example.com',
             'password' => 'Strong-Password-2026!',
             'password_confirmation' => 'Strong-Password-2026!',
+            'institution' => 'Faculte des Sciences de Tunis',
+            'department' => 'Informatique',
+            'staff_id' => 'ENS-2026-001',
         ]);
 
         $response
@@ -70,6 +73,9 @@ class RegistrationTest extends TestCase
             'email' => 'pending-manager@example.com',
             'password' => 'Strong-Password-2026!',
             'password_confirmation' => 'Strong-Password-2026!',
+            'institution' => 'INSAT',
+            'department' => 'Laboratoire Informatique',
+            'staff_id' => 'LAB-2026-001',
         ])
             ->assertCreated()
             ->assertJsonMissingPath('token')
