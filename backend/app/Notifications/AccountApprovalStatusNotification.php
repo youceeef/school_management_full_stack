@@ -13,8 +13,7 @@ class AccountApprovalStatusNotification extends Notification implements ShouldQu
     public function __construct(
         private readonly string $status,
         private readonly ?string $reason = null,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
