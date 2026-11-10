@@ -51,10 +51,9 @@ php artisan serve
 ## Déploiement de production
 
 Le service Render est géré par le Blueprint racine `render.yaml`. Il suit la
-branche `main` et déploie automatiquement les changements sous `backend/`
-uniquement après la réussite des contrôles CI (`checksPass`). Les changements
-limités aux fichiers situés hors du répertoire backend ne déclenchent pas de
-nouvelle image API.
+branche `main`, mais `autoDeployTrigger` est volontairement `off` (D015) : le
+déploiement de l'API reste une action explicite de l'opérateur sur le SHA
+approuvé, effectuée après la réussite des contrôles CI.
 
 Après convergence de Vercel et Render, le workflow Production Smoke est lancé
 manuellement; il reste également planifié chaque jour pour détecter une dérive.
@@ -72,9 +71,8 @@ et `document_storage` doivent répondre `ok`.
 
 ### Règle de parité des versions
 
-Vercel reconstruit le frontend à chaque push sur `main`, alors que Render ne
-reconstruit l'API que lorsqu'un fichier situé sous `backend/` change. Un commit
-limité à `docs/` ou à la racine fait donc diverger les SHA frontend et API, et le
-workflow Production Smoke échoue volontairement sur cette dérive. Toute release
-de production doit par conséquent contenir au moins une modification sous
-`backend/`.
+Vercel reconstruit le frontend à chaque push sur `main`, alors que l'API n'est
+plus déployée automatiquement (D015). Après chaque release, déployez donc
+explicitement le SHA de `main` sur Render : c'est le seul moyen de conserver des
+SHA identiques côté frontend et API, condition exigée par le workflow Production
+Smoke.

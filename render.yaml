@@ -7,7 +7,10 @@ services:
     branch: main
     rootDir: backend
     healthCheckPath: /
-    autoDeployTrigger: checksPass
+    # Déploiement manuel assumé (D015). Render désactive Auto-Deploy dès qu'un
+    # déploiement de commit spécifique est utilisé; déclarer `checksPass`
+    # reviendrait à décrire un réglage que l'exploitation ne peut pas conserver.
+    autoDeployTrigger: off
     envVars:
       - key: APP_NAME
         value: EduSpace

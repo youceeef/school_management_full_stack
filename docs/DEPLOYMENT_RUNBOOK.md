@@ -10,8 +10,10 @@ It complements `DEPLOYMENT.md` and must be followed for every production change.
 - Vercel Project Settings → Git → Production Branch must be `main`.
 - Vercel previews remain enabled for `PROD`.
 - Render is pinned to `main` in `render.yaml`.
-- Render auto-deploy mode is `checksPass`, so a backend image is built only
-  after the GitHub CI checks for `main` pass.
+- Render Auto-Deploy is intentionally `off` (D015). The API image is deployed by
+  the operator from the approved `main` SHA after CI passes. Render disables
+  Auto-Deploy whenever a specific-commit deploy is used, so `checksPass` cannot
+  be preserved in practice and is no longer declared.
 - Never push an untested feature directly to `main`.
 
 ## Standard release procedure
@@ -22,18 +24,22 @@ It complements `DEPLOYMENT.md` and must be followed for every production change.
 4. Review the Vercel `PROD` preview.
 5. Fast-forward `main` to `PROD`; never force-push either branch.
 6. Confirm the `main` CI run succeeds.
-7. Wait for Vercel and Render to deploy the same commit.
-8. Run the **Production Smoke** workflow manually with the expected commit SHA.
-9. Complete the authenticated checklist below.
-10. Record the result in `docs/IMPROVEMENT_ROADMAP.md`.
+7. Wait for Vercel to build the `main` commit.
+8. Release the API: Render → **Deploy a specific commit** → paste the `main`
+   SHA. This is the approved release action and it disables Auto-Deploy, which
+   is expected under D015.
+9. Confirm `/health` reports that SHA with healthy dependencies.
+10. Run the **Production Smoke** workflow manually with the expected commit SHA.
+11. Complete the authenticated checklist below.
+12. Record the result in `docs/IMPROVEMENT_ROADMAP.md`.
 
 ## Automated public smoke checks
 
 The workflow `.github/workflows/production-smoke.yml` runs daily to detect drift
 and is run manually after each approved production deployment. It deliberately
-does not start as a post-CI workflow: Render's `checksPass` auto-deploy waits for
-all commit checks, so a smoke check that waits for Render would create a circular
-dependency and prevent the deployment. It verifies:
+does not start as a post-CI workflow: the API is released by the operator after
+CI, so a smoke check triggered by CI would run before the API exists and fail on
+version drift. It verifies:
 
 - The production frontend responds successfully.
 - `/api/version` reports the expected Git SHA and API schema.

@@ -120,8 +120,9 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` System Status page is restricted to administrators.
     - `[x]` French, English, Arabic/RTL and Lighthouse checks pass.
 
-- `[~]` **P0.4 — Deployment automation**
-  - Enable Render auto-deploy for `main`.
+- `[x]` **P0.4 — Deployment automation**
+  - Enable Render auto-deploy for `main` (superseded by D015: manual operator
+    deploys of the approved SHA).
   - Keep Vercel production deployment on `main` only.
   - Document manual rollback procedures for both services.
   - Add a production smoke-test checklist to deployment documentation.
@@ -137,7 +138,9 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` Production frontend and API both report the P0.4 commit.
     - `[x]` The Render Blueprint was synchronized at `653d0c1`, restoring the
       live service setting from `Off` to `After CI Checks Pass` as declared by
-      `autoDeployTrigger: checksPass` in `render.yaml`.
+      `autoDeployTrigger: checksPass` in `render.yaml`. That setting was disabled
+      again by the operator's next specific-commit deploy, which is the behaviour
+      recorded under D015.
     - `[x]` Roadmap-only commit `52ab1ee` did not trigger Render because it was
       outside the configured `backend/` service root; this is expected monorepo
       filtering behavior, not an auto-deploy failure.
@@ -145,8 +148,12 @@ and establish a trustworthy production baseline before adding more features.
       created a circular dependency: the smoke job waited for Render while
       Render `checksPass` waited for the smoke check. Smoke remains manual after
       releases and scheduled daily.
-    - `[ ]` Confirm the next approved `main` release deploys to Render without a
-      manual dashboard action using a backend-scoped documentation change.
+    - `[x]` Confirmed that Render's "Deploy a specific commit" action disables
+      Auto-Deploy for the service, so `checksPass` cannot survive operational
+      use; `render.yaml` now declares `autoDeployTrigger: off` (D015).
+    - `[x]` Release `d4bb6cd` was deployed to the API by the operator, `/health`
+      and `/api/version` reported the same SHA with schema `1`, database and both
+      storage checks were healthy, and Production Smoke run #18 passed.
 
 - `[x]` **P0.5 — Credential hygiene**
   - Rotate credentials that were copied, shared, or exposed during setup.
@@ -641,8 +648,9 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | D010 | Personal Gmail address (@gmail.com) sender requires native Google SMTP (smtp.gmail.com:587 with Google App Password) to guarantee DMARC/SPF inbox delivery without custom domain DNS records. | Accepted |
 | D011 | Render Free Tier blocks outbound SMTP TCP ports (25, 465, 587, 2525). To guarantee 100% reliable transactional email delivery on Render Free without port blocks or gateway timeouts, EduSpace uses the Mailjet Send API v3.1 over standard HTTPS (Port 443). | Accepted |
 | D012 | Account lifecycle notifications are delivered synchronously after the status transaction commits, so approval/rejection mail cannot depend on a queue worker and transport failures remain visible to administrators. | Accepted |
-| D013 | Restore Render `checksPass` auto-deploy before starting P6; manual deployment is an incident workaround, not the normal release process. | Accepted |
+| D013 | Restore Render `checksPass` auto-deploy before starting P6; manual deployment is an incident workaround, not the normal release process. | Superseded by D015 |
 | D014 | Production Smoke is manual after releases and scheduled daily; it must not run as a post-CI check because Render `checksPass` would wait on the smoke job that is itself waiting for Render. | Accepted |
+| D015 | Production API releases are deployed manually by the operator from the approved `main` SHA. Render Auto-Deploy is intentionally `off` because any specific-commit deploy disables it; SHA parity via `/health` and a manually dispatched Production Smoke are mandatory after every release. | Accepted |
 
 ## Progress log
 
@@ -670,12 +678,12 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-10 | P4.5 Complete | Immediate lifecycle-mail delivery, French fallback, visible delivery warnings, real-channel tests, and successful live inbox verification | `22c61a2` |
 | 2026-11-10 | P5 Complete | All authenticated production scenarios passed; user administration accepted on desktop, mobile, and RTL | `22c61a2` |
 | 2026-11-10 | P0.4 recovery | Render Blueprint synchronized and live auto-deploy restored to `After CI Checks Pass` | `653d0c1` |
+| 2026-11-10 | P0.4 Complete | Manual operator release adopted (D015), `render.yaml` declared `off`, runbook and SHA-parity rule updated, release verified synchronized | `d4bb6cd` |
 
 ## Next action
 
-Verify **P0.4 — Render deployment automation** by releasing this CI/smoke
-dependency fix through the normal `PROD` → `main` fast-forward without a manual
-Render action. After Render auto-deploys and a manually dispatched Production
-Smoke succeeds, mark P0.4 complete and start **P6.1 — Email verification before
-admin review**. Do not begin P6.2 or any unrelated phase until P6.1 is completed,
-tested, preview-approved, deployed, and recorded here.
+Start **P6.1 — Email verification before admin review** as the only approved
+next increment. Implement, test, preview-approve it on `PROD`, release it to
+`main`, deploy the API manually for that SHA (D015), run Production Smoke, and
+record the result here. Do not begin P6.2 or any unrelated phase until P6.1 is
+completed, tested, preview-approved, deployed, and recorded.
