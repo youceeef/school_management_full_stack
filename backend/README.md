@@ -58,3 +58,23 @@ nouvelle image API.
 
 Après convergence de Vercel et Render, le workflow Production Smoke est lancé
 manuellement; il reste également planifié chaque jour pour détecter une dérive.
+
+### Vérification d'un déploiement
+
+Contrôlez l'image réellement servie avant de lancer la recette authentifiée :
+
+    curl -s https://eduspace-api-dhn4.onrender.com/health
+    git rev-parse HEAD
+
+`version` doit correspondre au commit déployé, `build_time` doit être postérieur
+au dernier changement du backend, et les contrôles `database`, `profile_storage`
+et `document_storage` doivent répondre `ok`.
+
+### Règle de parité des versions
+
+Vercel reconstruit le frontend à chaque push sur `main`, alors que Render ne
+reconstruit l'API que lorsqu'un fichier situé sous `backend/` change. Un commit
+limité à `docs/` ou à la racine fait donc diverger les SHA frontend et API, et le
+workflow Production Smoke échoue volontairement sur cette dérive. Toute release
+de production doit par conséquent contenir au moins une modification sous
+`backend/`.
