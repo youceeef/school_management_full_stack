@@ -44,12 +44,15 @@ class AccountNotificationTest extends TestCase
         return $admin;
     }
 
-    private function createApplicant(string $role = 'enseignant', string $status = User::APPROVAL_PENDING): User
-    {
+    private function createApplicant(
+        string $role = 'enseignant',
+        string $status = User::APPROVAL_PENDING,
+        string $email = 'karim.gharbi@eduspace.test',
+    ): User {
         return User::factory()->create([
             'first_name' => 'Karim',
             'last_name' => 'Gharbi',
-            'email' => 'karim.gharbi@eduspace.test',
+            'email' => $email,
             'approval_status' => $status,
             'requested_role' => $role,
             'institution' => 'Université de Carthage',
@@ -214,6 +217,50 @@ class AccountNotificationTest extends TestCase
             fn ($notification) => $notification->toArray($applicant)['approval_status'] === 'rejected'
                 && $notification->toArray($applicant)['reason'] === $reason
         );
+    }
+
+    public function test_approval_and_rejection_send_mail_immediately_without_a_queue_worker(): void
+    {
+        config([
+            'mail.default' => 'array',
+            // A database queue has no worker in this test. The lifecycle mail
+            // must still be delivered by the request through notifyNow().
+            'queue.default' => 'database',
+        ]);
+
+        $transport = Mail::mailer('array')->getSymfonyTransport();
+        $transport->flush();
+
+        $admin = $this->createAdmin();
+        $approvedApplicant = $this->createApplicant();
+
+        $this->actingAs($admin)
+            ->patchJson("/api/account-requests/{$approvedApplicant->id}", [
+                'status' => 'approved',
+            ])
+            ->assertOk()
+            ->assertJsonMissingPath('notification_warning');
+
+        $approvedMessage = $transport->messages()->sole()->getOriginalMessage();
+        $this->assertSame('[EduSpace] Votre compte a été validé', $approvedMessage->getSubject());
+        $this->assertSame($approvedApplicant->email, $approvedMessage->getTo()[0]->getAddress());
+
+        $rejectedApplicant = $this->createApplicant(email: 'rejected.applicant@eduspace.test');
+        $reason = 'Justificatif illisible pendant le test de livraison.';
+
+        $this->actingAs($admin)
+            ->patchJson("/api/account-requests/{$rejectedApplicant->id}", [
+                'status' => 'rejected',
+                'reason' => $reason,
+            ])
+            ->assertOk()
+            ->assertJsonMissingPath('notification_warning');
+
+        $this->assertCount(2, $transport->messages());
+        $rejectedMessage = $transport->messages()->last()->getOriginalMessage();
+        $this->assertSame('[EduSpace] Statut de votre demande de compte', $rejectedMessage->getSubject());
+        $this->assertSame($rejectedApplicant->email, $rejectedMessage->getTo()[0]->getAddress());
+        $this->assertStringContainsString($reason, $rejectedMessage->getHtmlBody());
     }
 
     public function test_admin_suspension_and_reactivation_dispatch_notifications(): void

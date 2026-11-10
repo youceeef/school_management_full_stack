@@ -57,7 +57,7 @@ A phase is complete only when all applicable checks pass:
 | P1 | Dedicated Account Approval Center | P0 | M | `[x]` |
 | P2 | Staff identity and proof documents | P1 | L | `[x]` |
 | P3 | Rejection, resubmission, suspension, and review history | P2 | L | `[x]` |
-| P4 | Approval emails and notification reliability | P3 | M | `[x]` |
+| P4 | Approval emails and notification reliability | P3 | M | `[~]` |
 | P5 | User administration UX and scalability | P1 | M | `[~]` |
 | P6 | Security hardening | P0, P3 | L | `[ ]` |
 | P7 | Monitoring, auditability, and automated E2E testing | P0 | L | `[ ]` |
@@ -403,6 +403,18 @@ the dashboard.
     - `[x]` `AccountRequestController` and `UserController` isolate `notify()` in try/catch blocks; DB commits first, and API returns status with optional `notification_warning` if mail transport encounters issues.
     - `[x]` CI tests pass all assertions across full test suite.
 
+- `[~]` **P4.5 — Approval and rejection delivery hotfix**
+  - `[x]` Deliver lifecycle notifications synchronously after the account-status
+    transaction commits, so approval/rejection mail does not depend on a queue
+    worker and transport failures are returned to the administrator.
+  - `[x]` Show `notification_warning` in both approval-center and user-details
+    workflows instead of silently reporting complete success.
+  - `[x]` Use French as the application and notification fallback locale while
+    preserving explicit English and Arabic notification support.
+  - `[x]` Add a real-channel feature test proving approval and rejection create
+    mail messages even when the configured queue has no worker.
+  - `[ ]` Confirm one approval and one rejection email arrive in live inboxes.
+
 ### Acceptance criteria
 
 - Pending/rejected users receive status changes without dashboard access.
@@ -618,12 +630,12 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-10 | P4.2 | Mailjet API v3.1 HTTPS transport over Port 443, failure isolation, and expanded mail test suite | `d723eec` |
 | 2026-11-10 | P5.1 | Server-side user directory pagination, sorting, filters, mobile cards, and role safeguards | `41ad5a1` |
 | 2026-11-10 | P5.2–P5.3 | Filter persistence, user details, and protected bulk administration actions | `4a1f865` |
+| 2026-11-10 | P5 validation release | P5 follow-up passed CI and Production Smoke; Vercel and Render synchronized | `ede7e94` |
 
 ## Next action
 
-Validate and deploy **Phase P5 — User administration UX and scalability**.
-Commit and push the verified P5 follow-up to `PROD`, require a successful CI run,
-review the Vercel preview at desktop and mobile widths, and obtain explicit
-approval. Then fast-forward `main`, wait for Vercel and Render to report the
-same commit, run public and authenticated production smoke checks, and only then
-mark P5 complete or proceed to P6.
+Validate and deploy **P4.5 — Approval and rejection delivery hotfix** through
+`PROD`, CI, preview, and synchronized production. Confirm one approved applicant
+and one rejected applicant receive the expected French lifecycle email. Continue
+the authenticated P5 live scenarios in parallel, then record the results before
+marking P4 and P5 complete or proceeding to P6.

@@ -387,7 +387,7 @@ class UserController extends Controller
 
         foreach ($pendingNotifications as $pendingNotification) {
             try {
-                $pendingNotification['user']->notify(new AccountApprovalStatusNotification(
+                $pendingNotification['user']->notifyNow(new AccountApprovalStatusNotification(
                     $pendingNotification['action'],
                     $pendingNotification['reason']
                 ));
@@ -494,13 +494,15 @@ class UserController extends Controller
             ]);
         });
 
+        $notificationWarning = null;
         try {
-            $user->notify(new AccountApprovalStatusNotification($action, $reason));
+            $user->notifyNow(new AccountApprovalStatusNotification($action, $reason));
         } catch (Throwable $e) {
             Log::warning('Failed delivering account approval status notification: '.$e->getMessage(), [
                 'user_id' => $user->id,
                 'action' => $action,
             ]);
+            $notificationWarning = 'Le statut a été mis à jour avec succès, mais la notification par email n’a pas pu être délivrée.';
         }
 
         $message = match ($action) {
@@ -510,10 +512,16 @@ class UserController extends Controller
             AccountReview::ACTION_REJECTED => 'Demande de compte refusée avec motif.',
         };
 
-        return response()->json([
+        $responseData = [
             'message' => $message,
             'user' => new UserResource($user->fresh()->load('roles')),
-        ]);
+        ];
+
+        if ($notificationWarning) {
+            $responseData['notification_warning'] = $notificationWarning;
+        }
+
+        return response()->json($responseData);
     }
 
     public function show(Request $request, int $userId): JsonResponse

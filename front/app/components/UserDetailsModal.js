@@ -151,12 +151,15 @@ export default function UserDetailsModal({
     if (!user) return;
     try {
       setActionLoading(true);
-      await reviewUserApproval(user.id, status, reason);
+      const response = await reviewUserApproval(user.id, status, reason);
       toast.success(
         status === "suspended"
           ? tr("Compte suspendu avec succès")
           : tr("Compte approuvé / réactivé avec succès")
       );
+      if (response.notification_warning) {
+        toast.info(tr(response.notification_warning));
+      }
       await fetchUser();
       onUserUpdated?.();
       setShowSuspensionForm(false);

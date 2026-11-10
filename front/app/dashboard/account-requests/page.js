@@ -178,6 +178,9 @@ export default function AccountRequestsPage() {
         reasonModal.reason.trim()
       );
       toast.success(tr(res.message));
+      if (res.notification_warning) {
+        toast.info(tr(res.notification_warning));
+      }
       setReasonModal({ isOpen: false, applicant: null, status: null, reason: "" });
       await fetchRequests(currentPage);
     } catch (err) {
@@ -205,6 +208,9 @@ export default function AccountRequestsPage() {
       setReviewingId(applicant.id);
       const res = await reviewAccountRequest(applicant.id, status);
       toast.success(tr(res.message));
+      if (res.notification_warning) {
+        toast.info(tr(res.notification_warning));
+      }
       await fetchRequests(currentPage);
     } catch (err) {
       toast.error(

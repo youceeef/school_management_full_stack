@@ -296,7 +296,12 @@ class AccountRequestController extends Controller
 
         $notificationWarning = null;
         try {
-            $user->notify(new AccountApprovalStatusNotification($action, $reason));
+            // Approval and rejection emails are time-sensitive because these
+            // applicants cannot rely on dashboard notifications. Deliver the
+            // channels now, after the transaction has committed, so transport
+            // failures are visible in this response instead of being hidden in
+            // an unavailable or misconfigured queue worker.
+            $user->notifyNow(new AccountApprovalStatusNotification($action, $reason));
         } catch (Throwable $e) {
             Log::warning('Failed delivering account approval status notification: '.$e->getMessage(), [
                 'user_id' => $user->id,
