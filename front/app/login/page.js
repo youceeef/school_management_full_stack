@@ -57,7 +57,13 @@ export default function Login() {
         setAccountRejection(null);
       }
       setEmailUnverified(err.code === "EMAIL_UNVERIFIED");
-      setError(tr(err.message || "Identifiants invalides ou serveur momentanément indisponible"));
+      // The dedicated panel below already carries the translated explanation
+      // and the resend action, so do not repeat a second, untranslated banner.
+      setError(
+        err.code === "EMAIL_UNVERIFIED"
+          ? ""
+          : tr(err.message || "Identifiants invalides ou serveur momentanément indisponible")
+      );
     } finally {
       setLoading(false);
     }
