@@ -138,8 +138,11 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` The Render Blueprint was synchronized at `653d0c1`, restoring the
       live service setting from `Off` to `After CI Checks Pass` as declared by
       `autoDeployTrigger: checksPass` in `render.yaml`.
+    - `[x]` Roadmap-only commit `52ab1ee` did not trigger Render because it was
+      outside the configured `backend/` service root; this is expected monorepo
+      filtering behavior, not an auto-deploy failure.
     - `[ ]` Confirm the next approved `main` release deploys to Render without a
-      manual dashboard action.
+      manual dashboard action using a backend-scoped documentation change.
 
 - `[x]` **P0.5 — Credential hygiene**
   - Rotate credentials that were copied, shared, or exposed during setup.
@@ -665,9 +668,9 @@ Analytics must use scoped, privacy-conscious aggregate data.
 
 ## Next action
 
-Verify **P0.4 — Render deployment automation** by releasing this status record
-through the normal `PROD` → `main` fast-forward without a manual Render action.
-After synchronized Production Smoke succeeds, mark P0.4 complete and start
-**P6.1 — Email verification before admin review**. Do not begin P6.2 or any
-unrelated phase until P6.1 is completed, tested, preview-approved, deployed, and
-recorded here.
+Verify **P0.4 — Render deployment automation** by releasing the backend-scoped
+deployment documentation through the normal `PROD` → `main` fast-forward
+without a manual Render action. After synchronized Production Smoke succeeds,
+mark P0.4 complete and start **P6.1 — Email verification before admin review**.
+Do not begin P6.2 or any unrelated phase until P6.1 is completed, tested,
+preview-approved, deployed, and recorded here.

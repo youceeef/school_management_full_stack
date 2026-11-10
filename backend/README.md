@@ -47,3 +47,11 @@ php artisan migrate
 # Lancer le serveur local
 
 php artisan serve
+
+## Déploiement de production
+
+Le service Render est géré par le Blueprint racine `render.yaml`. Il suit la
+branche `main` et déploie automatiquement les changements sous `backend/`
+uniquement après la réussite des contrôles CI (`checksPass`). Les changements
+limités aux fichiers situés hors du répertoire backend ne déclenchent pas de
+nouvelle image API.
