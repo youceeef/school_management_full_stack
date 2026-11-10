@@ -135,12 +135,11 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` Non-destructive Vercel/Render rollback runbook is documented.
     - `[x]` GitHub accepts and successfully runs the Production Smoke workflow.
     - `[x]` Production frontend and API both report the P0.4 commit.
-    - `[!]` Live Render auto-deploy is currently disabled because the service
-      was previously deployed from a specific commit. P5 and P4.5 therefore
-      required manual Render deployments even though `render.yaml` declares
-      `autoDeployTrigger: checksPass`.
-    - `[ ]` Re-enable Render auto-deploy for `main` with `checksPass`, then
-      confirm the next approved `main` release deploys without a manual action.
+    - `[x]` The Render Blueprint was synchronized at `653d0c1`, restoring the
+      live service setting from `Off` to `After CI Checks Pass` as declared by
+      `autoDeployTrigger: checksPass` in `render.yaml`.
+    - `[ ]` Confirm the next approved `main` release deploys to Render without a
+      manual dashboard action.
 
 - `[x]` **P0.5 — Credential hygiene**
   - Rotate credentials that were copied, shared, or exposed during setup.
@@ -662,11 +661,13 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-10 | P5 validation release | P5 follow-up passed CI and Production Smoke; Vercel and Render synchronized | `ede7e94` |
 | 2026-11-10 | P4.5 Complete | Immediate lifecycle-mail delivery, French fallback, visible delivery warnings, real-channel tests, and successful live inbox verification | `22c61a2` |
 | 2026-11-10 | P5 Complete | All authenticated production scenarios passed; user administration accepted on desktop, mobile, and RTL | `22c61a2` |
+| 2026-11-10 | P0.4 recovery | Render Blueprint synchronized and live auto-deploy restored to `After CI Checks Pass` | `653d0c1` |
 
 ## Next action
 
-Restore **P0.4 — Render deployment automation** by re-enabling `main` auto-deploy
-with `checksPass`, then verify it with the next approved release. After that
-prerequisite passes, start **P6.1 — Email verification before admin review**.
-Do not begin P6.2 or any unrelated phase until P6.1 is completed, tested,
-preview-approved, deployed, and recorded here.
+Verify **P0.4 — Render deployment automation** by releasing this status record
+through the normal `PROD` → `main` fast-forward without a manual Render action.
+After synchronized Production Smoke succeeds, mark P0.4 complete and start
+**P6.1 — Email verification before admin review**. Do not begin P6.2 or any
+unrelated phase until P6.1 is completed, tested, preview-approved, deployed, and
+recorded here.
