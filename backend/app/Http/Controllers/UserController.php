@@ -6,6 +6,7 @@ use App\Http\Resources\UserResource;
 use App\Models\AccountReview;
 use App\Models\User;
 use App\Notifications\AccountApprovalStatusNotification;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
@@ -25,14 +26,89 @@ class UserController extends Controller
     }
 
     //
-    public function index()
+    public function index(Request $request): JsonResponse
     {
         $this->authorize('listUsers', User::class);
-        $users = User::with(['roles', 'reviewer:id,first_name,last_name'])
-            ->orderByRaw("CASE approval_status WHEN 'pending' THEN 0 WHEN 'rejected' THEN 1 ELSE 2 END")
-            ->orderByDesc('created_at')
-            ->get();
-        $usersWithRoles = $users->map(function ($user) {
+
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:200'],
+            'role' => ['nullable', 'string', 'exists:roles,name'],
+            'status' => [
+                'nullable',
+                Rule::in([
+                    User::APPROVAL_PENDING,
+                    User::APPROVAL_APPROVED,
+                    User::APPROVAL_REJECTED,
+                    User::APPROVAL_SUSPENDED,
+                ]),
+            ],
+            'department' => ['nullable', 'string', 'max:255'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => [
+                'nullable',
+                'date',
+                Rule::when($request->filled('date_from'), ['after_or_equal:date_from']),
+            ],
+            'sort_by' => ['nullable', Rule::in(['id', 'name', 'email', 'department', 'approval_status', 'created_at'])],
+            'sort_direction' => ['nullable', Rule::in(['asc', 'desc'])],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $counts = [
+            'total' => User::query()->count(),
+            'admins' => User::role('admin')->count(),
+            'pending' => User::query()->where('approval_status', User::APPROVAL_PENDING)->count(),
+        ];
+
+        $query = User::query()->with(['roles:id,name', 'reviewer:id,first_name,last_name']);
+
+        if (! empty($validated['search'])) {
+            $search = '%'.Str::lower(trim($validated['search'])).'%';
+            $query->where(function ($builder) use ($search) {
+                $builder->whereRaw('LOWER(first_name) LIKE ?', [$search])
+                    ->orWhereRaw('LOWER(last_name) LIKE ?', [$search])
+                    ->orWhereRaw('LOWER(email) LIKE ?', [$search])
+                    ->orWhereRaw('LOWER(institution) LIKE ?', [$search])
+                    ->orWhereRaw('LOWER(department) LIKE ?', [$search])
+                    ->orWhereRaw('LOWER(staff_id) LIKE ?', [$search]);
+            });
+        }
+
+        if (! empty($validated['role'])) {
+            $query->whereHas('roles', fn ($roleQuery) => $roleQuery->where('name', $validated['role']));
+        }
+
+        if (! empty($validated['status'])) {
+            $query->where('approval_status', $validated['status']);
+        }
+
+        if (! empty($validated['department'])) {
+            $department = '%'.Str::lower(trim($validated['department'])).'%';
+            $query->whereRaw('LOWER(department) LIKE ?', [$department]);
+        }
+
+        if (! empty($validated['date_from'])) {
+            $query->whereDate('created_at', '>=', $validated['date_from']);
+        }
+
+        if (! empty($validated['date_to'])) {
+            $query->whereDate('created_at', '<=', $validated['date_to']);
+        }
+
+        $sortBy = $validated['sort_by'] ?? 'created_at';
+        $sortDirection = $validated['sort_direction'] ?? 'desc';
+
+        if ($sortBy === 'name') {
+            $query->orderBy('first_name', $sortDirection)
+                ->orderBy('last_name', $sortDirection);
+        } else {
+            $query->orderBy($sortBy, $sortDirection);
+        }
+        $query->orderBy('id', $sortDirection);
+
+        $paginator = $query->paginate($validated['per_page'] ?? 15)->withQueryString();
+        $users = $paginator->getCollection()->map(function (User $user) {
             return [
                 'id' => $user->id,
                 'first_name' => $user->first_name,
@@ -41,6 +117,8 @@ class UserController extends Controller
                 'roles' => $user->roles->pluck('name'),
                 'approval_status' => $user->approval_status,
                 'requested_role' => $user->requested_role,
+                'institution' => $user->institution,
+                'department' => $user->department,
                 'reviewed_at' => $user->reviewed_at,
                 'reviewed_by' => $user->reviewer ? [
                     'id' => $user->reviewer->id,
@@ -50,7 +128,24 @@ class UserController extends Controller
             ];
         });
 
-        return response()->json($usersWithRoles);
+        return response()->json([
+            'data' => $users,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+                'counts' => $counts,
+            ],
+            'links' => [
+                'first' => $paginator->url(1),
+                'last' => $paginator->url($paginator->lastPage()),
+                'prev' => $paginator->previousPageUrl(),
+                'next' => $paginator->nextPageUrl(),
+            ],
+        ]);
     }
 
     public function reviewAccountApproval(Request $request, int $userId)

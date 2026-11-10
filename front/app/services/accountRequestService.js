@@ -142,4 +142,3 @@ export const sendTestEmail = async (email = null) => {
     throw error.response?.data || { message: "Erreur lors de l'envoi de l'email de test" };
   }
 };
-

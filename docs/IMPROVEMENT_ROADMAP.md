@@ -58,7 +58,7 @@ A phase is complete only when all applicable checks pass:
 | P2 | Staff identity and proof documents | P1 | L | `[x]` |
 | P3 | Rejection, resubmission, suspension, and review history | P2 | L | `[x]` |
 | P4 | Approval emails and notification reliability | P3 | M | `[x]` |
-| P5 | User administration UX and scalability | P1 | M | `[ ]` |
+| P5 | User administration UX and scalability | P1 | M | `[~]` |
 | P6 | Security hardening | P0, P3 | L | `[ ]` |
 | P7 | Monitoring, auditability, and automated E2E testing | P0 | L | `[ ]` |
 | P8 | Reservation workflow improvements | P7 | L | `[ ]` |
@@ -582,9 +582,10 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P3 Complete | Full account-review lifecycle: rejection reason, resubmission, suspension, and review history | `3d3bc4a` |
 | 2026-11-09 | P4 Complete | Approval emails, admin notifications, localized templates (FR/EN/AR), retry safety, and test suite | `a4ca245` |
 | 2026-11-09 | P4.1 Diagnostics | SMTP diagnostic test suite, CLI mail:test command, admin system-status tester, Render mail env sync | `dcd6f8d` |
-| 2026-11-10 | P4.2 | Mailjet API v3.1 HTTPS transport over Port 443, failure isolation, and expanded mail test suite | `1d85d43` |
+| 2026-11-10 | P4.2 | Mailjet API v3.1 HTTPS transport over Port 443, failure isolation, and expanded mail test suite | `d723eec` |
+| 2026-11-10 | P5.1 | Server-side user directory pagination, sorting, filters, mobile cards, and role safeguards | `8c07805` |
 
 ## Next action
 
-Deploy and verify **Phase P4.2 - Mailjet API v3.1 HTTPS transport over Port 443**.
-Verify live email delivery using /dashboard/system-status on Render production, confirm inbox delivery, then proceed to Phase P5.
+Deploy and verify **Phase P5.1 — User administration UX and scalability**.
+Complete browser review on Vercel preview, confirm French, English, and Arabic/RTL layouts, then proceed to Phase P6 (Security Hardening).

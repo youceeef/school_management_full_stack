@@ -1,17 +1,29 @@
 import axiosInstance from "../config/axios";
 
-// Get all users
-export const getUsers = async () => {
+// Get a bounded, paginated user list.
+export const getUsers = async (params = {}) => {
   try {
-    const response = await axiosInstance.get("/api/users");
-    // Handle different response formats
-    if (response.data.data) {
-      return response.data.data;
-    } else if (Array.isArray(response.data)) {
+    const response = await axiosInstance.get("/api/users", { params });
+    if (Array.isArray(response.data?.data)) {
       return response.data;
     }
+    if (Array.isArray(response.data)) {
+      return {
+        data: response.data,
+        meta: {
+          current_page: 1,
+          last_page: 1,
+          per_page: response.data.length,
+          total: response.data.length,
+          from: response.data.length ? 1 : null,
+          to: response.data.length || null,
+          counts: { total: response.data.length, admins: 0, pending: 0 },
+        },
+        links: { first: null, last: null, prev: null, next: null },
+      };
+    }
     console.warn("Unexpected users response format:", response.data);
-    return [];
+    return { data: [], meta: null, links: null };
   } catch (error) {
     throw error.response?.data || { message: "Erreur lors de la récupération des utilisateurs" };
   }

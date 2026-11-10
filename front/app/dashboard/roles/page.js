@@ -25,6 +25,8 @@ import { getPermissions } from "../../services/permissionService";
 import { getUsers } from "../../services/userService";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import { PERMISSIONS } from "../../constants/permissions";
+import { useLanguage } from "../../context/LanguageContext";
+import { getRoleLabel } from "../../utils/roleLabels";
 
 export default function ProtectedRolesPage() {
   return (
@@ -38,8 +40,11 @@ export default function ProtectedRolesPage() {
 }
 
 function RolesPage() {
+  const { tr } = useLanguage();
   const [roles, setRoles] = useState([]);
   const [users, setUsers] = useState([]);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [userSearch, setUserSearch] = useState("");
   const [permissions, setPermissions] = useState([]);
   const [selectedRole, setSelectedRole] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,10 +81,16 @@ function RolesPage() {
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (search = "") => {
     try {
-      const usersData = await getUsers();
-      setUsers(usersData || []);
+      const usersResponse = await getUsers({
+        per_page: 50,
+        search: search.trim() || undefined,
+        sort_by: "name",
+        sort_direction: "asc",
+      });
+      setUsers(usersResponse.data || []);
+      setUsersTotal(usersResponse.meta?.counts?.total || usersResponse.meta?.total || 0);
     } catch {
       toast.error("Erreur lors du chargement des utilisateurs");
       setUsers([]);
@@ -89,8 +100,12 @@ function RolesPage() {
   useEffect(() => {
     fetchRoles();
     fetchPermissions();
-    fetchUsers();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchUsers(userSearch), 350);
+    return () => clearTimeout(timer);
+  }, [userSearch]);
 
   const handleCreateRole = async (e) => {
     e.preventDefault();
@@ -157,7 +172,7 @@ function RolesPage() {
     if (!roleToDelete) return;
 
     toast.confirmDelete(
-      `Êtes-vous sûr de vouloir supprimer le rôle "${roleToDelete.name}" ?`,
+      `Êtes-vous sûr de vouloir supprimer le rôle "${getRoleLabel(roleToDelete.name, tr)}" ?`,
       async () => {
         await deleteRole(roleId);
         await fetchRoles();
@@ -188,7 +203,7 @@ function RolesPage() {
     try {
       await assignRoleToUserByName(assignUserId, assignRoleName);
       toast.success("Rôle assigné avec succès");
-      fetchUsers();
+      fetchUsers(userSearch);
     } catch (error) {
       console.error("Error assigning role to user:", error);
       toast.error("Erreur lors de l'assignation du rôle");
@@ -208,7 +223,7 @@ function RolesPage() {
     },
     {
       title: "Utilisateurs actifs",
-      value: users.length.toLocaleString("fr-FR"),
+      value: usersTotal.toLocaleString("fr-FR"),
       icon: UsersIcon,
     },
   ];
@@ -254,6 +269,13 @@ function RolesPage() {
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
               Utilisateur
             </label>
+            <input
+              type="search"
+              value={userSearch}
+              onChange={(event) => setUserSearch(event.target.value)}
+              placeholder="Rechercher un utilisateur..."
+              className="mb-2 w-full px-3.5 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600"
+            />
             <select
               value={assignUserId}
               onChange={(e) => setAssignUserId(e.target.value)}
@@ -280,7 +302,7 @@ function RolesPage() {
               <option value="">Sélectionner un rôle</option>
               {roles.map((role) => (
                 <option key={role.id} value={role.name}>
-                  {role.name}
+                  {getRoleLabel(role.name, tr)}
                 </option>
               ))}
             </select>
@@ -316,7 +338,7 @@ function RolesPage() {
                     <div className="flex justify-between items-start gap-2 mb-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
                       <div>
                         <h3 className="text-base font-display font-semibold text-slate-900 dark:text-white capitalize">
-                          {role.name}
+                          {getRoleLabel(role.name, tr)}
                         </h3>
                         <p className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400 mt-0.5">
                           {(role.permissions || []).length} permission

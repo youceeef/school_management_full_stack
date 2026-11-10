@@ -64,4 +64,7 @@ test("translatePhrase maps common French UI phrases into English and Arabic", ()
   assert.equal(translatePhrase("fr", "Tableau de bord"), "Tableau de bord");
   assert.equal(translatePhrase("en", "Tableau de bord"), "Dashboard");
   assert.equal(translatePhrase("ar", "Tableau de bord"), "لوحة القيادة");
+  assert.equal(translatePhrase("en", "Diagnostic de messagerie (SMTP)"), "Email diagnostics (SMTP)");
+  assert.equal(translatePhrase("ar", "Administrateur"), "مسؤول");
+  assert.equal(translatePhrase("en", "Tous les rôles"), "All roles");
 });
