@@ -29,9 +29,11 @@ It complements `DEPLOYMENT.md` and must be followed for every production change.
 
 ## Automated public smoke checks
 
-The workflow `.github/workflows/production-smoke.yml` runs automatically after
-a successful `main` CI run, runs daily to detect drift, and can also be run
-manually. It verifies:
+The workflow `.github/workflows/production-smoke.yml` runs daily to detect drift
+and is run manually after each approved production deployment. It deliberately
+does not start as a post-CI workflow: Render's `checksPass` auto-deploy waits for
+all commit checks, so a smoke check that waits for Render would create a circular
+dependency and prevent the deployment. It verifies:
 
 - The production frontend responds successfully.
 - `/api/version` reports the expected Git SHA and API schema.
@@ -40,9 +42,10 @@ manually. It verifies:
 - Profile storage connectivity is healthy.
 - Document storage connectivity is healthy.
 
-The automatic run waits for Vercel and Render to converge on the CI commit. For
-a manual run, open GitHub Actions → Production Smoke → Run workflow and supply
-the full production SHA when verifying a specific deployment.
+For a release, wait for Vercel and Render to converge, then open GitHub Actions
+→ Production Smoke → Run workflow and supply the full production SHA. Manual
+runs retry during free-tier cold starts; the daily run is a one-attempt drift
+check.
 
 ## Authenticated production smoke checklist
 

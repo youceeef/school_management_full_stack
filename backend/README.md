@@ -55,3 +55,6 @@ branche `main` et déploie automatiquement les changements sous `backend/`
 uniquement après la réussite des contrôles CI (`checksPass`). Les changements
 limités aux fichiers situés hors du répertoire backend ne déclenchent pas de
 nouvelle image API.
+
+Après convergence de Vercel et Render, le workflow Production Smoke est lancé
+manuellement; il reste également planifié chaque jour pour détecter une dérive.

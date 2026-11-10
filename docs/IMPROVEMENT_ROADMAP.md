@@ -141,6 +141,10 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` Roadmap-only commit `52ab1ee` did not trigger Render because it was
       outside the configured `backend/` service root; this is expected monorepo
       filtering behavior, not an auto-deploy failure.
+    - `[x]` Removed the Production Smoke post-CI trigger after confirming it
+      created a circular dependency: the smoke job waited for Render while
+      Render `checksPass` waited for the smoke check. Smoke remains manual after
+      releases and scheduled daily.
     - `[ ]` Confirm the next approved `main` release deploys to Render without a
       manual dashboard action using a backend-scoped documentation change.
 
@@ -638,6 +642,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | D011 | Render Free Tier blocks outbound SMTP TCP ports (25, 465, 587, 2525). To guarantee 100% reliable transactional email delivery on Render Free without port blocks or gateway timeouts, EduSpace uses the Mailjet Send API v3.1 over standard HTTPS (Port 443). | Accepted |
 | D012 | Account lifecycle notifications are delivered synchronously after the status transaction commits, so approval/rejection mail cannot depend on a queue worker and transport failures remain visible to administrators. | Accepted |
 | D013 | Restore Render `checksPass` auto-deploy before starting P6; manual deployment is an incident workaround, not the normal release process. | Accepted |
+| D014 | Production Smoke is manual after releases and scheduled daily; it must not run as a post-CI check because Render `checksPass` would wait on the smoke job that is itself waiting for Render. | Accepted |
 
 ## Progress log
 
@@ -668,9 +673,9 @@ Analytics must use scoped, privacy-conscious aggregate data.
 
 ## Next action
 
-Verify **P0.4 — Render deployment automation** by releasing the backend-scoped
-deployment documentation through the normal `PROD` → `main` fast-forward
-without a manual Render action. After synchronized Production Smoke succeeds,
-mark P0.4 complete and start **P6.1 — Email verification before admin review**.
-Do not begin P6.2 or any unrelated phase until P6.1 is completed, tested,
-preview-approved, deployed, and recorded here.
+Verify **P0.4 — Render deployment automation** by releasing this CI/smoke
+dependency fix through the normal `PROD` → `main` fast-forward without a manual
+Render action. After Render auto-deploys and a manually dispatched Production
+Smoke succeeds, mark P0.4 complete and start **P6.1 — Email verification before
+admin review**. Do not begin P6.2 or any unrelated phase until P6.1 is completed,
+tested, preview-approved, deployed, and recorded here.
