@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ClockIcon,
+  EyeIcon,
   FunnelIcon,
   KeyIcon,
+  NoSymbolIcon,
+  ShieldCheckIcon,
+  TrashIcon,
   UsersIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -16,10 +21,11 @@ import AdminRoute from "../../components/AdminRoute";
 import Button from "../../components/Button";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import SearchInput from "../../components/SearchInput";
+import UserDetailsModal from "../../components/UserDetailsModal";
 import { Card, DataTable, PageHeader, StatsCard } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { getUsers, removeUserRole } from "../../services/userService";
+import { getUsers, removeUserRole, bulkUserAction } from "../../services/userService";
 import { getRoleLabel } from "../../utils/roleLabels";
 import toast from "../../utils/toast";
 
@@ -51,28 +57,159 @@ const STATUS_LABELS = {
   suspended: "Suspendu",
 };
 
+const BULK_ROLES = ["admin", "enseignant", "responsable_laboratoire", "eleve"];
+
+function getInitialFilterState() {
+  if (typeof window === "undefined") {
+    return {
+      search: "",
+      role: "",
+      status: "",
+      department: "",
+      dateFrom: "",
+      dateTo: "",
+      sortBy: "created_at",
+      sortDirection: "desc",
+      page: 1,
+    };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const hasParams = Array.from(params.keys()).length > 0;
+
+  if (hasParams) {
+    return {
+      search: params.get("search") || "",
+      role: params.get("role") || "",
+      status: params.get("status") || "",
+      department: params.get("department") || "",
+      dateFrom: params.get("date_from") || "",
+      dateTo: params.get("date_to") || "",
+      sortBy: params.get("sort_by") || "created_at",
+      sortDirection: params.get("sort_direction") || "desc",
+      page: parseInt(params.get("page") || "1", 10) || 1,
+    };
+  }
+
+  try {
+    const saved = sessionStorage.getItem("users_filter_state");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        search: parsed.search || "",
+        role: parsed.role || "",
+        status: parsed.status || "",
+        department: parsed.department || "",
+        dateFrom: parsed.dateFrom || "",
+        dateTo: parsed.dateTo || "",
+        sortBy: parsed.sortBy || "created_at",
+        sortDirection: parsed.sortDirection || "desc",
+        page: parsed.page || 1,
+      };
+    }
+  } catch (e) {
+    console.warn("Could not read filters from sessionStorage:", e);
+  }
+
+  return {
+    search: "",
+    role: "",
+    status: "",
+    department: "",
+    dateFrom: "",
+    dateTo: "",
+    sortBy: "created_at",
+    sortDirection: "desc",
+    page: 1,
+  };
+}
+
 function UsersPage() {
   const { user: currentUser } = useAuth();
-  const { tr, dateLocale } = useLanguage();
+  const { tr, dateLocale, isRtl } = useLanguage();
+
+  const initialState = useMemo(() => getInitialFilterState(), []);
+
   const [users, setUsers] = useState([]);
   const [meta, setMeta] = useState(EMPTY_META);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [sortBy, setSortBy] = useState("created_at");
-  const [sortDirection, setSortDirection] = useState("desc");
-  const [page, setPage] = useState(1);
+
+  // Filters and sorting
+  const [searchTerm, setSearchTerm] = useState(initialState.search);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialState.search);
+  const [roleFilter, setRoleFilter] = useState(initialState.role);
+  const [statusFilter, setStatusFilter] = useState(initialState.status);
+  const [departmentFilter, setDepartmentFilter] = useState(initialState.department);
+  const [dateFrom, setDateFrom] = useState(initialState.dateFrom);
+  const [dateTo, setDateTo] = useState(initialState.dateTo);
+  const [sortBy, setSortBy] = useState(initialState.sortBy);
+  const [sortDirection, setSortDirection] = useState(initialState.sortDirection);
+  const [page, setPage] = useState(initialState.page);
+
+  // Bulk actions & selection
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [showBulkRoleMenu, setShowBulkRoleMenu] = useState(false);
+  const [bulkActionType, setBulkActionType] = useState("assign"); // "assign" or "remove"
+
+  // User details modal
+  const [detailsUserId, setDetailsUserId] = useState(null);
+
   const [refreshKey, setRefreshKey] = useState(0);
+  const headerCheckboxRef = useRef(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 350);
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  // Synchronize filters with URL search parameters and sessionStorage for navigation persistence
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const stateObj = {
+      search: debouncedSearch,
+      role: roleFilter,
+      status: statusFilter,
+      department: departmentFilter,
+      dateFrom,
+      dateTo,
+      sortBy,
+      sortDirection,
+      page,
+    };
+
+    try {
+      sessionStorage.setItem("users_filter_state", JSON.stringify(stateObj));
+    } catch (e) {
+      // Ignore quota errors
+    }
+
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (roleFilter) params.set("role", roleFilter);
+    if (statusFilter) params.set("status", statusFilter);
+    if (departmentFilter) params.set("department", departmentFilter);
+    if (dateFrom) params.set("date_from", dateFrom);
+    if (dateTo) params.set("date_to", dateTo);
+    if (sortBy !== "created_at") params.set("sort_by", sortBy);
+    if (sortDirection !== "desc") params.set("sort_direction", sortDirection);
+    if (page > 1) params.set("page", String(page));
+
+    const queryStr = params.toString();
+    const nextUrl = window.location.pathname + (queryStr ? `?${queryStr}` : "");
+    window.history.replaceState(null, "", nextUrl);
+  }, [
+    debouncedSearch,
+    roleFilter,
+    statusFilter,
+    departmentFilter,
+    dateFrom,
+    dateTo,
+    sortBy,
+    sortDirection,
+    page,
+  ]);
 
   useEffect(() => {
     let active = true;
@@ -131,6 +268,34 @@ function UsersPage() {
     tr,
   ]);
 
+  // Master checkbox indeterminate state
+  useEffect(() => {
+    if (!headerCheckboxRef.current) return;
+    const pageUserIds = users.map((u) => u.id);
+    const selectedOnPage = pageUserIds.filter((id) => selectedUserIds.includes(id));
+    const allSelectedOnPage = pageUserIds.length > 0 && selectedOnPage.length === pageUserIds.length;
+    const someSelectedOnPage = selectedOnPage.length > 0 && !allSelectedOnPage;
+
+    headerCheckboxRef.current.indeterminate = someSelectedOnPage;
+  }, [users, selectedUserIds]);
+
+  const toggleSelectAllPage = () => {
+    const pageUserIds = users.map((u) => u.id);
+    const allSelectedOnPage = pageUserIds.length > 0 && pageUserIds.every((id) => selectedUserIds.includes(id));
+
+    if (allSelectedOnPage) {
+      setSelectedUserIds((prev) => prev.filter((id) => !pageUserIds.includes(id)));
+    } else {
+      setSelectedUserIds((prev) => Array.from(new Set([...prev, ...pageUserIds])));
+    }
+  };
+
+  const toggleSelectUser = (userId) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
   const handleRemoveRole = (row, roleName) => {
     const userName = `${row.first_name} ${row.last_name}`.trim();
     toast.confirmDelete(
@@ -155,7 +320,16 @@ function UsersPage() {
     setDepartmentFilter("");
     setDateFrom("");
     setDateTo("");
+    setSortBy("created_at");
+    setSortDirection("desc");
     setPage(1);
+    setSelectedUserIds([]);
+    try {
+      sessionStorage.removeItem("users_filter_state");
+    } catch (e) {}
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
   };
 
   const updateSort = (field) => {
@@ -165,6 +339,61 @@ function UsersPage() {
     } else {
       setSortBy(field);
       setSortDirection("asc");
+    }
+  };
+
+  // Bulk actions executor
+  const executeBulkAction = async (action, extra = {}) => {
+    if (!selectedUserIds.length) return;
+    try {
+      setBulkActionLoading(true);
+      const res = await bulkUserAction({
+        userIds: selectedUserIds,
+        action,
+        role: extra.role,
+        reason: extra.reason,
+      });
+
+      const processed = res.processed_count || 0;
+      const skipped = res.skipped_count || 0;
+
+      if (skipped > 0 && res.skipped_reasons?.length) {
+        toast.info(
+          `${processed} utilisateur(s) mis à jour. Note : ${res.skipped_reasons.join(" ")}`
+        );
+      } else {
+        toast.success(tr(res.message || "Action groupée traitée avec succès."));
+      }
+
+      setSelectedUserIds([]);
+      setShowBulkRoleMenu(false);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      toast.error(tr(err.message || "Erreur lors de l'exécution de l'action groupée"));
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    toast.confirmDelete(
+      `Êtes-vous sûr de vouloir supprimer définitivement les ${selectedUserIds.length} utilisateurs sélectionnés ? Les administrateurs protégés seront automatiquement ignorés.`,
+      () => executeBulkAction("delete"),
+      {
+        loading: tr("Suppression groupée en cours..."),
+        success: tr("Suppression effectuée"),
+        error: tr("Erreur lors de la suppression"),
+      }
+    );
+  };
+
+  const handleBulkSuspend = () => {
+    const reason = window.prompt(
+      tr("Veuillez saisir le motif de la suspension pour ces comptes :"),
+      "Suspension administrative"
+    );
+    if (reason !== null && reason.trim()) {
+      executeBulkAction("suspend", { reason: reason.trim() });
     }
   };
 
@@ -220,7 +449,10 @@ function UsersPage() {
               <span>{getRoleLabel(roleName, tr)}</span>
               <button
                 type="button"
-                onClick={() => handleRemoveRole(row, roleName)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveRole(row, roleName);
+                }}
                 disabled={protectedRole}
                 className="rounded p-0.5 text-slate-400 transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:text-red-400"
                 title={
@@ -239,7 +471,37 @@ function UsersPage() {
     );
   };
 
+  const allPageIds = users.map((u) => u.id);
+  const isAllPageSelected = allPageIds.length > 0 && allPageIds.every((id) => selectedUserIds.includes(id));
+
   const columns = [
+    {
+      header: (
+        <div className="flex items-center justify-center">
+          <input
+            type="checkbox"
+            ref={headerCheckboxRef}
+            checked={isAllPageSelected}
+            onChange={toggleSelectAllPage}
+            className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900"
+            aria-label={tr("Sélectionner tous les utilisateurs")}
+          />
+        </div>
+      ),
+      accessor: "select",
+      align: "center",
+      render: (row) => (
+        <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={selectedUserIds.includes(row.id)}
+            onChange={() => toggleSelectUser(row.id)}
+            className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900"
+            aria-label={`${tr("Sélectionner")} ${row.first_name} ${row.last_name}`}
+          />
+        </div>
+      ),
+    },
     {
       header: sortHeader("ID", "id"),
       accessor: "id",
@@ -252,9 +514,13 @@ function UsersPage() {
       accessor: "first_name",
       render: (row) => (
         <div>
-          <span className="block font-medium text-slate-900 dark:text-slate-100">
+          <button
+            type="button"
+            onClick={() => setDetailsUserId(row.id)}
+            className="text-start font-medium text-slate-900 hover:text-primary-600 dark:text-slate-100 dark:hover:text-primary-400"
+          >
             {row.first_name} {row.last_name}
-          </span>
+          </button>
           <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
             {row.department || row.institution || "—"}
           </span>
@@ -283,6 +549,24 @@ function UsersPage() {
         <span className="whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
           {formatDate(row.created_at)}
         </span>
+      ),
+    },
+    {
+      header: tr("Actions"),
+      accessor: "actions",
+      align: "center",
+      render: (row) => (
+        <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={EyeIcon}
+            onClick={() => setDetailsUserId(row.id)}
+            aria-label={`${tr("Détails")} ${row.first_name}`}
+          >
+            {tr("Détails")}
+          </Button>
+        </div>
       ),
     },
   ];
@@ -401,6 +685,123 @@ function UsersPage() {
         </div>
       </Card>
 
+      {/* Floating / Sticky Bulk Action Bar */}
+      {selectedUserIds.length > 0 && (
+        <aside
+          aria-label={tr("Actions groupées")}
+          className="sticky bottom-4 z-40 rounded-2xl border border-primary-200 bg-white/95 p-4 shadow-xl backdrop-blur-md transition-all sm:p-5 dark:border-primary-900/40 dark:bg-slate-900/95"
+        >
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between" dir={isRtl ? "rtl" : "ltr"}>
+            <div className="flex items-center gap-3">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-100 font-bold text-primary-700 dark:bg-primary-950/60 dark:text-primary-300">
+                {selectedUserIds.length}
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {selectedUserIds.length > 1
+                    ? `${selectedUserIds.length} ${tr("utilisateurs sélectionnés")}`
+                    : `1 ${tr("utilisateur sélectionné")}`}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {tr("Appliquez une action immédiate à l'ensemble de la sélection.")}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Role Actions Popover / Dropdown */}
+              <div className="relative">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={ShieldCheckIcon}
+                  disabled={bulkActionLoading}
+                  onClick={() => {
+                    setBulkActionType("assign");
+                    setShowBulkRoleMenu((v) => !v);
+                  }}
+                >
+                  {tr("Attribuer un rôle")}
+                </Button>
+                {showBulkRoleMenu && (
+                  <div className="absolute bottom-full mb-2 left-0 z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+                    <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      {bulkActionType === "assign" ? tr("Attribuer le rôle") : tr("Retirer le rôle")}
+                    </p>
+                    {BULK_ROLES.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => {
+                          executeBulkAction(bulkActionType === "assign" ? "assign_role" : "remove_role", {
+                            role: r,
+                          });
+                        }}
+                        className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        <span>{getRoleLabel(r, tr)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={XMarkIcon}
+                disabled={bulkActionLoading}
+                onClick={() => {
+                  setBulkActionType("remove");
+                  setShowBulkRoleMenu((v) => !v);
+                }}
+              >
+                {tr("Retirer un rôle")}
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={CheckIcon}
+                disabled={bulkActionLoading}
+                onClick={() => executeBulkAction("approve")}
+              >
+                {tr("Approuver")}
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={NoSymbolIcon}
+                disabled={bulkActionLoading}
+                onClick={handleBulkSuspend}
+              >
+                {tr("Suspendre")}
+              </Button>
+
+              <Button
+                variant="danger"
+                size="sm"
+                icon={TrashIcon}
+                disabled={bulkActionLoading}
+                onClick={handleBulkDelete}
+              >
+                {tr("Supprimer")}
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedUserIds([])}
+                disabled={bulkActionLoading}
+                className="ml-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+              >
+                {tr("Désélectionner tout")}
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
+
       <Card title="Comptes utilisateurs" subtitle="Liste paginée des membres de la plateforme">
         {loading && users.length === 0 ? (
           <div className="flex items-center justify-center py-12">
@@ -412,24 +813,42 @@ function UsersPage() {
               <DataTable columns={columns} data={users} searchable={false} />
             </div>
 
+            {/* Mobile Card Layout */}
             <div className="space-y-3 md:hidden">
               {users.length ? (
                 users.map((row) => (
                   <article
                     key={row.id}
-                    className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+                    className={`rounded-xl border p-4 transition-colors ${
+                      selectedUserIds.includes(row.id)
+                        ? "border-primary-300 bg-primary-50/30 dark:border-primary-800 dark:bg-primary-950/20"
+                        : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="truncate font-semibold text-slate-900 dark:text-white">
-                          {row.first_name} {row.last_name}
-                        </h3>
-                        <a
-                          href={`mailto:${row.email}`}
-                          className="mt-0.5 block truncate text-sm text-primary-600 dark:text-primary-400"
-                        >
-                          {row.email}
-                        </a>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.includes(row.id)}
+                          onChange={() => toggleSelectUser(row.id)}
+                          className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900"
+                          aria-label={`${tr("Sélectionner")} ${row.first_name}`}
+                        />
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => setDetailsUserId(row.id)}
+                            className="truncate text-start font-semibold text-slate-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-400"
+                          >
+                            {row.first_name} {row.last_name}
+                          </button>
+                          <a
+                            href={`mailto:${row.email}`}
+                            className="mt-0.5 block truncate text-sm text-primary-600 dark:text-primary-400"
+                          >
+                            {row.email}
+                          </a>
+                        </div>
                       </div>
                       {approvalBadge(row.approval_status)}
                     </div>
@@ -445,11 +864,21 @@ function UsersPage() {
                         <dd className="mt-1 text-slate-800 dark:text-slate-200">{formatDate(row.created_at)}</dd>
                       </div>
                     </dl>
-                    <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
-                      <p className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                        {tr("Rôles attribués")}
-                      </p>
-                      {roleBadges(row, true)}
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+                      <div>
+                        <p className="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                          {tr("Rôles attribués")}
+                        </p>
+                        {roleBadges(row, true)}
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={EyeIcon}
+                        onClick={() => setDetailsUserId(row.id)}
+                      >
+                        {tr("Détails")}
+                      </Button>
                     </div>
                   </article>
                 ))
@@ -493,6 +922,18 @@ function UsersPage() {
           </div>
         )}
       </Card>
+
+      {/* User Details Slide-over / Modal */}
+      {detailsUserId && (
+        <UserDetailsModal
+          isOpen={Boolean(detailsUserId)}
+          onClose={() => setDetailsUserId(null)}
+          userId={detailsUserId}
+          currentUser={currentUser}
+          totalAdmins={meta.counts.admins}
+          onUserUpdated={() => setRefreshKey((k) => k + 1)}
+        />
+      )}
     </div>
   );
 }

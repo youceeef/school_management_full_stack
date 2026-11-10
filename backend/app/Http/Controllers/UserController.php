@@ -148,6 +148,205 @@ class UserController extends Controller
         ]);
     }
 
+    public function bulkAction(Request $request): JsonResponse
+    {
+        $this->authorize('listUsers', User::class);
+
+        $validated = $request->validate([
+            'user_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
+            'action' => ['required', 'string', Rule::in(['assign_role', 'remove_role', 'delete', 'approve', 'suspend'])],
+            'role' => [
+                Rule::requiredIf(fn () => in_array($request->input('action'), ['assign_role', 'remove_role'], true)),
+                'nullable',
+                'string',
+                'exists:roles,name',
+            ],
+            'reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $admin = $request->user();
+        $action = $validated['action'];
+        $roleName = $validated['role'] ?? null;
+        $reason = $validated['reason'] ?? null;
+        $targetIds = array_values(array_unique($validated['user_ids']));
+
+        $users = User::with('roles')->whereIn('id', $targetIds)->get();
+
+        $processedCount = 0;
+        $skippedCount = 0;
+        $skippedReasons = [];
+
+        DB::transaction(function () use (
+            $users,
+            $action,
+            $roleName,
+            $reason,
+            $admin,
+            $request,
+            &$processedCount,
+            &$skippedCount,
+            &$skippedReasons
+        ) {
+            $totalAdmins = User::role('admin')->count();
+
+            foreach ($users as $user) {
+                $isSelf = (int) $admin->id === (int) $user->id;
+
+                if ($action === 'delete') {
+                    if ($isSelf) {
+                        $skippedCount++;
+                        $skippedReasons[] = "Votre propre compte administrateur ne peut pas être supprimé.";
+                        continue;
+                    }
+                    if ($user->hasRole('admin') && $totalAdmins <= 1) {
+                        $skippedCount++;
+                        $skippedReasons[] = "Le dernier administrateur ne peut pas être supprimé.";
+                        continue;
+                    }
+
+                    $picturePath = $user->picture;
+                    $proofPath = $user->proof_document_path;
+                    $user->tokens()->delete();
+                    $user->delete();
+                    $this->deleteStoredPicture($picturePath, config('filesystems.uploads_disk'));
+                    $this->deleteStoredPicture($proofPath, config('filesystems.documents_disk'));
+
+                    if ($user->hasRole('admin')) {
+                        $totalAdmins--;
+                    }
+                    $processedCount++;
+                    continue;
+                }
+
+                if ($action === 'suspend') {
+                    if ($isSelf) {
+                        $skippedCount++;
+                        $skippedReasons[] = "Votre propre compte administrateur ne peut pas être suspendu.";
+                        continue;
+                    }
+                    if ($user->approval_status === User::APPROVAL_SUSPENDED) {
+                        $skippedCount++;
+                        continue;
+                    }
+
+                    $fromStatus = $user->approval_status;
+                    $user->tokens()->delete();
+                    $user->forceFill([
+                        'approval_status' => User::APPROVAL_SUSPENDED,
+                        'rejection_reason' => $reason ?: 'Compte suspendu par une action groupée administrateur.',
+                        'suspended_at' => now(),
+                        'reviewed_at' => now(),
+                        'reviewed_by' => $admin->id,
+                    ])->save();
+
+                    AccountReview::create([
+                        'user_id' => $user->id,
+                        'reviewer_id' => $admin->id,
+                        'action' => AccountReview::ACTION_SUSPENDED,
+                        'from_status' => $fromStatus,
+                        'to_status' => User::APPROVAL_SUSPENDED,
+                        'reason' => $reason ?: 'Suspension groupée',
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
+
+                    try {
+                        $user->notify(new AccountApprovalStatusNotification(AccountReview::ACTION_SUSPENDED, $reason));
+                    } catch (Throwable) {
+                        // Keep transaction intact if mail notification encounters issues
+                    }
+
+                    $processedCount++;
+                    continue;
+                }
+
+                if ($action === 'approve') {
+                    if ($user->approval_status === User::APPROVAL_APPROVED) {
+                        $skippedCount++;
+                        continue;
+                    }
+
+                    $fromStatus = $user->approval_status;
+                    if ($user->requested_role) {
+                        $user->syncRoles([$user->requested_role]);
+                    }
+                    $user->forceFill([
+                        'approval_status' => User::APPROVAL_APPROVED,
+                        'rejection_reason' => null,
+                        'suspended_at' => null,
+                        'reviewed_at' => now(),
+                        'reviewed_by' => $admin->id,
+                    ])->save();
+
+                    AccountReview::create([
+                        'user_id' => $user->id,
+                        'reviewer_id' => $admin->id,
+                        'action' => AccountReview::ACTION_APPROVED,
+                        'from_status' => $fromStatus,
+                        'to_status' => User::APPROVAL_APPROVED,
+                        'reason' => 'Approbation groupée par administrateur',
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
+
+                    try {
+                        $user->notify(new AccountApprovalStatusNotification(AccountReview::ACTION_APPROVED));
+                    } catch (Throwable) {
+                        // Keep transaction intact if mail notification encounters issues
+                    }
+
+                    $processedCount++;
+                    continue;
+                }
+
+                if ($action === 'assign_role') {
+                    if ($user->hasRole($roleName)) {
+                        $skippedCount++;
+                        continue;
+                    }
+                    $user->assignRole($roleName);
+                    if ($roleName === 'admin') {
+                        $totalAdmins++;
+                    }
+                    $processedCount++;
+                    continue;
+                }
+
+                if ($action === 'remove_role') {
+                    if (! $user->hasRole($roleName)) {
+                        $skippedCount++;
+                        continue;
+                    }
+                    if ($roleName === 'admin') {
+                        if ($isSelf) {
+                            $skippedCount++;
+                            $skippedReasons[] = "Vous ne pouvez pas retirer votre propre rôle administrateur.";
+                            continue;
+                        }
+                        if ($totalAdmins <= 1) {
+                            $skippedCount++;
+                            $skippedReasons[] = "Le rôle administrateur ne peut pas être retiré au dernier administrateur.";
+                            continue;
+                        }
+                        $totalAdmins--;
+                    }
+                    $user->removeRole($roleName);
+                    $processedCount++;
+                    continue;
+                }
+            }
+        });
+
+        return response()->json([
+            'message' => 'Action groupée traitée avec succès.',
+            'action' => $action,
+            'processed_count' => $processedCount,
+            'skipped_count' => $skippedCount,
+            'skipped_reasons' => array_values(array_unique($skippedReasons)),
+        ]);
+    }
+
     public function reviewAccountApproval(Request $request, int $userId)
     {
         $this->authorize('listUsers', User::class);

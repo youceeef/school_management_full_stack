@@ -418,14 +418,22 @@ Keep user administration usable as the number of accounts grows.
 
 ### Tasks
 
-- `[~]` **P5.1 — Server-side pagination, sorting, search, and filtering.**
-  - Implementation complete locally; backend execution, browser review, and deployment approval remain.
-- `[~]` Filters for role, status, registration date, and department.
-- `[~]` Friendly localized role labels everywhere.
-- `[~]` Mobile card layout for users and role controls.
-- `[ ]` Preserve filters when navigating back from details.
-- `[ ]` Add carefully scoped bulk actions after single-user actions are stable.
-- `[~]` Prevent removal of the last administrator and self-demotion in the UI.
+- `[x]` **P5.1 — Server-side pagination, sorting, search, and filtering.**
+  - `[x]` Paginated `/api/users` endpoint with server-side filters for role, status, registration date range, and department.
+  - `[x]` Summary counts for total registered accounts, administrators, and pending requests in `meta.counts`.
+  - `[x]` Friendly localized role labels everywhere (`roleLabels.js` & `getRoleLabel`).
+  - `[x]` Mobile card layout for users and inline role management controls.
+  - `[x]` Multi-field sorting by id, name, email, department, approval status, and created_at.
+- `[x]` **P5.2 — Filter persistence and seamless navigation.**
+  - `[x]` Filters, sort parameters, and pagination page synchronized with URL search params and `sessionStorage`.
+  - `[x]` Dedicated `UserDetailsModal` slide-over view for inspecting user profile, contact information, institutional details, review history, and assigned roles without navigating away or losing table state.
+  - `[x]` Navigating back or reloading restores the active filtered view.
+- `[x]` **P5.3 — Carefully scoped administrative bulk actions.**
+  - `[x]` Multi-row selection with master indeterminate checkbox support on desktop and mobile.
+  - `[x]` Bulk actions endpoint `POST /api/users/bulk-action` supporting `assign_role`, `remove_role`, `approve`, `suspend`, and `delete`.
+  - `[x]` Strict safeguards: prevents self-deletion, self-suspension, and removing the admin role from the current or last administrator.
+  - `[x]` Sticky/floating bulk action toolbar with one-click actions, confirmation modals, and responsive layout.
+  - `[x]` Automated feature test suite in `UserAdministrationApiTest.php` verifying bulk actions and safeguard enforcement.
 
 ### Acceptance criteria
 

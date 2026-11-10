@@ -97,6 +97,133 @@ class UserAdministrationApiTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_admin_can_bulk_assign_and_remove_roles(): void
+    {
+        $admin = $this->createAdmin();
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+
+        $token = $this->tokenFor($admin);
+
+        // Bulk assign 'enseignant'
+        $assignResponse = $this->withToken($token)->postJson('/api/users/bulk-action', [
+            'user_ids' => [$user1->id, $user2->id],
+            'action' => 'assign_role',
+            'role' => 'enseignant',
+        ]);
+
+        $assignResponse->assertOk()
+            ->assertJsonPath('processed_count', 2)
+            ->assertJsonPath('skipped_count', 0);
+
+        $this->assertTrue($user1->fresh()->hasRole('enseignant'));
+        $this->assertTrue($user2->fresh()->hasRole('enseignant'));
+
+        // Bulk remove 'enseignant'
+        $removeResponse = $this->withToken($token)->postJson('/api/users/bulk-action', [
+            'user_ids' => [$user1->id, $user2->id],
+            'action' => 'remove_role',
+            'role' => 'enseignant',
+        ]);
+
+        $removeResponse->assertOk()
+            ->assertJsonPath('processed_count', 2);
+
+        $this->assertFalse($user1->fresh()->hasRole('enseignant'));
+        $this->assertFalse($user2->fresh()->hasRole('enseignant'));
+    }
+
+    public function test_admin_bulk_action_protects_self_and_last_admin(): void
+    {
+        $admin = $this->createAdmin();
+        $user = User::factory()->create();
+
+        $token = $this->tokenFor($admin);
+
+        // Attempt bulk delete on self and regular user
+        $deleteResponse = $this->withToken($token)->postJson('/api/users/bulk-action', [
+            'user_ids' => [$admin->id, $user->id],
+            'action' => 'delete',
+        ]);
+
+        $deleteResponse->assertOk()
+            ->assertJsonPath('processed_count', 1)
+            ->assertJsonPath('skipped_count', 1);
+
+        $this->assertDatabaseHas('users', ['id' => $admin->id, 'deleted_at' => null]);
+        $this->assertSoftDeleted('users', ['id' => $user->id]);
+
+        // Attempt bulk remove admin role from only remaining admin
+        $removeRoleResponse = $this->withToken($token)->postJson('/api/users/bulk-action', [
+            'user_ids' => [$admin->id],
+            'action' => 'remove_role',
+            'role' => 'admin',
+        ]);
+
+        $removeRoleResponse->assertOk()
+            ->assertJsonPath('processed_count', 0)
+            ->assertJsonPath('skipped_count', 1);
+
+        $this->assertTrue($admin->fresh()->hasRole('admin'));
+    }
+
+    public function test_admin_can_bulk_approve_and_suspend_users(): void
+    {
+        $admin = $this->createAdmin();
+        $pending1 = User::factory()->create([
+            'approval_status' => User::APPROVAL_PENDING,
+            'requested_role' => 'enseignant',
+        ]);
+        $pending2 = User::factory()->create([
+            'approval_status' => User::APPROVAL_PENDING,
+            'requested_role' => 'responsable_laboratoire',
+        ]);
+
+        $token = $this->tokenFor($admin);
+
+        // Bulk approve
+        $approveResponse = $this->withToken($token)->postJson('/api/users/bulk-action', [
+            'user_ids' => [$pending1->id, $pending2->id],
+            'action' => 'approve',
+        ]);
+
+        $approveResponse->assertOk()
+            ->assertJsonPath('processed_count', 2);
+
+        $this->assertEquals(User::APPROVAL_APPROVED, $pending1->fresh()->approval_status);
+        $this->assertEquals(User::APPROVAL_APPROVED, $pending2->fresh()->approval_status);
+        $this->assertTrue($pending1->fresh()->hasRole('enseignant'));
+
+        // Bulk suspend
+        $suspendResponse = $this->withToken($token)->postJson('/api/users/bulk-action', [
+            'user_ids' => [$pending1->id, $pending2->id],
+            'action' => 'suspend',
+            'reason' => 'Annual institutional audit suspension',
+        ]);
+
+        $suspendResponse->assertOk()
+            ->assertJsonPath('processed_count', 2);
+
+        $this->assertEquals(User::APPROVAL_SUSPENDED, $pending1->fresh()->approval_status);
+        $this->assertEquals(User::APPROVAL_SUSPENDED, $pending2->fresh()->approval_status);
+    }
+
+    public function test_non_admin_cannot_execute_bulk_actions(): void
+    {
+        $student = User::factory()->create();
+        $student->assignRole('eleve');
+
+        $this->postJson('/api/users/bulk-action', [
+            'user_ids' => [$student->id],
+            'action' => 'delete',
+        ])->assertUnauthorized();
+
+        $this->withToken($this->tokenFor($student))->postJson('/api/users/bulk-action', [
+            'user_ids' => [$student->id],
+            'action' => 'delete',
+        ])->assertForbidden();
+    }
+
     private function createAdmin(): User
     {
         $admin = User::factory()->create();

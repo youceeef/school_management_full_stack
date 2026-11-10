@@ -59,3 +59,41 @@ export const reviewUserApproval = async (userId, status) => {
     throw error.response?.data || { message: "Erreur lors de la révision du compte" };
   }
 };
+
+// Assign role to user
+export const assignUserRole = async (userId, roleName) => {
+  try {
+    const response = await axiosInstance.post(`/api/roles/users/${userId}`, {
+      role_name: roleName,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Erreur lors de l'attribution du rôle" };
+  }
+};
+
+// Execute bulk action on multiple users
+export const bulkUserAction = async ({ userIds, action, role, reason }) => {
+  try {
+    const response = await axiosInstance.post("/api/users/bulk-action", {
+      user_ids: userIds,
+      action,
+      role: role || undefined,
+      reason: reason || undefined,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Erreur lors de l'exécution de l'action groupée" };
+  }
+};
+
+// Fetch full user details by ID
+export const getUserById = async (userId) => {
+  try {
+    const response = await axiosInstance.get(`/api/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Erreur lors de la récupération des détails de l'utilisateur" };
+  }
+};
+
