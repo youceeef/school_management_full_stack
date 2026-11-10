@@ -35,7 +35,8 @@ class AccountRequestController extends Controller
             ->where(function ($q) {
                 $q->whereIn('requested_role', User::APPROVAL_ROLES)
                     ->orWhereIn('approval_status', [User::APPROVAL_PENDING, User::APPROVAL_REJECTED, User::APPROVAL_SUSPENDED]);
-            });
+            })
+            ->reviewable();
 
         // Compute summary counts across all requests before applying view filters
         $rawCounts = (clone $baseQuery)
@@ -169,6 +170,7 @@ class AccountRequestController extends Controller
                 $q->whereIn('requested_role', User::APPROVAL_ROLES)
                     ->orWhereIn('approval_status', [User::APPROVAL_PENDING, User::APPROVAL_REJECTED, User::APPROVAL_SUSPENDED]);
             })
+            ->reviewable()
             ->findOrFail($id);
 
         return response()->json([
@@ -185,7 +187,8 @@ class AccountRequestController extends Controller
             ->where(function ($q) {
                 $q->whereIn('requested_role', User::APPROVAL_ROLES)
                     ->orWhereIn('approval_status', [User::APPROVAL_PENDING, User::APPROVAL_REJECTED, User::APPROVAL_SUSPENDED]);
-            });
+            })
+            ->reviewable();
 
         $rawCounts = $baseQuery
             ->selectRaw('approval_status, count(*) as count')
@@ -226,6 +229,13 @@ class AccountRequestController extends Controller
             return response()->json([
                 'message' => 'Ce compte ne fait pas partie du processus d’approbation.',
             ], 422);
+        }
+
+        if ($user->isPending() && ! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Cette demande ne peut pas être examinée tant que l’adresse email n’a pas été confirmée.',
+                'code' => 'EMAIL_UNVERIFIED',
+            ], 409);
         }
 
         $fromStatus = $user->approval_status;
@@ -430,6 +440,14 @@ class AccountRequestController extends Controller
             return response()->json([
                 'message' => 'Seules les demandes refusées peuvent faire l’objet d’une nouvelle soumission.',
             ], 422);
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Confirmez votre adresse email avant de soumettre une nouvelle demande.',
+                'code' => 'EMAIL_UNVERIFIED',
+                'can_resend' => true,
+            ], 409);
         }
 
         $disk = config('filesystems.documents_disk');

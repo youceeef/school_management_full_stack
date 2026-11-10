@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\VerifyStaffEmailNotification;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -10,7 +12,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
@@ -119,6 +121,30 @@ class User extends Authenticatable
     public function requiresAccountApproval(): bool
     {
         return in_array($this->requested_role, self::APPROVAL_ROLES, true);
+    }
+
+    /**
+     * Staff must confirm ownership of their email before review; every other
+     * account type can never enter that flow, so no verification mail is sent.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        if ($this->requiresAccountApproval()) {
+            $this->notify(new VerifyStaffEmailNotification);
+        }
+    }
+
+    /**
+     * Accounts an administrator may act on. A pending application is reviewable
+     * only once its email address has been confirmed; already-decided accounts
+     * stay visible for their history.
+     */
+    public function scopeReviewable(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query) {
+            $query->whereNotNull('email_verified_at')
+                ->orWhere('approval_status', '!=', self::APPROVAL_PENDING);
+        });
     }
 
     public function documents()

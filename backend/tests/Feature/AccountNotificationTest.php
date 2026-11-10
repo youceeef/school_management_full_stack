@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Notifications\AccountApprovalStatusNotification;
 use App\Notifications\NewUserForAdminNotification;
 use App\Notifications\UserRegisteredNotification;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
@@ -354,7 +355,7 @@ class AccountNotificationTest extends TestCase
         );
     }
 
-    public function test_staff_registration_dispatches_welcome_and_admin_notifications(): void
+    public function test_staff_registration_dispatches_welcome_notification_and_defers_admin_alert(): void
     {
         Notification::fake();
         $admin = $this->createAdmin();
@@ -378,6 +379,12 @@ class AccountNotificationTest extends TestCase
             $teacher,
             UserRegisteredNotification::class
         );
+
+        // P6.1: the application is not reviewable until the address is confirmed.
+        Notification::assertNotSentTo($admin, NewUserForAdminNotification::class);
+
+        $teacher->markEmailAsVerified();
+        event(new Verified($teacher));
 
         Notification::assertSentTo(
             $admin,

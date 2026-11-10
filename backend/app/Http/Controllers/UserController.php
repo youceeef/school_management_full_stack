@@ -434,6 +434,13 @@ class UserController extends Controller
             ], 422);
         }
 
+        if ($user->isPending() && ! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Cette demande ne peut pas être examinée tant que l’adresse email n’a pas été confirmée.',
+                'code' => 'EMAIL_UNVERIFIED',
+            ], 409);
+        }
+
         $fromStatus = $user->approval_status;
         $status = $validated['status'];
         $reason = $validated['reason'] ?? null;

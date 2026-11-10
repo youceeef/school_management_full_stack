@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\StaffEmailVerificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EquipementController;
@@ -42,6 +43,16 @@ Route::prefix('register')->middleware('throttle:registration')->group(function (
 Route::post('/account-requests/resubmit', [AccountRequestController::class, 'resubmit'])
     ->middleware('throttle:registration')
     ->name('account-requests.resubmit');
+
+// Staff email confirmation: applicants cannot log in yet, so the signed link is
+// the proof of ownership and the resend endpoint must stay public.
+Route::get('/email/verify/{id}/{hash}', [StaffEmailVerificationController::class, 'verify'])
+    ->middleware('throttle:6,1')
+    ->name('verification.verify');
+
+Route::post('/email/verification-notification', [StaffEmailVerificationController::class, 'resend'])
+    ->middleware('throttle:6,1')
+    ->name('verification.send');
 
 /*
 |--------------------------------------------------------------------------

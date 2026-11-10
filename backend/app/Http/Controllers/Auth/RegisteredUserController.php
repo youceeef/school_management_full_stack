@@ -10,8 +10,10 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
+use Throwable;
 
 class RegisteredUserController extends Controller
 {
@@ -80,6 +82,7 @@ class RegisteredUserController extends Controller
 
             if (! $requiresApproval) {
                 $user->assignRole($role);
+                $user->markEmailAsVerified();
             }
 
             return $user;
@@ -87,15 +90,33 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
+        $verificationEmailSent = false;
+
+        if ($requiresApproval) {
+            try {
+                $user->sendEmailVerificationNotification();
+                $verificationEmailSent = true;
+            } catch (Throwable $exception) {
+                Log::error('Failed sending staff verification email', [
+                    'user_id' => $user->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
         $response = [
             'message' => $requiresApproval
-                ? 'Votre demande de compte a été enregistrée. Un administrateur doit l\'approuver avant votre première connexion.'
+                ? 'Votre demande de compte a été enregistrée. Confirmez votre adresse email pour qu’elle puisse être examinée par un administrateur.'
                 : "$role enregistré avec succès",
             'user' => $user->load('roles'),
             'approval_required' => $requiresApproval,
             'approval_status' => $user->approval_status,
             'requested_role' => $user->requested_role,
         ];
+
+        if ($requiresApproval) {
+            $response['verification_email_sent'] = $verificationEmailSent;
+        }
 
         if ($issueToken && $user->isApproved()) {
             $response['token'] = $user->createToken('registration-token')->plainTextToken;

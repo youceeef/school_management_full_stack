@@ -37,11 +37,12 @@ class SendWelcomeNotification
                 ]);
             }
 
-            // 2. Notify admins if the new user has a specific role or requires approval
+            // 2. Notify admins once the account is reviewable. Pending staff are
+            // excluded here: they are announced only after verifying their email.
             $rolesToNotifyAdminFor = ['enseignant', 'responsable_laboratoire', 'admin', 'eleve'];
 
-            $shouldNotifyAdmin = $registeredUser->approval_status === User::APPROVAL_PENDING
-                || $registeredUser->hasAnyRole($rolesToNotifyAdminFor);
+            $shouldNotifyAdmin = $registeredUser->approval_status !== User::APPROVAL_PENDING
+                && $registeredUser->hasAnyRole($rolesToNotifyAdminFor);
 
             if ($shouldNotifyAdmin) {
                 try {

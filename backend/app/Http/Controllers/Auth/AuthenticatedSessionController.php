@@ -27,6 +27,17 @@ class AuthenticatedSessionController extends Controller
             return response()->json(['message' => 'Identifiants incorrects.'], 401);
         }
 
+        // A staff applicant must prove ownership of the address before review or
+        // login, regardless of the current approval status.
+        if ($user->requiresAccountApproval() && ! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Confirmez votre adresse email avant de vous connecter.',
+                'code' => 'EMAIL_UNVERIFIED',
+                'approval_status' => $user->approval_status,
+                'can_resend' => true,
+            ], 403);
+        }
+
         if (! $user->isApproved()) {
             $message = match ($user->approval_status) {
                 User::APPROVAL_REJECTED => 'Votre demande de compte a été refusée.',

@@ -679,6 +679,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-10 | P5 Complete | All authenticated production scenarios passed; user administration accepted on desktop, mobile, and RTL | `22c61a2` |
 | 2026-11-10 | P0.4 recovery | Render Blueprint synchronized and live auto-deploy restored to `After CI Checks Pass` | `653d0c1` |
 | 2026-11-10 | P0.4 Complete | Manual operator release adopted (D015), `render.yaml` declared `off`, runbook and SHA-parity rule updated, release verified synchronized | `d4bb6cd` |
+| 2026-11-10 | P0.4 amendment | Quoted `autoDeployTrigger` enum so the Render Blueprint stays valid; release deployed and verified synchronized | `457081e` |
 
 ## Next action
 

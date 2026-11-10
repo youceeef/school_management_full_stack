@@ -9,6 +9,8 @@ import {
   EyeSlashIcon,
   DocumentArrowUpIcon,
   DocumentCheckIcon,
+  EnvelopeIcon,
+  ExclamationTriangleIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import toast from "../utils/toast";
@@ -43,6 +45,7 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
   const [fileError, setFileError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [verificationNotice, setVerificationNotice] = useState(null);
   const fileInputRef = useRef(null);
   const router = useRouter();
   const { registerStudent, registerTeacher, registerLabManager } = useAuth();
@@ -192,11 +195,17 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
           return;
       }
 
-      toast.success(
-        response?.approval_required
-          ? tr(response.message)
-          : tr("Compte créé avec succès !")
-      );
+      // Staff cannot log in or be reviewed until they confirm their address:
+      // show a persistent screen instead of redirecting to the login form.
+      if (response?.approval_required) {
+        setVerificationNotice({
+          email: formData.email.trim(),
+          sent: Boolean(response.verification_email_sent),
+        });
+        return;
+      }
+
+      toast.success(tr("Compte créé avec succès !"));
       setTimeout(() => {
         router.push(returnPath);
       }, 900);
@@ -240,6 +249,82 @@ export default function RegisterForm({ userType, returnPath = "/login" }) {
         return t("auth.registerHubSubtitle");
     }
   };
+
+  if (verificationNotice) {
+    const NoticeIcon = verificationNotice.sent ? EnvelopeIcon : ExclamationTriangleIcon;
+
+    return (
+      <div className="min-h-screen flex flex-col justify-between p-6 sm:p-12 bg-slate-50 dark:bg-slate-950">
+        <div className="max-w-xl w-full mx-auto flex items-center justify-between gap-2">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          >
+            <ArrowLeftIcon className={`w-4 h-4 ${isRtl ? "rotate-180" : ""}`} />
+            {t("auth.backToLogin")}
+          </Link>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
+        </div>
+
+        <div className="max-w-lg w-full mx-auto my-8">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center mb-5 ${
+                verificationNotice.sent
+                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+                  : "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
+              }`}
+            >
+              <NoticeIcon className="w-6 h-6" />
+            </div>
+
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {verificationNotice.sent
+                ? t("auth.verificationSentTitle")
+                : t("auth.verificationFailedTitle")}
+            </h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
+              {verificationNotice.sent
+                ? t("auth.verificationSentDesc", { email: verificationNotice.email })
+                : t("auth.verificationFailedDesc")}
+            </p>
+
+            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-3">
+              <Button
+                type="button"
+                variant="primary"
+                size="lg"
+                className="w-full"
+                onClick={() =>
+                  router.push(verificationNotice.sent ? "/login" : "/email-verified")
+                }
+              >
+                {verificationNotice.sent
+                  ? t("auth.backToLogin")
+                  : t("auth.verificationRequestNewLink")}
+              </Button>
+
+              <Link
+                href={verificationNotice.sent ? "/email-verified" : "/login"}
+                className="block text-center text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              >
+                {verificationNotice.sent
+                  ? t("auth.verificationRequestNewLink")
+                  : t("auth.backToLogin")}
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center text-xs text-slate-400 dark:text-slate-500">
+          © {new Date().getFullYear()} EduSpace — CSFT Tunisie
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col justify-between p-6 sm:p-12 bg-slate-50 dark:bg-slate-950">

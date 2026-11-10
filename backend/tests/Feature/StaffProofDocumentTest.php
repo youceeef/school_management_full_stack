@@ -101,6 +101,9 @@ class StaffProofDocumentTest extends TestCase
 
         $user = User::where('email', 'kamel.mejri@fst.utm.tn')->firstOrFail();
 
+        // P6.1: an applicant confirms the address before admins can inspect it.
+        $user->markEmailAsVerified();
+
         $this->assertNotNull($user->proof_document_path);
         $this->assertSame('attestation.pdf', $user->proof_document_name);
         $this->assertSame('application/pdf', $user->proof_document_mime);

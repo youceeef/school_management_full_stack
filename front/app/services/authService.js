@@ -18,6 +18,21 @@ export const changePassword = async (data) => {
   }
 };
 
+export const resendVerificationEmail = async (email) => {
+  try {
+    const normalizedEmail = String(email || '').trim();
+    const response = await axios.post(`${API_URL}/api/email/verification-notification`, { email: normalizedEmail }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    throw { ...(error.response?.data || {}), status: error.response?.status };
+  }
+};
+
 export const forgotPassword = async (email) => {
   try {
     const response = await axios.post(`${API_URL}/api/forgot-password`, { email }, {

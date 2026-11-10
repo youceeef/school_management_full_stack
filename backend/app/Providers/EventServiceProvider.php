@@ -8,13 +8,14 @@ use App\Events\ReservationSubmittedEvent;
 // Remove: use Illuminate\Support\Facades\Event; // Not directly used here for defining listeners
 
 // Your existing listener for Registered event
+use App\Listeners\NotifyAdminsOnStaffEmailVerified;
 use App\Listeners\NotifyManagersOnReservationSubmitted;
 // Import your NEW Reservation events and listeners
 use App\Listeners\NotifyUserOnReservationApproved;
 use App\Listeners\NotifyUserOnReservationRejected;
 use App\Listeners\SendWelcomeNotification;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
@@ -26,8 +27,12 @@ class EventServiceProvider extends ServiceProvider
      */
     protected $listen = [
         Registered::class => [
-            SendEmailVerificationNotification::class,
             SendWelcomeNotification::class,
+        ],
+
+        // Staff applicants become reviewable only after confirming their email.
+        Verified::class => [
+            NotifyAdminsOnStaffEmailVerified::class,
         ],
 
         // Reservation Event Mappings

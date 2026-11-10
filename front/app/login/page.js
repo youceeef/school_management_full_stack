@@ -10,6 +10,7 @@ import { useLanguage } from "../context/LanguageContext";
 import ThemeToggle from "../components/ThemeToggle";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import Button from "../components/Button";
+import { resendVerificationEmail } from "../services/authService";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -18,6 +19,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [accountRejection, setAccountRejection] = useState(null);
+  const [emailUnverified, setEmailUnverified] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
   const { t, tr, isRtl } = useLanguage();
@@ -27,6 +30,7 @@ export default function Login() {
     setLoading(true);
     setError("");
     setAccountRejection(null);
+    setEmailUnverified(false);
     try {
       if (!email && !password) {
         throw new Error(tr("Veuillez remplir votre email et votre mot de passe"));
@@ -52,9 +56,27 @@ export default function Login() {
       } else {
         setAccountRejection(null);
       }
+      setEmailUnverified(err.code === "EMAIL_UNVERIFIED");
       setError(tr(err.message || "Identifiants invalides ou serveur momentanément indisponible"));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendingVerification(true);
+
+    try {
+      await resendVerificationEmail(email);
+      toast.success(t("auth.emailVerifiedResendSuccess"));
+    } catch (err) {
+      toast.error(
+        err?.status === 429
+          ? t("auth.emailVerifiedResendRateLimited")
+          : t("auth.emailVerifiedResendError")
+      );
+    } finally {
+      setResendingVerification(false);
     }
   };
 
@@ -147,6 +169,29 @@ export default function Login() {
                     <span>{tr("Corriger et renvoyer la demande")}</span>
                     <span aria-hidden="true">&rarr;</span>
                   </Link>
+                </div>
+              </div>
+            )}
+
+            {emailUnverified && (
+              <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-900 dark:text-amber-200 space-y-2">
+                <div className="flex items-center gap-2 font-semibold">
+                  <ExclamationCircleIcon className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>{t("auth.emailUnverifiedTitle")}</span>
+                </div>
+                <p className="pl-6 text-slate-700 dark:text-slate-300 leading-relaxed">
+                  {t("auth.emailUnverifiedDesc")}
+                </p>
+                <div className="pl-6 pt-1">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    loading={resendingVerification}
+                    onClick={handleResendVerification}
+                  >
+                    {t("auth.resendVerificationBtn")}
+                  </Button>
                 </div>
               </div>
             )}

@@ -234,6 +234,42 @@ export const TRANSLATIONS = {
       sendResetLink: "Envoyer le lien de réinitialisation",
       sendingLink: "Envoi en cours...",
       backToLogin: "Retour à la connexion",
+      verificationSentTitle: "Demande enregistrée",
+      verificationSentDesc:
+        "Un email de confirmation a été envoyé à {email}. Cliquez sur le lien qu'il contient (valable 60 minutes) pour permettre l'examen de votre demande par un administrateur.",
+      verificationFailedTitle: "Demande enregistrée, email non envoyé",
+      verificationFailedDesc:
+        "Votre demande a bien été créée, mais l'email de confirmation n'a pas pu être envoyé. Demandez un nouveau lien pour permettre son examen.",
+      verificationRequestNewLink: "Demander un nouveau lien",
+      emailUnverifiedTitle: "Adresse email non confirmée",
+      emailUnverifiedDesc:
+        "Confirmez votre adresse email avant de vous connecter. Le lien envoyé à l'inscription est valable 60 minutes.",
+      resendVerificationBtn: "Renvoyer l'email de confirmation",
+      resendingVerification: "Envoi en cours...",
+      emailVerifiedSuccessTitle: "Adresse email confirmée",
+      emailVerifiedSuccessDesc:
+        "Merci ! Votre demande de compte va maintenant être examinée par un administrateur. Vous recevrez un email dès qu'elle sera traitée.",
+      emailVerifiedAlreadyTitle: "Adresse email déjà confirmée",
+      emailVerifiedAlreadyDesc:
+        "Cette adresse a déjà été confirmée. Votre demande est en cours d'examen ou a déjà été traitée.",
+      emailVerifiedExpiredTitle: "Lien de confirmation expiré",
+      emailVerifiedExpiredDesc:
+        "Ce lien n'est plus valable : les liens de confirmation expirent au bout de 60 minutes. Demandez-en un nouveau ci-dessous.",
+      emailVerifiedInvalidTitle: "Lien de confirmation invalide",
+      emailVerifiedInvalidDesc:
+        "Ce lien est incomplet ou incorrect. Demandez un nouveau lien ci-dessous.",
+      emailVerifiedResendHeading: "Recevoir un nouveau lien",
+      emailVerifiedResendDesc:
+        "Saisissez l'adresse utilisée lors de l'inscription. Pour des raisons de sécurité, nous ne précisons pas si un compte existe.",
+      emailVerifiedResendBtn: "Envoyer un nouveau lien",
+      emailVerifiedResending: "Envoi en cours...",
+      emailVerifiedResendSuccess:
+        "Si un compte en attente correspond à cette adresse, un nouvel email vient d'être envoyé. Pensez à vérifier vos courriers indésirables.",
+      emailVerifiedResendRateLimited:
+        "Trop de demandes. Patientez une heure avant de demander un nouvel email.",
+      emailVerifiedResendError:
+        "Impossible d'envoyer l'email pour le moment. Veuillez réessayer plus tard.",
+      emailVerifiedResendInvalidEmail: "Veuillez entrer une adresse email valide",
     },
     dashboard: {
       welcomeTitle: "Bonjour, {name}",
@@ -444,6 +480,42 @@ export const TRANSLATIONS = {
       sendResetLink: "Send reset link",
       sendingLink: "Sending...",
       backToLogin: "Back to sign in",
+      verificationSentTitle: "Request received",
+      verificationSentDesc:
+        "A confirmation email has been sent to {email}. Click the link it contains (valid for 60 minutes) so an administrator can review your request.",
+      verificationFailedTitle: "Request received, email not sent",
+      verificationFailedDesc:
+        "Your request was created, but the confirmation email could not be sent. Request a new link so it can be reviewed.",
+      verificationRequestNewLink: "Request a new link",
+      emailUnverifiedTitle: "Email address not confirmed",
+      emailUnverifiedDesc:
+        "Confirm your email address before signing in. The link sent at registration is valid for 60 minutes.",
+      resendVerificationBtn: "Resend confirmation email",
+      resendingVerification: "Sending...",
+      emailVerifiedSuccessTitle: "Email address confirmed",
+      emailVerifiedSuccessDesc:
+        "Thank you! Your account request will now be reviewed by an administrator. You will receive an email as soon as it is processed.",
+      emailVerifiedAlreadyTitle: "Email address already confirmed",
+      emailVerifiedAlreadyDesc:
+        "This address has already been confirmed. Your request is under review or has already been processed.",
+      emailVerifiedExpiredTitle: "Confirmation link expired",
+      emailVerifiedExpiredDesc:
+        "This link is no longer valid: confirmation links expire after 60 minutes. Request a new one below.",
+      emailVerifiedInvalidTitle: "Invalid confirmation link",
+      emailVerifiedInvalidDesc:
+        "This link is incomplete or incorrect. Request a new link below.",
+      emailVerifiedResendHeading: "Get a new link",
+      emailVerifiedResendDesc:
+        "Enter the address used at registration. For security reasons, we do not reveal whether an account exists.",
+      emailVerifiedResendBtn: "Send a new link",
+      emailVerifiedResending: "Sending...",
+      emailVerifiedResendSuccess:
+        "If a pending account matches this address, a new email has just been sent. Please check your spam folder.",
+      emailVerifiedResendRateLimited:
+        "Too many requests. Wait one hour before requesting another email.",
+      emailVerifiedResendError:
+        "Unable to send the email right now. Please try again later.",
+      emailVerifiedResendInvalidEmail: "Please enter a valid email address",
     },
     dashboard: {
       welcomeTitle: "Hello, {name}",
@@ -654,6 +726,42 @@ export const TRANSLATIONS = {
       sendResetLink: "إرسال رابط إعادة التعيين",
       sendingLink: "جاري الإرسال...",
       backToLogin: "العودة لتسجيل الدخول",
+      verificationSentTitle: "تم تسجيل الطلب",
+      verificationSentDesc:
+        "تم إرسال بريد تأكيد إلى {email}. انقر على الرابط الوارد فيه (صالح لمدة 60 دقيقة) حتى يتمكن المدير من مراجعة طلبك.",
+      verificationFailedTitle: "تم تسجيل الطلب، لكن لم يتم إرسال البريد",
+      verificationFailedDesc:
+        "تم إنشاء طلبك، لكن تعذّر إرسال بريد التأكيد. اطلب رابطاً جديداً حتى تتمكن الإدارة من مراجعته.",
+      verificationRequestNewLink: "طلب رابط جديد",
+      emailUnverifiedTitle: "البريد الإلكتروني غير مؤكد",
+      emailUnverifiedDesc:
+        "أكّد عنوان بريدك الإلكتروني قبل تسجيل الدخول. الرابط المرسل عند التسجيل صالح لمدة 60 دقيقة.",
+      resendVerificationBtn: "إعادة إرسال بريد التأكيد",
+      resendingVerification: "جاري الإرسال...",
+      emailVerifiedSuccessTitle: "تم تأكيد البريد الإلكتروني",
+      emailVerifiedSuccessDesc:
+        "شكراً لك! سيتم الآن مراجعة طلب حسابك من قِبل الإدارة. ستتلقى بريداً إلكترونياً بمجرد معالجته.",
+      emailVerifiedAlreadyTitle: "البريد الإلكتروني مؤكد مسبقاً",
+      emailVerifiedAlreadyDesc:
+        "تم تأكيد هذا العنوان مسبقاً. طلبك قيد المراجعة أو تمت معالجته بالفعل.",
+      emailVerifiedExpiredTitle: "انتهت صلاحية رابط التأكيد",
+      emailVerifiedExpiredDesc:
+        "هذا الرابط لم يعد صالحاً: تنتهي صلاحية روابط التأكيد بعد 60 دقيقة. اطلب رابطاً جديداً أدناه.",
+      emailVerifiedInvalidTitle: "رابط تأكيد غير صالح",
+      emailVerifiedInvalidDesc:
+        "هذا الرابط غير مكتمل أو غير صحيح. اطلب رابطاً جديداً أدناه.",
+      emailVerifiedResendHeading: "الحصول على رابط جديد",
+      emailVerifiedResendDesc:
+        "أدخل العنوان المستخدم عند التسجيل. لأسباب أمنية، لا نكشف ما إذا كان هناك حساب بهذا العنوان.",
+      emailVerifiedResendBtn: "إرسال رابط جديد",
+      emailVerifiedResending: "جاري الإرسال...",
+      emailVerifiedResendSuccess:
+        "إذا كان هناك حساب قيد الانتظار بهذا العنوان، فقد تم إرسال بريد جديد للتو. تحقق من مجلد البريد غير المرغوب فيه.",
+      emailVerifiedResendRateLimited:
+        "طلبات كثيرة جداً. انتظر ساعة قبل طلب بريد جديد.",
+      emailVerifiedResendError:
+        "تعذّر إرسال البريد الآن. يُرجى المحاولة لاحقاً.",
+      emailVerifiedResendInvalidEmail: "يُرجى إدخال عنوان بريد إلكتروني صالح",
     },
     dashboard: {
       welcomeTitle: "مرحباً، {name}",
