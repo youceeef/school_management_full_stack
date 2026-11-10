@@ -53,12 +53,12 @@ A phase is complete only when all applicable checks pass:
 
 | Phase | Objective | Depends on | Size | Status |
 |---|---|---:|:---:|:---:|
-| P0 | Deployment safety and production baseline | — | M | `[x]` |
+| P0 | Deployment safety and production baseline | — | M | `[~]` |
 | P1 | Dedicated Account Approval Center | P0 | M | `[x]` |
 | P2 | Staff identity and proof documents | P1 | L | `[x]` |
 | P3 | Rejection, resubmission, suspension, and review history | P2 | L | `[x]` |
-| P4 | Approval emails and notification reliability | P3 | M | `[~]` |
-| P5 | User administration UX and scalability | P1 | M | `[~]` |
+| P4 | Approval emails and notification reliability | P3 | M | `[x]` |
+| P5 | User administration UX and scalability | P1 | M | `[x]` |
 | P6 | Security hardening | P0, P3 | L | `[ ]` |
 | P7 | Monitoring, auditability, and automated E2E testing | P0 | L | `[ ]` |
 | P8 | Reservation workflow improvements | P7 | L | `[ ]` |
@@ -120,7 +120,7 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` System Status page is restricted to administrators.
     - `[x]` French, English, Arabic/RTL and Lighthouse checks pass.
 
-- `[x]` **P0.4 — Deployment automation**
+- `[~]` **P0.4 — Deployment automation**
   - Enable Render auto-deploy for `main`.
   - Keep Vercel production deployment on `main` only.
   - Document manual rollback procedures for both services.
@@ -135,6 +135,12 @@ and establish a trustworthy production baseline before adding more features.
     - `[x]` Non-destructive Vercel/Render rollback runbook is documented.
     - `[x]` GitHub accepts and successfully runs the Production Smoke workflow.
     - `[x]` Production frontend and API both report the P0.4 commit.
+    - `[!]` Live Render auto-deploy is currently disabled because the service
+      was previously deployed from a specific commit. P5 and P4.5 therefore
+      required manual Render deployments even though `render.yaml` declares
+      `autoDeployTrigger: checksPass`.
+    - `[ ]` Re-enable Render auto-deploy for `main` with `checksPass`, then
+      confirm the next approved `main` release deploys without a manual action.
 
 - `[x]` **P0.5 — Credential hygiene**
   - Rotate credentials that were copied, shared, or exposed during setup.
@@ -403,7 +409,7 @@ the dashboard.
     - `[x]` `AccountRequestController` and `UserController` isolate `notify()` in try/catch blocks; DB commits first, and API returns status with optional `notification_warning` if mail transport encounters issues.
     - `[x]` CI tests pass all assertions across full test suite.
 
-- `[~]` **P4.5 — Approval and rejection delivery hotfix**
+- `[x]` **P4.5 — Approval and rejection delivery hotfix**
   - `[x]` Deliver lifecycle notifications synchronously after the account-status
     transaction commits, so approval/rejection mail does not depend on a queue
     worker and transport failures are returned to the administrator.
@@ -413,7 +419,13 @@ the dashboard.
     preserving explicit English and Arabic notification support.
   - `[x]` Add a real-channel feature test proving approval and rejection create
     mail messages even when the configured queue has no worker.
-  - `[ ]` Confirm one approval and one rejection email arrive in live inboxes.
+  - `[x]` Confirm one approval and one rejection email arrive in live inboxes.
+  - Production verification evidence:
+    - `[x]` Commit `22c61a2` passed `PROD` and `main` CI.
+    - `[x]` Vercel and Render both report commit `22c61a2` and schema `1`.
+    - `[x]` Production Smoke run 14 passed.
+    - `[x]` Operator confirmed registration, approval, rejection, suspension,
+      and reactivation emails arrive with the expected content and actions.
 
 ### Acceptance criteria
 
@@ -430,17 +442,17 @@ Keep user administration usable as the number of accounts grows.
 
 ### Tasks
 
-- `[~]` **P5.1 — Server-side pagination, sorting, search, and filtering.**
+- `[x]` **P5.1 — Server-side pagination, sorting, search, and filtering.**
   - `[x]` Paginated `/api/users` endpoint with server-side filters for role, status, registration date range, and department.
   - `[x]` Summary counts for total registered accounts, administrators, and pending requests in `meta.counts`.
   - `[x]` Friendly localized role labels everywhere (`roleLabels.js` & `getRoleLabel`).
   - `[x]` Mobile card layout for users and inline role management controls.
   - `[x]` Multi-field sorting by id, name, email, department, approval status, and created_at.
-- `[~]` **P5.2 — Filter persistence and seamless navigation.**
+- `[x]` **P5.2 — Filter persistence and seamless navigation.**
   - `[x]` Filters, sort parameters, and pagination page synchronized with URL search params and `sessionStorage`.
   - `[x]` Dedicated `UserDetailsModal` slide-over view for inspecting user profile, contact information, institutional details, review history, and assigned roles without navigating away or losing table state.
   - `[x]` Navigating back or reloading restores the active filtered view.
-- `[~]` **P5.3 — Carefully scoped administrative bulk actions.**
+- `[x]` **P5.3 — Carefully scoped administrative bulk actions.**
   - `[x]` Multi-row selection with master indeterminate checkbox support on desktop and mobile.
   - `[x]` Bulk actions endpoint `POST /api/users/bulk-action` supporting `assign_role`, `remove_role`, `approve`, `suspend`, and `delete`.
   - `[x]` Strict safeguards: prevents self-deletion, self-suspension, and removing the admin role from the current or last administrator.
@@ -449,15 +461,15 @@ Keep user administration usable as the number of accounts grows.
 
 ### Current verification state
 
-- P5.1, P5.2, and P5.3 are implemented; the phase remains `[~]` until CI,
-  browser/RTL review, preview approval, and production verification complete.
+- P5.1, P5.2, and P5.3 are implemented, tested, approved, and deployed.
 - The P5 follow-up review added the missing admin-only user-details endpoint,
   connected role and review-history data to the details modal, enforced required
   suspension reasons and lifecycle guards, and moved external side effects
   after successful database commits.
 - Local verification after the follow-up review:
   - `[x]` Laravel Pint passes.
-  - `[x]` Full Laravel suite passes: 101 tests and 628 assertions.
+  - `[x]` Full Laravel suite passes after the mail hotfix: 102 tests and 638
+    assertions.
   - `[x]` Composer audit reports no security advisories.
   - `[x]` Frontend unit tests, zero-warning ESLint, production build, and npm
     audit pass.
@@ -466,11 +478,15 @@ Keep user administration usable as the number of accounts grows.
     history, French, English, Arabic/RTL, and reports no console errors.
   - `[x]` User-directory Lighthouse scores 100 for accessibility, best
     practices, and SEO after adding accessible filter labels.
-- `[!]` Production is currently version-skewed: Vercel reports frontend commit
-  `4a1f865`, while Render reports API commit `d723eec`. The P5 backend did not
-  deploy because CI stopped at Pint; Production Smoke was consequently skipped.
-  Do not mark P5 complete or begin P6 until both services report the same
-  approved P5 follow-up commit.
+- Production verification:
+  - `[x]` `ede7e94` completed the P5 validation release and synchronized
+    Vercel and Render.
+  - `[x]` `22c61a2` preserved P5 behavior while completing the lifecycle-mail
+    hotfix; Vercel and Render report the same commit and schema `1`.
+  - `[x]` Production Smoke runs 13 and 14 passed.
+  - `[x]` Operator completed all authenticated P5 scenarios successfully,
+    including filtering, persistence, details, lifecycle actions, bulk-action
+    safeguards, authorization, French/English/Arabic RTL, and mobile behavior.
 
 ### Acceptance criteria
 
@@ -483,14 +499,25 @@ Keep user administration usable as the number of accounts grows.
 
 ### Tasks
 
-- `[ ]` Verify email before an account enters admin review.
-- `[ ]` Add two-factor authentication for administrators.
-- `[ ]` Add session/device management and “log out all devices.”
-- `[ ]` Require password confirmation for destructive admin actions.
-- `[ ]` Strengthen rate limits for login, registration, approval, and uploads.
-- `[ ]` Scan uploaded proof/documents for malicious content.
-- `[ ]` Add signed URLs and short expirations for private downloads.
-- `[ ]` Review security headers, CORS origins, and token expiration quarterly.
+- `[ ]` **P6.1 — Email verification before admin review.**
+  - Verify staff email ownership before a request becomes reviewable.
+  - Keep unverified applicants out of the approval queue and prevent login.
+  - Provide resend and expired-link recovery without creating duplicate users.
+- `[ ]` **P6.2 — Administrator two-factor authentication.**
+- `[ ]` **P6.3 — Session and device management.**
+  - List active sessions and provide “log out all devices.”
+- `[ ]` **P6.4 — Recent password confirmation for destructive actions.**
+- `[ ]` **P6.5 — Security-sensitive rate-limit review.**
+  - Cover login, registration, approval, password reset, and uploads.
+- `[ ]` **P6.6 — Malicious-file scanning for proofs and documents.**
+- `[ ]` **P6.7 — Signed, short-lived private download URLs.**
+- `[ ]` **P6.8 — Quarterly security configuration review.**
+  - Review security headers, CORS origins, token expiration, and provider
+    credential policies.
+
+Each increment must be implemented, tested, previewed, and released separately.
+P6.1 is the only approved starting point after restoring P0.4 deployment
+automation; do not begin P6.2 or later increments early.
 
 ### Acceptance criteria
 
@@ -604,9 +631,11 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | D006 | `PROD` is the preview/testing branch; `main` is production. | Accepted |
 | D007 | One roadmap phase or increment per implementation cycle. | Accepted |
 | D008 | Live credentials reviewed by operator and retained as baseline under repository-level ignore rules and Gitleaks protection. | Accepted |
-| D009 | Email notifications use a safe non-blocking dispatch pattern so SMTP or queue hiccups cannot corrupt or roll back account approval status transitions. | Accepted |
+| D009 | Email delivery runs only after account-status transactions commit, so transport failures cannot corrupt or roll back lifecycle transitions. | Accepted |
 | D010 | Personal Gmail address (@gmail.com) sender requires native Google SMTP (smtp.gmail.com:587 with Google App Password) to guarantee DMARC/SPF inbox delivery without custom domain DNS records. | Accepted |
 | D011 | Render Free Tier blocks outbound SMTP TCP ports (25, 465, 587, 2525). To guarantee 100% reliable transactional email delivery on Render Free without port blocks or gateway timeouts, EduSpace uses the Mailjet Send API v3.1 over standard HTTPS (Port 443). | Accepted |
+| D012 | Account lifecycle notifications are delivered synchronously after the status transaction commits, so approval/rejection mail cannot depend on a queue worker and transport failures remain visible to administrators. | Accepted |
+| D013 | Restore Render `checksPass` auto-deploy before starting P6; manual deployment is an incident workaround, not the normal release process. | Accepted |
 
 ## Progress log
 
@@ -631,11 +660,13 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-10 | P5.1 | Server-side user directory pagination, sorting, filters, mobile cards, and role safeguards | `41ad5a1` |
 | 2026-11-10 | P5.2–P5.3 | Filter persistence, user details, and protected bulk administration actions | `4a1f865` |
 | 2026-11-10 | P5 validation release | P5 follow-up passed CI and Production Smoke; Vercel and Render synchronized | `ede7e94` |
+| 2026-11-10 | P4.5 Complete | Immediate lifecycle-mail delivery, French fallback, visible delivery warnings, real-channel tests, and successful live inbox verification | `22c61a2` |
+| 2026-11-10 | P5 Complete | All authenticated production scenarios passed; user administration accepted on desktop, mobile, and RTL | `22c61a2` |
 
 ## Next action
 
-Validate and deploy **P4.5 — Approval and rejection delivery hotfix** through
-`PROD`, CI, preview, and synchronized production. Confirm one approved applicant
-and one rejected applicant receive the expected French lifecycle email. Continue
-the authenticated P5 live scenarios in parallel, then record the results before
-marking P4 and P5 complete or proceeding to P6.
+Restore **P0.4 — Render deployment automation** by re-enabling `main` auto-deploy
+with `checksPass`, then verify it with the next approved release. After that
+prerequisite passes, start **P6.1 — Email verification before admin review**.
+Do not begin P6.2 or any unrelated phase until P6.1 is completed, tested,
+preview-approved, deployed, and recorded here.
