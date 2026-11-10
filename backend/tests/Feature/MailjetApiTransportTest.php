@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Mail\Transport\MailjetApiTransport;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Symfony\Component\Mailer\Exception\TransportException;

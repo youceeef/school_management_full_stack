@@ -51,9 +51,12 @@ export const removeUserRole = async (userId, roleName) => {
   }
 };
 
-export const reviewUserApproval = async (userId, status) => {
+export const reviewUserApproval = async (userId, status, reason = null) => {
   try {
-    const response = await axiosInstance.patch(`/api/users/${userId}/approval`, { status });
+    const response = await axiosInstance.patch(`/api/users/${userId}/approval`, {
+      status,
+      reason: reason || undefined,
+    });
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: "Erreur lors de la révision du compte" };
@@ -91,7 +94,7 @@ export const bulkUserAction = async ({ userIds, action, role, reason }) => {
 export const getUserById = async (userId) => {
   try {
     const response = await axiosInstance.get(`/api/users/${userId}`);
-    return response.data;
+    return response.data?.data || response.data;
   } catch (error) {
     throw error.response?.data || { message: "Erreur lors de la récupération des détails de l'utilisateur" };
   }

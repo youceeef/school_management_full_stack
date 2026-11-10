@@ -418,22 +418,47 @@ Keep user administration usable as the number of accounts grows.
 
 ### Tasks
 
-- `[x]` **P5.1 — Server-side pagination, sorting, search, and filtering.**
+- `[~]` **P5.1 — Server-side pagination, sorting, search, and filtering.**
   - `[x]` Paginated `/api/users` endpoint with server-side filters for role, status, registration date range, and department.
   - `[x]` Summary counts for total registered accounts, administrators, and pending requests in `meta.counts`.
   - `[x]` Friendly localized role labels everywhere (`roleLabels.js` & `getRoleLabel`).
   - `[x]` Mobile card layout for users and inline role management controls.
   - `[x]` Multi-field sorting by id, name, email, department, approval status, and created_at.
-- `[x]` **P5.2 — Filter persistence and seamless navigation.**
+- `[~]` **P5.2 — Filter persistence and seamless navigation.**
   - `[x]` Filters, sort parameters, and pagination page synchronized with URL search params and `sessionStorage`.
   - `[x]` Dedicated `UserDetailsModal` slide-over view for inspecting user profile, contact information, institutional details, review history, and assigned roles without navigating away or losing table state.
   - `[x]` Navigating back or reloading restores the active filtered view.
-- `[x]` **P5.3 — Carefully scoped administrative bulk actions.**
+- `[~]` **P5.3 — Carefully scoped administrative bulk actions.**
   - `[x]` Multi-row selection with master indeterminate checkbox support on desktop and mobile.
   - `[x]` Bulk actions endpoint `POST /api/users/bulk-action` supporting `assign_role`, `remove_role`, `approve`, `suspend`, and `delete`.
   - `[x]` Strict safeguards: prevents self-deletion, self-suspension, and removing the admin role from the current or last administrator.
   - `[x]` Sticky/floating bulk action toolbar with one-click actions, confirmation modals, and responsive layout.
   - `[x]` Automated feature test suite in `UserAdministrationApiTest.php` verifying bulk actions and safeguard enforcement.
+
+### Current verification state
+
+- P5.1, P5.2, and P5.3 are implemented; the phase remains `[~]` until CI,
+  browser/RTL review, preview approval, and production verification complete.
+- The P5 follow-up review added the missing admin-only user-details endpoint,
+  connected role and review-history data to the details modal, enforced required
+  suspension reasons and lifecycle guards, and moved external side effects
+  after successful database commits.
+- Local verification after the follow-up review:
+  - `[x]` Laravel Pint passes.
+  - `[x]` Full Laravel suite passes: 101 tests and 628 assertions.
+  - `[x]` Composer audit reports no security advisories.
+  - `[x]` Frontend unit tests, zero-warning ESLint, production build, and npm
+    audit pass.
+  - `[x]` Local authenticated browser review covers filter URL persistence,
+    user details, required suspension reason, suspension, reactivation, review
+    history, French, English, Arabic/RTL, and reports no console errors.
+  - `[x]` User-directory Lighthouse scores 100 for accessibility, best
+    practices, and SEO after adding accessible filter labels.
+- `[!]` Production is currently version-skewed: Vercel reports frontend commit
+  `4a1f865`, while Render reports API commit `d723eec`. The P5 backend did not
+  deploy because CI stopped at Pint; Production Smoke was consequently skipped.
+  Do not mark P5 complete or begin P6 until both services report the same
+  approved P5 follow-up commit.
 
 ### Acceptance criteria
 
@@ -591,9 +616,14 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | 2026-11-09 | P4 Complete | Approval emails, admin notifications, localized templates (FR/EN/AR), retry safety, and test suite | `a4ca245` |
 | 2026-11-09 | P4.1 Diagnostics | SMTP diagnostic test suite, CLI mail:test command, admin system-status tester, Render mail env sync | `dcd6f8d` |
 | 2026-11-10 | P4.2 | Mailjet API v3.1 HTTPS transport over Port 443, failure isolation, and expanded mail test suite | `d723eec` |
-| 2026-11-10 | P5.1 | Server-side user directory pagination, sorting, filters, mobile cards, and role safeguards | `8c07805` |
+| 2026-11-10 | P5.1 | Server-side user directory pagination, sorting, filters, mobile cards, and role safeguards | `41ad5a1` |
+| 2026-11-10 | P5.2–P5.3 | Filter persistence, user details, and protected bulk administration actions | `4a1f865` |
 
 ## Next action
 
-Deploy and verify **Phase P5.1 — User administration UX and scalability**.
-Complete browser review on Vercel preview, confirm French, English, and Arabic/RTL layouts, then proceed to Phase P6 (Security Hardening).
+Validate and deploy **Phase P5 — User administration UX and scalability**.
+Commit and push the verified P5 follow-up to `PROD`, require a successful CI run,
+review the Vercel preview at desktop and mobile widths, and obtain explicit
+approval. Then fast-forward `main`, wait for Vercel and Render to report the
+same commit, run public and authenticated production smoke checks, and only then
+mark P5 complete or proceed to P6.

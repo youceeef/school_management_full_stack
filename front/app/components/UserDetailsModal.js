@@ -14,6 +14,7 @@ import {
   TrashIcon,
   NoSymbolIcon,
   CheckCircleIcon,
+  ClockIcon,
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import Button from "./Button";
@@ -39,6 +40,8 @@ export default function UserDetailsModal({
   const [error, setError] = useState(null);
   const [selectedNewRole, setSelectedNewRole] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [showSuspensionForm, setShowSuspensionForm] = useState(false);
+  const [suspensionReason, setSuspensionReason] = useState("");
 
   const fetchUser = useCallback(async () => {
     if (!userId) return;
@@ -62,6 +65,8 @@ export default function UserDetailsModal({
       setUser(null);
       setError(null);
       setSelectedNewRole("");
+      setShowSuspensionForm(false);
+      setSuspensionReason("");
     }
   }, [isOpen, userId, fetchUser]);
 
@@ -142,11 +147,11 @@ export default function UserDetailsModal({
     );
   };
 
-  const handleStatusChange = async (status) => {
+  const handleStatusChange = async (status, reason = null) => {
     if (!user) return;
     try {
       setActionLoading(true);
-      await reviewUserApproval(user.id, status);
+      await reviewUserApproval(user.id, status, reason);
       toast.success(
         status === "suspended"
           ? tr("Compte suspendu avec succès")
@@ -154,6 +159,8 @@ export default function UserDetailsModal({
       );
       await fetchUser();
       onUserUpdated?.();
+      setShowSuspensionForm(false);
+      setSuspensionReason("");
     } catch (err) {
       toast.error(tr(err.message || "Erreur lors de la mise à jour du statut"));
     } finally {
@@ -163,6 +170,27 @@ export default function UserDetailsModal({
 
   const rolesList = user?.roles ? (Array.isArray(user.roles) ? user.roles.map(r => typeof r === "object" ? r.name : r) : []) : [];
   const unassignedRoles = AVAILABLE_ROLES.filter(r => !rolesList.includes(r));
+  const canManageApprovalLifecycle = ["enseignant", "responsable_laboratoire"].includes(user?.requested_role);
+
+  const formatReviewAction = (action) => {
+    const labels = {
+      approved: "Demande approuvée",
+      reactivated: "Compte réactivé",
+      suspended: "Compte suspendu",
+      rejected: "Demande refusée",
+      resubmitted: "Demande corrigée et renvoyée",
+    };
+    return tr(labels[action] || action);
+  };
+
+  const confirmSuspension = () => {
+    const reason = suspensionReason.trim();
+    if (reason.length < 5) {
+      toast.error(tr("Veuillez indiquer un motif d'au moins 5 caractères."));
+      return;
+    }
+    handleStatusChange("suspended", reason);
+  };
 
   return (
     <div
@@ -170,6 +198,9 @@ export default function UserDetailsModal({
       role="dialog"
       aria-modal="true"
       dir={isRtl ? "rtl" : "ltr"}
+      onClick={() => {
+        if (!actionLoading) onClose();
+      }}
     >
       <div
         className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-2xl transition-all dark:border-slate-800 dark:bg-slate-900"
@@ -297,6 +328,7 @@ export default function UserDetailsModal({
                   <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
                     <select
                       value={selectedNewRole}
+                      aria-label={tr("Attribuer un nouveau rôle")}
                       onChange={(e) => setSelectedNewRole(e.target.value)}
                       disabled={actionLoading}
                       className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 focus:border-primary-600 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
@@ -401,52 +433,128 @@ export default function UserDetailsModal({
                   <p className="mt-1">{user.rejection_reason}</p>
                 </div>
               )}
+
+              {/* Chronological account review history */}
+              <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+                <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <ClockIcon className="h-4 w-4" />
+                  <span>{tr("Historique complet des révisions")}</span>
+                </h4>
+                {user.reviews?.length ? (
+                  <div className="mt-3 space-y-3 border-s-2 border-slate-200 ps-4 dark:border-slate-700">
+                    {user.reviews.map((review) => (
+                      <div key={review.id} className="text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-semibold text-slate-800 dark:text-slate-200">
+                            {formatReviewAction(review.action)}
+                          </span>
+                          <span className="text-slate-400">{formatDate(review.created_at)}</span>
+                        </div>
+                        {review.reviewer && (
+                          <p className="mt-1 text-slate-500 dark:text-slate-400">
+                            {tr("Par")}: {review.reviewer.first_name} {review.reviewer.last_name}
+                          </p>
+                        )}
+                        {review.reason && (
+                          <p className="mt-1.5 rounded-lg bg-slate-50 p-2 italic text-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
+                            &ldquo;{review.reason}&rdquo;
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                    {tr("Aucun historique de révision disponible.")}
+                  </p>
+                )}
+              </div>
             </div>
           ) : null}
         </div>
 
         {/* Footer Actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-6 py-4 dark:border-slate-800">
-          <div>
-            {user && !isSelf && (
-              <Button
-                variant="danger"
-                size="sm"
-                icon={TrashIcon}
-                disabled={actionLoading || (user.hasRole?.('admin') && totalAdmins <= 1)}
-                onClick={handleDeleteUser}
-              >
-                {tr("Supprimer le compte")}
-              </Button>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {user && user.approval_status === "approved" && !isSelf && (
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={NoSymbolIcon}
-                disabled={actionLoading}
-                onClick={() => handleStatusChange("suspended")}
-              >
-                {tr("Suspendre")}
-              </Button>
-            )}
-            {user && user.approval_status === "suspended" && (
-              <Button
-                variant="primary"
-                size="sm"
-                icon={CheckCircleIcon}
-                disabled={actionLoading}
-                onClick={() => handleStatusChange("approved")}
-              >
-                {tr("Réactiver")}
-              </Button>
-            )}
-            <Button variant="secondary" size="sm" onClick={onClose} disabled={actionLoading}>
-              {tr("Fermer")}
-            </Button>
-          </div>
+          {showSuspensionForm ? (
+            <div className="w-full space-y-3">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <span>{tr("Motif de suspension (obligatoire)")}</span>
+                <textarea
+                  rows={3}
+                  value={suspensionReason}
+                  onChange={(event) => setSuspensionReason(event.target.value)}
+                  disabled={actionLoading}
+                  placeholder={tr("Veuillez détailler le motif (minimum 5 caractères)...")}
+                  className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </label>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={actionLoading}
+                  onClick={() => {
+                    setShowSuspensionForm(false);
+                    setSuspensionReason("");
+                  }}
+                >
+                  {tr("Annuler")}
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  icon={NoSymbolIcon}
+                  disabled={actionLoading || suspensionReason.trim().length < 5}
+                  onClick={confirmSuspension}
+                >
+                  {tr("Confirmer la suspension")}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div>
+                {user && !isSelf && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    icon={TrashIcon}
+                    disabled={actionLoading || (rolesList.includes("admin") && totalAdmins <= 1)}
+                    onClick={handleDeleteUser}
+                  >
+                    {tr("Supprimer le compte")}
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {user && canManageApprovalLifecycle && user.approval_status === "approved" && !isSelf && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={NoSymbolIcon}
+                    disabled={actionLoading}
+                    onClick={() => setShowSuspensionForm(true)}
+                  >
+                    {tr("Suspendre")}
+                  </Button>
+                )}
+                {user && canManageApprovalLifecycle && user.approval_status === "suspended" && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={CheckCircleIcon}
+                    disabled={actionLoading}
+                    onClick={() => handleStatusChange("approved")}
+                  >
+                    {tr("Réactiver")}
+                  </Button>
+                )}
+                <Button variant="secondary" size="sm" onClick={onClose} disabled={actionLoading}>
+                  {tr("Fermer")}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

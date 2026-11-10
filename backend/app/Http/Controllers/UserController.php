@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\AccountRequestResource;
 use App\Http\Resources\UserResource;
 use App\Models\AccountReview;
 use App\Models\User;
@@ -162,7 +163,13 @@ class UserController extends Controller
                 'string',
                 'exists:roles,name',
             ],
-            'reason' => ['nullable', 'string', 'max:1000'],
+            'reason' => [
+                Rule::requiredIf(fn () => $request->input('action') === 'suspend'),
+                'nullable',
+                'string',
+                'min:5',
+                'max:1000',
+            ],
         ]);
 
         $admin = $request->user();
@@ -176,6 +183,8 @@ class UserController extends Controller
         $processedCount = 0;
         $skippedCount = 0;
         $skippedReasons = [];
+        $pendingNotifications = [];
+        $storedFilesToDelete = [];
 
         DB::transaction(function () use (
             $users,
@@ -186,7 +195,9 @@ class UserController extends Controller
             $request,
             &$processedCount,
             &$skippedCount,
-            &$skippedReasons
+            &$skippedReasons,
+            &$pendingNotifications,
+            &$storedFilesToDelete
         ) {
             $totalAdmins = User::role('admin')->count();
 
@@ -196,12 +207,14 @@ class UserController extends Controller
                 if ($action === 'delete') {
                     if ($isSelf) {
                         $skippedCount++;
-                        $skippedReasons[] = "Votre propre compte administrateur ne peut pas être supprimé.";
+                        $skippedReasons[] = 'Votre propre compte administrateur ne peut pas être supprimé.';
+
                         continue;
                     }
                     if ($user->hasRole('admin') && $totalAdmins <= 1) {
                         $skippedCount++;
-                        $skippedReasons[] = "Le dernier administrateur ne peut pas être supprimé.";
+                        $skippedReasons[] = 'Le dernier administrateur ne peut pas être supprimé.';
+
                         continue;
                     }
 
@@ -209,29 +222,39 @@ class UserController extends Controller
                     $proofPath = $user->proof_document_path;
                     $user->tokens()->delete();
                     $user->delete();
-                    $this->deleteStoredPicture($picturePath, config('filesystems.uploads_disk'));
-                    $this->deleteStoredPicture($proofPath, config('filesystems.documents_disk'));
+                    $storedFilesToDelete[] = [$picturePath, config('filesystems.uploads_disk')];
+                    $storedFilesToDelete[] = [$proofPath, config('filesystems.documents_disk')];
 
                     if ($user->hasRole('admin')) {
                         $totalAdmins--;
                     }
                     $processedCount++;
+
                     continue;
                 }
 
                 if ($action === 'suspend') {
                     if ($isSelf) {
                         $skippedCount++;
-                        $skippedReasons[] = "Votre propre compte administrateur ne peut pas être suspendu.";
+                        $skippedReasons[] = 'Votre propre compte administrateur ne peut pas être suspendu.';
+
                         continue;
                     }
                     if ($user->approval_status === User::APPROVAL_SUSPENDED) {
                         $skippedCount++;
+
+                        continue;
+                    }
+                    if (! $user->requiresAccountApproval() || $user->approval_status !== User::APPROVAL_APPROVED) {
+                        $skippedCount++;
+                        $skippedReasons[] = 'Seuls les comptes de personnel approuvés peuvent être suspendus.';
+
                         continue;
                     }
 
                     $fromStatus = $user->approval_status;
                     $user->tokens()->delete();
+                    $user->syncRoles([]);
                     $user->forceFill([
                         'approval_status' => User::APPROVAL_SUSPENDED,
                         'rejection_reason' => $reason ?: 'Compte suspendu par une action groupée administrateur.',
@@ -251,23 +274,34 @@ class UserController extends Controller
                         'user_agent' => $request->userAgent(),
                     ]);
 
-                    try {
-                        $user->notify(new AccountApprovalStatusNotification(AccountReview::ACTION_SUSPENDED, $reason));
-                    } catch (Throwable) {
-                        // Keep transaction intact if mail notification encounters issues
-                    }
+                    $pendingNotifications[] = [
+                        'user' => $user,
+                        'action' => AccountReview::ACTION_SUSPENDED,
+                        'reason' => $reason,
+                    ];
 
                     $processedCount++;
+
                     continue;
                 }
 
                 if ($action === 'approve') {
                     if ($user->approval_status === User::APPROVAL_APPROVED) {
                         $skippedCount++;
+
+                        continue;
+                    }
+                    if (! $user->requiresAccountApproval()) {
+                        $skippedCount++;
+                        $skippedReasons[] = 'Ce compte ne fait pas partie du processus d’approbation.';
+
                         continue;
                     }
 
                     $fromStatus = $user->approval_status;
+                    $reviewAction = $fromStatus === User::APPROVAL_SUSPENDED
+                        ? AccountReview::ACTION_REACTIVATED
+                        : AccountReview::ACTION_APPROVED;
                     if ($user->requested_role) {
                         $user->syncRoles([$user->requested_role]);
                     }
@@ -282,7 +316,7 @@ class UserController extends Controller
                     AccountReview::create([
                         'user_id' => $user->id,
                         'reviewer_id' => $admin->id,
-                        'action' => AccountReview::ACTION_APPROVED,
+                        'action' => $reviewAction,
                         'from_status' => $fromStatus,
                         'to_status' => User::APPROVAL_APPROVED,
                         'reason' => 'Approbation groupée par administrateur',
@@ -290,19 +324,21 @@ class UserController extends Controller
                         'user_agent' => $request->userAgent(),
                     ]);
 
-                    try {
-                        $user->notify(new AccountApprovalStatusNotification(AccountReview::ACTION_APPROVED));
-                    } catch (Throwable) {
-                        // Keep transaction intact if mail notification encounters issues
-                    }
+                    $pendingNotifications[] = [
+                        'user' => $user,
+                        'action' => $reviewAction,
+                        'reason' => null,
+                    ];
 
                     $processedCount++;
+
                     continue;
                 }
 
                 if ($action === 'assign_role') {
                     if ($user->hasRole($roleName)) {
                         $skippedCount++;
+
                         continue;
                     }
                     $user->assignRole($roleName);
@@ -310,33 +346,58 @@ class UserController extends Controller
                         $totalAdmins++;
                     }
                     $processedCount++;
+
                     continue;
                 }
 
                 if ($action === 'remove_role') {
                     if (! $user->hasRole($roleName)) {
                         $skippedCount++;
+
                         continue;
                     }
                     if ($roleName === 'admin') {
                         if ($isSelf) {
                             $skippedCount++;
-                            $skippedReasons[] = "Vous ne pouvez pas retirer votre propre rôle administrateur.";
+                            $skippedReasons[] = 'Vous ne pouvez pas retirer votre propre rôle administrateur.';
+
                             continue;
                         }
                         if ($totalAdmins <= 1) {
                             $skippedCount++;
-                            $skippedReasons[] = "Le rôle administrateur ne peut pas être retiré au dernier administrateur.";
+                            $skippedReasons[] = 'Le rôle administrateur ne peut pas être retiré au dernier administrateur.';
+
                             continue;
                         }
                         $totalAdmins--;
                     }
                     $user->removeRole($roleName);
                     $processedCount++;
+
                     continue;
                 }
             }
         });
+
+        // Object storage and queued notifications are external side effects. Run
+        // them only after the database transaction commits successfully.
+        foreach ($storedFilesToDelete as [$path, $disk]) {
+            $this->deleteStoredPicture($path, $disk);
+        }
+
+        foreach ($pendingNotifications as $pendingNotification) {
+            try {
+                $pendingNotification['user']->notify(new AccountApprovalStatusNotification(
+                    $pendingNotification['action'],
+                    $pendingNotification['reason']
+                ));
+            } catch (Throwable $e) {
+                Log::warning('Failed delivering bulk account status notification: '.$e->getMessage(), [
+                    'user_id' => $pendingNotification['user']->id,
+                    'action' => $pendingNotification['action'],
+                ]);
+            }
+        }
 
         return response()->json([
             'message' => 'Action groupée traitée avec succès.',
@@ -455,11 +516,15 @@ class UserController extends Controller
         ]);
     }
 
-    public function show($id)
+    public function show(Request $request, int $userId): JsonResponse
     {
-        $user = User::find($id);
+        $this->authorize('listUsers', User::class);
 
-        return response()->json($user);
+        $user = User::with(['roles', 'reviewer', 'reviews.reviewer'])->findOrFail($userId);
+
+        return response()->json([
+            'data' => new AccountRequestResource($user),
+        ]);
     }
 
     public function showProfile()

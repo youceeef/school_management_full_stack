@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AccountReview;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -95,6 +96,40 @@ class UserAdministrationApiTest extends TestCase
         $this->withToken($this->tokenFor($admin))
             ->getJson('/api/users?per_page=101&sort_by=password')
             ->assertUnprocessable();
+    }
+
+    public function test_admin_can_view_user_details_with_roles_and_review_history(): void
+    {
+        $admin = $this->createAdmin();
+        $teacher = User::factory()->create([
+            'requested_role' => 'enseignant',
+            'approval_status' => User::APPROVAL_APPROVED,
+        ]);
+        $teacher->assignRole('enseignant');
+
+        AccountReview::create([
+            'user_id' => $teacher->id,
+            'reviewer_id' => $admin->id,
+            'action' => AccountReview::ACTION_APPROVED,
+            'from_status' => User::APPROVAL_PENDING,
+            'to_status' => User::APPROVAL_APPROVED,
+            'reason' => 'Verified by administration',
+        ]);
+
+        $this->withToken($this->tokenFor($admin))
+            ->getJson("/api/users/{$teacher->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $teacher->id)
+            ->assertJsonPath('data.roles.0', 'enseignant')
+            ->assertJsonPath('data.reviews.0.action', AccountReview::ACTION_APPROVED)
+            ->assertJsonPath('data.reviews.0.reviewer.id', $admin->id);
+
+        $student = User::factory()->create();
+        $student->assignRole('eleve');
+
+        $this->withToken($this->tokenFor($student))
+            ->getJson("/api/users/{$teacher->id}")
+            ->assertForbidden();
     }
 
     public function test_admin_can_bulk_assign_and_remove_roles(): void
@@ -194,6 +229,9 @@ class UserAdministrationApiTest extends TestCase
         $this->assertEquals(User::APPROVAL_APPROVED, $pending2->fresh()->approval_status);
         $this->assertTrue($pending1->fresh()->hasRole('enseignant'));
 
+        $pending1Token = $pending1->createToken('active-session')->plainTextToken;
+        $this->assertNotEmpty($pending1Token);
+
         // Bulk suspend
         $suspendResponse = $this->withToken($token)->postJson('/api/users/bulk-action', [
             'user_ids' => [$pending1->id, $pending2->id],
@@ -206,6 +244,52 @@ class UserAdministrationApiTest extends TestCase
 
         $this->assertEquals(User::APPROVAL_SUSPENDED, $pending1->fresh()->approval_status);
         $this->assertEquals(User::APPROVAL_SUSPENDED, $pending2->fresh()->approval_status);
+        $this->assertCount(0, $pending1->fresh()->roles);
+        $this->assertSame(0, $pending1->fresh()->tokens()->count());
+
+        $this->withToken($token)->postJson('/api/users/bulk-action', [
+            'user_ids' => [$pending1->id],
+            'action' => 'approve',
+        ])->assertOk()->assertJsonPath('processed_count', 1);
+
+        $this->assertEquals(User::APPROVAL_APPROVED, $pending1->fresh()->approval_status);
+        $this->assertTrue($pending1->fresh()->hasRole('enseignant'));
+        $this->assertDatabaseHas('account_reviews', [
+            'user_id' => $pending1->id,
+            'action' => AccountReview::ACTION_REACTIVATED,
+            'from_status' => User::APPROVAL_SUSPENDED,
+            'to_status' => User::APPROVAL_APPROVED,
+        ]);
+    }
+
+    public function test_bulk_suspension_requires_a_reason_and_rejects_invalid_lifecycle_transitions(): void
+    {
+        $admin = $this->createAdmin();
+        $pending = User::factory()->create([
+            'approval_status' => User::APPROVAL_PENDING,
+            'requested_role' => 'enseignant',
+        ]);
+
+        $token = $this->tokenFor($admin);
+
+        $this->withToken($token)->postJson('/api/users/bulk-action', [
+            'user_ids' => [$pending->id],
+            'action' => 'suspend',
+        ])->assertUnprocessable()->assertJsonValidationErrors('reason');
+
+        $this->withToken($token)->postJson('/api/users/bulk-action', [
+            'user_ids' => [$pending->id],
+            'action' => 'suspend',
+            'reason' => 'Administrative suspension reason',
+        ])->assertOk()
+            ->assertJsonPath('processed_count', 0)
+            ->assertJsonPath('skipped_count', 1);
+
+        $this->assertEquals(User::APPROVAL_PENDING, $pending->fresh()->approval_status);
+        $this->assertDatabaseMissing('account_reviews', [
+            'user_id' => $pending->id,
+            'action' => AccountReview::ACTION_SUSPENDED,
+        ]);
     }
 
     public function test_non_admin_cannot_execute_bulk_actions(): void
@@ -234,6 +318,11 @@ class UserAdministrationApiTest extends TestCase
 
     private function tokenFor(User $user): string
     {
+        // Feature tests issue requests as multiple users in the same test.
+        // Reset the resolved guard so it authenticates each new bearer token
+        // instead of retaining the user from the previous request.
+        $this->app['auth']->forgetGuards();
+
         return $user->createToken('test-token')->plainTextToken;
     }
 }

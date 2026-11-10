@@ -346,6 +346,10 @@ class AccountRequestApiTest extends TestCase
 
     private function tokenFor(User $user): string
     {
+        // Some authorization tests switch bearer-token users between requests.
+        // Force Sanctum to resolve the guard again for the next token.
+        $this->app['auth']->forgetGuards();
+
         return $user->createToken('test-token')->plainTextToken;
     }
 }

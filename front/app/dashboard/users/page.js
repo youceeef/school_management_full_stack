@@ -392,8 +392,13 @@ function UsersPage() {
       tr("Veuillez saisir le motif de la suspension pour ces comptes :"),
       "Suspension administrative"
     );
-    if (reason !== null && reason.trim()) {
-      executeBulkAction("suspend", { reason: reason.trim() });
+    if (reason !== null) {
+      const trimmedReason = reason.trim();
+      if (trimmedReason.length < 5) {
+        toast.error(tr("Veuillez indiquer un motif d'au moins 5 caractères."));
+        return;
+      }
+      executeBulkAction("suspend", { reason: trimmedReason });
     }
   };
 
@@ -611,6 +616,7 @@ function UsersPage() {
           />
           <select
             value={roleFilter}
+            aria-label={tr("Filtrer par rôle")}
             onChange={(event) => {
               setRoleFilter(event.target.value);
               setPage(1);
@@ -625,6 +631,7 @@ function UsersPage() {
           </select>
           <select
             value={statusFilter}
+            aria-label={tr("Filtrer par statut")}
             onChange={(event) => {
               setStatusFilter(event.target.value);
               setPage(1);

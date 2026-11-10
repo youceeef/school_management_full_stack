@@ -97,6 +97,9 @@ Route::middleware(['auth:sanctum', 'account.approved'])->group(function () {
     Route::post('/users/bulk-action', [UserController::class, 'bulkAction'])
         ->middleware('role:admin')
         ->name('users.bulk-action');
+    Route::get('/users/{userId}', [UserController::class, 'show'])
+        ->middleware('role:admin')
+        ->name('users.show');
     Route::patch('/users/{userId}/approval', [UserController::class, 'reviewAccountApproval'])
         ->middleware('role:admin')
         ->name('users.approval.review');
