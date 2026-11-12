@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendStaffVerificationEmail;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -30,21 +32,26 @@ class StaffEmailVerificationController extends Controller
             return redirect("{$frontendUrl}/email-verified?status=expired");
         }
 
-        $user = User::find($id);
+        // Lock the account while checking and updating it so two concurrent
+        // uses of the same link cannot emit the Verified event twice.
+        $status = DB::transaction(function () use ($id, $hash): string {
+            $user = User::query()->whereKey($id)->lockForUpdate()->first();
 
-        if (! $user || ! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
-            return redirect("{$frontendUrl}/email-verified?status=invalid");
-        }
+            if (! $user || ! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
+                return 'invalid';
+            }
 
-        if ($user->hasVerifiedEmail()) {
-            return redirect("{$frontendUrl}/email-verified?status=already");
-        }
+            if ($user->hasVerifiedEmail()) {
+                return 'already';
+            }
 
-        $user->markEmailAsVerified();
+            $user->markEmailAsVerified();
+            event(new Verified($user));
 
-        event(new Verified($user));
+            return 'success';
+        });
 
-        return redirect("{$frontendUrl}/email-verified?status=success");
+        return redirect("{$frontendUrl}/email-verified?status={$status}");
     }
 
     /**
@@ -68,17 +75,13 @@ class StaffEmailVerificationController extends Controller
             'staff-verification-resend:'.$email,
             3,
             function () use ($email): void {
-                $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
-
-                if (! $user || ! $user->requiresAccountApproval() || $user->hasVerifiedEmail()) {
-                    return;
-                }
-
                 try {
-                    $user->sendEmailVerificationNotification();
+                    // Dispatch for every accepted address and resolve the user only
+                    // after the response. This removes the existence timing branch.
+                    SendStaffVerificationEmail::dispatchAfterResponse($email);
                 } catch (Throwable $exception) {
-                    Log::error('Failed sending staff verification email', [
-                        'user_id' => $user->id,
+                    Log::error('Failed scheduling staff verification email', [
+                        'email_hash' => hash('sha256', $email),
                         'error' => $exception->getMessage(),
                     ]);
                 }
@@ -93,7 +96,10 @@ class StaffEmailVerificationController extends Controller
         }
 
         return response()->json([
-            'message' => 'Si un compte en attente correspond à cette adresse, un nouvel email de confirmation vient d’être envoyé.',
-        ]);
+            // This wording and status intentionally stay identical for unknown
+            // addresses, successful delivery, and transport failure. That keeps
+            // the endpoint non-enumerable without falsely promising delivery.
+            'message' => 'Si un compte en attente correspond à cette adresse, la demande a été prise en compte. Vérifiez vos courriers indésirables et réessayez plus tard si aucun email n’arrive.',
+        ], 202);
     }
 }

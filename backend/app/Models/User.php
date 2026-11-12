@@ -130,7 +130,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification(): void
     {
         if ($this->requiresAccountApproval()) {
-            $this->notify(new VerifyStaffEmailNotification);
+            // Production currently uses the synchronous queue driver. Sending
+            // immediately lets registration/resend detect transport failures
+            // instead of reporting that a job was accepted when none exists.
+            $this->notifyNow(new VerifyStaffEmailNotification);
         }
     }
 

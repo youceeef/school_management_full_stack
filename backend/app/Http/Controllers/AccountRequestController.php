@@ -231,7 +231,12 @@ class AccountRequestController extends Controller
             ], 422);
         }
 
-        if ($user->isPending() && ! $user->hasVerifiedEmail()) {
+        $toStatus = $validated['status'];
+
+        // An unverified pending request cannot be reviewed at all, and no
+        // unverified account may enter (or re-enter) the approved state.
+        if (! $user->hasVerifiedEmail()
+            && ($user->isPending() || $toStatus === User::APPROVAL_APPROVED)) {
             return response()->json([
                 'message' => 'Cette demande ne peut pas être examinée tant que l’adresse email n’a pas été confirmée.',
                 'code' => 'EMAIL_UNVERIFIED',
@@ -239,7 +244,6 @@ class AccountRequestController extends Controller
         }
 
         $fromStatus = $user->approval_status;
-        $toStatus = $validated['status'];
         $reason = $validated['reason'] ?? null;
 
         // Lifecycle guards (P3.3)

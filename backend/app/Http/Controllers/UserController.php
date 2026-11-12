@@ -297,6 +297,12 @@ class UserController extends Controller
 
                         continue;
                     }
+                    if (! $user->hasVerifiedEmail()) {
+                        $skippedCount++;
+                        $skippedReasons[] = 'L’adresse email doit être confirmée avant toute approbation ou réactivation.';
+
+                        continue;
+                    }
 
                     $fromStatus = $user->approval_status;
                     $reviewAction = $fromStatus === User::APPROVAL_SUSPENDED
@@ -434,7 +440,12 @@ class UserController extends Controller
             ], 422);
         }
 
-        if ($user->isPending() && ! $user->hasVerifiedEmail()) {
+        $status = $validated['status'];
+
+        // An unverified pending request cannot be reviewed at all, and no
+        // unverified account may enter (or re-enter) the approved state.
+        if (! $user->hasVerifiedEmail()
+            && ($user->isPending() || $status === User::APPROVAL_APPROVED)) {
             return response()->json([
                 'message' => 'Cette demande ne peut pas être examinée tant que l’adresse email n’a pas été confirmée.',
                 'code' => 'EMAIL_UNVERIFIED',
@@ -442,7 +453,6 @@ class UserController extends Controller
         }
 
         $fromStatus = $user->approval_status;
-        $status = $validated['status'];
         $reason = $validated['reason'] ?? null;
 
         if ($fromStatus === User::APPROVAL_APPROVED && $status === User::APPROVAL_REJECTED) {

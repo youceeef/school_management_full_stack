@@ -16,6 +16,7 @@ import ThemeToggle from "../components/ThemeToggle";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import Button from "../components/Button";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { normalizeEmailVerificationStatus } from "./status.mjs";
 
 const STATUS_CONTENT = {
   success: {
@@ -60,8 +61,8 @@ function EmailVerifiedContent() {
   const router = useRouter();
   const { t, isRtl } = useLanguage();
 
-  const status = searchParams.get("status");
-  const content = STATUS_CONTENT[status] || STATUS_CONTENT.invalid;
+  const status = normalizeEmailVerificationStatus(searchParams.get("status"));
+  const content = STATUS_CONTENT[status];
   const StatusIcon = content.icon;
 
   const [email, setEmail] = useState("");
@@ -151,47 +152,54 @@ function EmailVerifiedContent() {
                 {t("auth.emailVerifiedResendDesc")}
               </p>
 
-              {resent ? (
-                <div className="p-3.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-xs text-emerald-800 dark:text-emerald-300">
+              {resent && (
+                <div
+                  role="status"
+                  className="mb-4 p-3.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-xs text-emerald-800 dark:text-emerald-300"
+                >
                   {t("auth.emailVerifiedResendSuccess")}
                 </div>
-              ) : (
-                <form onSubmit={handleResend} className="space-y-4" noValidate>
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
-                    >
-                      {t("auth.emailLabel")}
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
-                      placeholder={t("auth.emailPlaceholder")}
-                      required
-                    />
-                  </div>
-
-                  {resendError && (
-                    <p className="text-xs text-red-600 dark:text-red-400">{resendError}</p>
-                  )}
-
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="lg"
-                    loading={resending}
-                    className="w-full"
-                  >
-                    {resending
-                      ? t("auth.emailVerifiedResending")
-                      : t("auth.emailVerifiedResendBtn")}
-                  </Button>
-                </form>
               )}
+
+              <form onSubmit={handleResend} className="space-y-4" noValidate>
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"
+                  >
+                    {t("auth.emailLabel")}
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      setResent(false);
+                      setResendError("");
+                    }}
+                    className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
+                    placeholder={t("auth.emailPlaceholder")}
+                    required
+                  />
+                </div>
+
+                {resendError && (
+                  <p className="text-xs text-red-600 dark:text-red-400">{resendError}</p>
+                )}
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  loading={resending}
+                  className="w-full"
+                >
+                  {resending
+                    ? t("auth.emailVerifiedResending")
+                    : t("auth.emailVerifiedResendBtn")}
+                </Button>
+              </form>
             </div>
           )}
 

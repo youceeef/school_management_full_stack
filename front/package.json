@@ -13,7 +13,8 @@
     "test:i18n": "node --test app/i18n/translations.test.mjs",
     "test:system": "node --test app/utils/systemCompatibility.test.mjs",
     "test:version": "node --test app/api/version/route.test.mjs",
-    "test:unit": "npm run test:i18n && npm run test:system && npm run test:version"
+    "test:verification": "node --test app/email-verified/status.test.mjs",
+    "test:unit": "npm run test:i18n && npm run test:system && npm run test:version && npm run test:verification"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

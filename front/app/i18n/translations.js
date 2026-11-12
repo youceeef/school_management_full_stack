@@ -264,7 +264,7 @@ export const TRANSLATIONS = {
       emailVerifiedResendBtn: "Envoyer un nouveau lien",
       emailVerifiedResending: "Envoi en cours...",
       emailVerifiedResendSuccess:
-        "Si un compte en attente correspond à cette adresse, un nouvel email vient d'être envoyé. Pensez à vérifier vos courriers indésirables.",
+        "Si un compte en attente correspond à cette adresse, la demande a été prise en compte. Vérifiez vos courriers indésirables et réessayez plus tard si aucun email n'arrive.",
       emailVerifiedResendRateLimited:
         "Trop de demandes. Patientez une heure avant de demander un nouvel email.",
       emailVerifiedResendError:
@@ -510,7 +510,7 @@ export const TRANSLATIONS = {
       emailVerifiedResendBtn: "Send a new link",
       emailVerifiedResending: "Sending...",
       emailVerifiedResendSuccess:
-        "If a pending account matches this address, a new email has just been sent. Please check your spam folder.",
+        "If a pending account matches this address, the request was accepted. Check your spam folder and try again later if no email arrives.",
       emailVerifiedResendRateLimited:
         "Too many requests. Wait one hour before requesting another email.",
       emailVerifiedResendError:
@@ -756,7 +756,7 @@ export const TRANSLATIONS = {
       emailVerifiedResendBtn: "إرسال رابط جديد",
       emailVerifiedResending: "جاري الإرسال...",
       emailVerifiedResendSuccess:
-        "إذا كان هناك حساب قيد الانتظار بهذا العنوان، فقد تم إرسال بريد جديد للتو. تحقق من مجلد البريد غير المرغوب فيه.",
+        "إذا كان هناك حساب قيد الانتظار بهذا العنوان، فقد تم قبول الطلب. تحقق من مجلد البريد غير المرغوب فيه وأعد المحاولة لاحقاً إذا لم يصل أي بريد.",
       emailVerifiedResendRateLimited:
         "طلبات كثيرة جداً. انتظر ساعة قبل طلب بريد جديد.",
       emailVerifiedResendError:

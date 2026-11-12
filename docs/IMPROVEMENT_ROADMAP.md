@@ -512,10 +512,32 @@ Keep user administration usable as the number of accounts grows.
 
 ### Tasks
 
-- `[ ]` **P6.1 — Email verification before admin review.**
+- `[~]` **P6.1 — Email verification before admin review.**
   - Verify staff email ownership before a request becomes reviewable.
   - Keep unverified applicants out of the approval queue and prevent login.
   - Provide resend and expired-link recovery without creating duplicate users.
+  - Local implementation and validation:
+    - `[x]` Signed 60-minute links, login blocking, hidden unverified requests,
+      case-insensitive resend, and the legacy-applicant command are implemented.
+    - `[x]` Individual and bulk approval/reactivation paths reject unverified
+      staff accounts; regression tests cover pending and suspended states.
+    - `[x]` Verification locks the applicant row, persists the administrator's
+      database alert atomically, and isolates post-commit email failures.
+    - `[x]` Every accepted resend request dispatches the same after-response job,
+      removing existence-dependent mail latency while retaining neutral wording
+      and a reusable recovery form.
+    - `[x]` Unknown verification-result values safely fall back to the invalid
+      state; French, English, Arabic/RTL, and mobile recovery views pass locally.
+    - `[x]` Full local checks pass: 117 Laravel tests / 714 assertions, Pint,
+      Composer audit, 12 frontend unit tests, ESLint, production build, and npm
+      audit.
+  - Release gates remaining:
+    - `[ ]` Commit and push the P6.1 validation fixes to `PROD`; confirm CI.
+    - `[ ]` Review and explicitly approve the Vercel preview.
+    - `[ ]` Fast-forward `main`, deploy the approved API SHA manually (D015),
+      run Production Smoke, and complete the authenticated production checklist.
+    - `[ ]` Run `staff:send-verification --dry-run`, then send links to existing
+      unverified pending staff applications after operator review.
 - `[ ]` **P6.2 — Administrator two-factor authentication.**
 - `[ ]` **P6.3 — Session and device management.**
   - List active sessions and provide “log out all devices.”
@@ -651,6 +673,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | D013 | Restore Render `checksPass` auto-deploy before starting P6; manual deployment is an incident workaround, not the normal release process. | Superseded by D015 |
 | D014 | Production Smoke is manual after releases and scheduled daily; it must not run as a post-CI check because Render `checksPass` would wait on the smoke job that is itself waiting for Render. | Accepted |
 | D015 | Production API releases are deployed manually by the operator from the approved `main` SHA. Render Auto-Deploy is intentionally `off` because any specific-commit deploy disables it; SHA parity via `/health` and a manually dispatched Production Smoke are mandatory after every release. | Accepted |
+| D016 | Staff verification links expire after 60 minutes. Pending applications are reviewable only after verification; existing unverified applicants receive a fresh link via `staff:send-verification`, and admins are alerted only after the address is confirmed. | Accepted |
 
 ## Progress log
 
@@ -683,8 +706,9 @@ Analytics must use scoped, privacy-conscious aggregate data.
 
 ## Next action
 
-Start **P6.1 — Email verification before admin review** as the only approved
-next increment. Implement, test, preview-approve it on `PROD`, release it to
-`main`, deploy the API manually for that SHA (D015), run Production Smoke, and
-record the result here. Do not begin P6.2 or any unrelated phase until P6.1 is
-completed, tested, preview-approved, deployed, and recorded.
+Complete the remaining **P6.1 — Email verification before admin review**
+release gates. Commit and push the validated fixes to `PROD`, confirm CI, review
+and explicitly approve the Vercel preview, then fast-forward `main`, deploy the
+approved API SHA manually (D015), run Production Smoke, complete the
+authenticated production checklist, and record the release here. Do not begin
+P6.2 or any unrelated phase until those P6.1 gates are complete.
