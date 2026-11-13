@@ -67,7 +67,7 @@ class StaffEmailVerificationTest extends TestCase
         $user = User::where('email', 'ahmed.benali@fst.utm.tn')->firstOrFail();
 
         $this->assertNull($user->email_verified_at);
-        Notification::assertSentTo($user, VerifyStaffEmailNotification::class);
+        Notification::assertSentToTimes($user, VerifyStaffEmailNotification::class, 1);
     }
 
     public function test_verification_notification_generates_a_signed_link_that_expires_after_60_minutes(): void

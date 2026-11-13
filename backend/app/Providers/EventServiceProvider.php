@@ -64,4 +64,14 @@ class EventServiceProvider extends ServiceProvider
     {
         return false; // Keep this false if you prefer explicit mapping in $listen array
     }
+
+    /**
+     * Prevent Laravel from automatically attaching SendEmailVerificationNotification
+     * to the Registered event. Staff email verification is dispatched with error
+     * isolation in RegisteredUserController.
+     */
+    protected function configureEmailVerification(): void
+    {
+        // Intentionally empty to prevent duplicate verification notifications.
+    }
 }
