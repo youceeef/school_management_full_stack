@@ -84,6 +84,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const verifyTwoFactorChallenge = async ({ challenge_token, code, recovery_code }) => {
+    try {
+      const response = await axiosInstance.post("/api/two-factor-challenge", {
+        challenge_token,
+        code,
+        recovery_code,
+      });
+
+      if (response.data.token) {
+        storeToken(response.data.token);
+        const userData = await getUserProfile();
+        setUser(userData);
+        setPermissions(response.data.permissions || []);
+      }
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: "Code d’authentification invalide" };
+    }
+  };
+
   const clearAuth = () => {
     Cookies.remove("token");
     setUser(null);
@@ -190,6 +210,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         permissions,
         login,
+        verifyTwoFactorChallenge,
         registerStudent,
         registerTeacher,
         registerLabManager,

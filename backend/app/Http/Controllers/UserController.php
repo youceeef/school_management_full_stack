@@ -846,6 +846,7 @@ class UserController extends Controller
                 'first_name' => $user->first_name,
                 'last_name' => $user->last_name,
                 'roles' => $user->roles->pluck('name'),
+                'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
             ],
         ]);
     }

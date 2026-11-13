@@ -54,6 +54,13 @@ class AuthenticatedSessionController extends Controller
             ], 403);
         }
 
+        if ($user->hasEnabledTwoFactorAuthentication()) {
+            return response()->json([
+                'two_factor' => true,
+                'challenge_token' => $user->createTwoFactorChallengeToken(),
+            ]);
+        }
+
         $user->tokens()->delete();
         $tokenName = 'auth-token:'.Str::limit((string) $request->userAgent(), 220, '');
         $token = $user->createToken($tokenName)->plainTextToken;

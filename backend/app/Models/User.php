@@ -55,6 +55,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'reviewed_at',
         'reviewed_by',
         'suspended_at',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'two_factor_confirmed_at',
     ];
 
     /**
@@ -74,6 +77,8 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -86,6 +91,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
         'reviewed_at' => 'datetime',
         'suspended_at' => 'datetime',
+        'two_factor_secret' => 'encrypted',
+        'two_factor_recovery_codes' => 'encrypted:array',
+        'two_factor_confirmed_at' => 'datetime',
     ];
 
     public function reviewer()
@@ -116,6 +124,55 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isPending(): bool
     {
         return $this->approval_status === self::APPROVAL_PENDING;
+    }
+
+    public function hasEnabledTwoFactorAuthentication(): bool
+    {
+        return ! is_null($this->two_factor_secret) && ! is_null($this->two_factor_confirmed_at);
+    }
+
+    /**
+     * Generate a signed temporary challenge token for 2FA verification.
+     */
+    public function createTwoFactorChallengeToken(): string
+    {
+        return encrypt([
+            'user_id' => $this->id,
+            'expires_at' => now()->addMinutes(5)->timestamp,
+        ]);
+    }
+
+    /**
+     * Replace recovery code if matching code is found.
+     * Returns true if valid code was consumed and user saved.
+     */
+    public function consumeRecoveryCode(string $code): bool
+    {
+        $codes = $this->two_factor_recovery_codes;
+
+        if (! is_array($codes) || empty($codes)) {
+            return false;
+        }
+
+        $clean = trim($code);
+        $foundIndex = null;
+
+        foreach ($codes as $index => $storedCode) {
+            if (hash_equals($storedCode, $clean)) {
+                $foundIndex = $index;
+                break;
+            }
+        }
+
+        if ($foundIndex === null) {
+            return false;
+        }
+
+        unset($codes[$foundIndex]);
+        $this->two_factor_recovery_codes = array_values($codes);
+        $this->save();
+
+        return true;
     }
 
     public function requiresAccountApproval(): bool

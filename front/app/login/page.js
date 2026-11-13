@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { EyeIcon, EyeSlashIcon, ExclamationCircleIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { EyeIcon, EyeSlashIcon, ExclamationCircleIcon, ArrowLeftIcon, ShieldCheckIcon, KeyIcon } from "@heroicons/react/24/outline";
 import toast from "../utils/toast";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -21,8 +21,14 @@ export default function Login() {
   const [accountRejection, setAccountRejection] = useState(null);
   const [emailUnverified, setEmailUnverified] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
+  const [showTwoFactor, setShowTwoFactor] = useState(false);
+  const [challengeToken, setChallengeToken] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, verifyTwoFactorChallenge } = useAuth();
   const { t, tr, isRtl } = useLanguage();
 
   const handleSubmit = async (e) => {
@@ -43,7 +49,12 @@ export default function Login() {
       if (!emailRegex.test(email)) {
         throw new Error(tr("Veuillez entrer une adresse email valide"));
       }
-      await login(email, password);
+      const response = await login(email, password);
+      if (response?.two_factor) {
+        setChallengeToken(response.challenge_token);
+        setShowTwoFactor(true);
+        return;
+      }
       toast.success(tr("Connexion réussie"));
       router.push("/dashboard");
     } catch (err) {
@@ -66,6 +77,35 @@ export default function Login() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTwoFactorSubmit = async (e) => {
+    e.preventDefault();
+    setTwoFactorLoading(true);
+    setError("");
+
+    try {
+      if (!useRecoveryCode && (!twoFactorCode || twoFactorCode.trim().length !== 6)) {
+        throw new Error(tr("Veuillez saisir un code à 6 chiffres"));
+      }
+      if (useRecoveryCode && !recoveryCode.trim()) {
+        throw new Error(tr("Veuillez saisir un code de récupération"));
+      }
+
+      await verifyTwoFactorChallenge({
+        challenge_token: challengeToken,
+        code: useRecoveryCode ? null : twoFactorCode.trim(),
+        recovery_code: useRecoveryCode ? recoveryCode.trim() : null,
+      });
+
+      toast.success(tr("Connexion réussie"));
+      router.push("/dashboard");
+    } catch (err) {
+      console.error("2FA Challenge error:", err);
+      setError(tr(err.message || "Code d'authentification invalide"));
+    } finally {
+      setTwoFactorLoading(false);
     }
   };
 
@@ -140,69 +180,167 @@ export default function Login() {
 
         <div className="w-full max-w-md mx-auto my-12">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-white">
-                {t("auth.loginHeading")}
-              </h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                {t("auth.loginSubheading")}
-              </p>
-            </div>
-
-            {error && (
-              <div className="mb-6 p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-lg flex items-start gap-2.5">
-                <ExclamationCircleIcon className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                <p className="text-xs font-medium text-red-700 dark:text-red-300">{error}</p>
-              </div>
-            )}
-
-            {accountRejection && (
-              <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-900 dark:text-amber-200 space-y-2">
-                <div className="flex items-center gap-2 font-semibold">
-                  <ExclamationCircleIcon className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>{tr("Demande de compte refusée par l'administration")}</span>
+            {showTwoFactor ? (
+              <div>
+                <div className="mb-6 flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 shrink-0">
+                    <ShieldCheckIcon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold font-display text-slate-900 dark:text-white">
+                      {t("auth.twoFactorTitle")}
+                    </h1>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                      {useRecoveryCode ? t("auth.twoFactorRecoveryDesc") : t("auth.twoFactorDesc")}
+                    </p>
+                  </div>
                 </div>
-                {accountRejection.reason && (
-                  <p className="pl-6 text-slate-700 dark:text-slate-300 italic">
-                    &ldquo;{accountRejection.reason}&rdquo;
-                  </p>
+
+                {error && (
+                  <div className="mb-6 p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-lg flex items-start gap-2.5">
+                    <ExclamationCircleIcon className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                    <p className="text-xs font-medium text-red-700 dark:text-red-300">{error}</p>
+                  </div>
                 )}
-                <div className="pl-6 pt-1">
-                  <Link
-                    href={`/resubmit?email=${encodeURIComponent(accountRejection.email)}`}
-                    className="inline-flex items-center gap-1.5 font-semibold text-primary-600 dark:text-primary-400 hover:underline"
-                  >
-                    <span>{tr("Corriger et renvoyer la demande")}</span>
-                    <span aria-hidden="true">&rarr;</span>
-                  </Link>
-                </div>
-              </div>
-            )}
 
-            {emailUnverified && (
-              <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-900 dark:text-amber-200 space-y-2">
-                <div className="flex items-center gap-2 font-semibold">
-                  <ExclamationCircleIcon className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>{t("auth.emailUnverifiedTitle")}</span>
-                </div>
-                <p className="pl-6 text-slate-700 dark:text-slate-300 leading-relaxed">
-                  {t("auth.emailUnverifiedDesc")}
-                </p>
-                <div className="pl-6 pt-1">
+                <form onSubmit={handleTwoFactorSubmit} className="space-y-5" noValidate>
+                  {!useRecoveryCode ? (
+                    <div>
+                      <label htmlFor="twoFactorCode" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        {t("auth.twoFactorCodeLabel")}
+                      </label>
+                      <input
+                        id="twoFactorCode"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={6}
+                        autoFocus
+                        value={twoFactorCode}
+                        onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ""))}
+                        placeholder="123456"
+                        className="w-full text-center text-2xl tracking-[0.3em] font-mono px-4 py-3 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-colors"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label htmlFor="recoveryCode" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        {t("auth.twoFactorRecoveryCodeLabel")}
+                      </label>
+                      <input
+                        id="recoveryCode"
+                        type="text"
+                        autoFocus
+                        value={recoveryCode}
+                        onChange={(e) => setRecoveryCode(e.target.value)}
+                        placeholder="abcde-12345"
+                        className="w-full font-mono text-sm px-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-colors"
+                      />
+                    </div>
+                  )}
+
                   <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    loading={resendingVerification}
-                    onClick={handleResendVerification}
+                    type="submit"
+                    variant="primary"
+                    size="lg"
+                    loading={twoFactorLoading}
+                    className="w-full"
                   >
-                    {t("auth.resendVerificationBtn")}
+                    {twoFactorLoading ? t("auth.twoFactorVerifying") : t("auth.twoFactorVerifyBtn")}
                   </Button>
-                </div>
-              </div>
-            )}
 
-            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                  <div className="pt-2 flex flex-col gap-2.5 text-center text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseRecoveryCode(!useRecoveryCode);
+                        setError("");
+                      }}
+                      className="font-medium text-primary-600 dark:text-primary-400 hover:underline"
+                    >
+                      {useRecoveryCode ? t("auth.twoFactorUseTotp") : t("auth.twoFactorUseRecovery")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowTwoFactor(false);
+                        setChallengeToken("");
+                        setTwoFactorCode("");
+                        setRecoveryCode("");
+                        setError("");
+                      }}
+                      className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                    >
+                      {t("auth.twoFactorBackToLogin")}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <>
+                <div className="mb-6">
+                  <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-white">
+                    {t("auth.loginHeading")}
+                  </h1>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    {t("auth.loginSubheading")}
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="mb-6 p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-lg flex items-start gap-2.5">
+                    <ExclamationCircleIcon className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                    <p className="text-xs font-medium text-red-700 dark:text-red-300">{error}</p>
+                  </div>
+                )}
+
+                {accountRejection && (
+                  <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-900 dark:text-amber-200 space-y-2">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <ExclamationCircleIcon className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>{tr("Demande de compte refusée par l'administration")}</span>
+                    </div>
+                    {accountRejection.reason && (
+                      <p className="pl-6 text-slate-700 dark:text-slate-300 italic">
+                        &ldquo;{accountRejection.reason}&rdquo;
+                      </p>
+                    )}
+                    <div className="pl-6 pt-1">
+                      <Link
+                        href={`/resubmit?email=${encodeURIComponent(accountRejection.email)}`}
+                        className="inline-flex items-center gap-1.5 font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                      >
+                        <span>{tr("Corriger et renvoyer la demande")}</span>
+                        <span aria-hidden="true">&rarr;</span>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {emailUnverified && (
+                  <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-900 dark:text-amber-200 space-y-2">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <ExclamationCircleIcon className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>{t("auth.emailUnverifiedTitle")}</span>
+                    </div>
+                    <p className="pl-6 text-slate-700 dark:text-slate-300 leading-relaxed">
+                      {t("auth.emailUnverifiedDesc")}
+                    </p>
+                    <div className="pl-6 pt-1">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        loading={resendingVerification}
+                        onClick={handleResendVerification}
+                      >
+                        {t("auth.resendVerificationBtn")}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                   {t("auth.emailLabel")}
@@ -270,6 +408,8 @@ export default function Login() {
                 </Link>
               </p>
             </div>
+              </>
+            )}
           </div>
         </div>
 

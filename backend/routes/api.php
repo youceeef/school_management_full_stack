@@ -7,6 +7,8 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\StaffEmailVerificationController;
+use App\Http\Controllers\Auth\TwoFactorAuthenticationController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EquipementController;
@@ -33,6 +35,9 @@ Route::post('/reset-password', [NewPasswordController::class, 'store'])
     ->name('password.update');
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
     ->middleware('throttle:login');
+Route::post('/two-factor-challenge', [TwoFactorChallengeController::class, 'store'])
+    ->middleware('throttle:login')
+    ->name('two-factor.challenge');
 
 Route::prefix('register')->middleware('throttle:registration')->group(function () {
     Route::post('/eleve', [RegisteredUserController::class, 'registerStudent']);
@@ -137,6 +142,16 @@ Route::middleware(['auth:sanctum', 'account.approved'])->group(function () {
         Route::post('/profile', [UserController::class, 'updateProfile']);
         Route::delete('/profile', [UserController::class, 'deleteProfile']);
         Route::delete('/profile/picture', [UserController::class, 'deleteProfilePicture'])->name('profile.picture.delete');
+    });
+
+    // --- Two-Factor Authentication ---
+    Route::prefix('user/two-factor-authentication')->group(function () {
+        Route::post('/', [TwoFactorAuthenticationController::class, 'enable'])->name('two-factor.enable');
+        Route::post('/confirm', [TwoFactorAuthenticationController::class, 'confirm'])->name('two-factor.confirm');
+        Route::get('/qr-code', [TwoFactorAuthenticationController::class, 'qrCode'])->name('two-factor.qr-code');
+        Route::post('/recovery-codes', [TwoFactorAuthenticationController::class, 'recoveryCodes'])->name('two-factor.recovery-codes');
+        Route::post('/recovery-codes/regenerate', [TwoFactorAuthenticationController::class, 'regenerateRecoveryCodes'])->name('two-factor.recovery-codes.regenerate');
+        Route::delete('/', [TwoFactorAuthenticationController::class, 'disable'])->name('two-factor.disable');
     });
 
     // --- Reservations ---

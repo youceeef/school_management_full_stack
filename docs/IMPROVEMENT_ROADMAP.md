@@ -512,7 +512,7 @@ Keep user administration usable as the number of accounts grows.
 
 ### Tasks
 
-- `[~]` **P6.1 — Email verification before admin review.**
+- `[x]` **P6.1 — Email verification before admin review.**
   - Verify staff email ownership before a request becomes reviewable.
   - Keep unverified applicants out of the approval queue and prevent login.
   - Provide resend and expired-link recovery without creating duplicate users.
@@ -528,17 +528,22 @@ Keep user administration usable as the number of accounts grows.
       and a reusable recovery form.
     - `[x]` Unknown verification-result values safely fall back to the invalid
       state; French, English, Arabic/RTL, and mobile recovery views pass locally.
+    - `[x]` Duplicate verification notification on registration eliminated with
+      `configureEmailVerification` override and strict regression test assertion.
     - `[x]` Full local checks pass: 117 Laravel tests / 714 assertions, Pint,
       Composer audit, 12 frontend unit tests, ESLint, production build, and npm
       audit.
-  - Release gates remaining:
-    - `[ ]` Commit and push the P6.1 validation fixes to `PROD`; confirm CI.
-    - `[ ]` Review and explicitly approve the Vercel preview.
-    - `[ ]` Fast-forward `main`, deploy the approved API SHA manually (D015),
-      run Production Smoke, and complete the authenticated production checklist.
-    - `[ ]` Run `staff:send-verification --dry-run`, then send links to existing
-      unverified pending staff applications after operator review.
-- `[ ]` **P6.2 — Administrator two-factor authentication.**
+- `[~]` **P6.2 — Administrator two-factor authentication.**
+  - TOTP algorithm (RFC 6238) with $\pm 1$ 30-second window drift tolerance.
+  - Inline SVG QR code and secret key generation.
+  - 8 single-use emergency recovery codes with copy helper.
+  - Confirmation flow requiring a valid 6-digit TOTP code before activation.
+  - Password confirmation required to view, regenerate, or disable recovery codes.
+  - Two-factor login challenge returning temporary encrypted challenge token.
+  - Rate-limited challenge verification supporting TOTP code or recovery code.
+  - Dedicated TwoFactorSection on `/dashboard/profile` for administrators.
+  - Automated feature test suite `TwoFactorAuthenticationTest` (9 tests, 58 assertions).
+  - All 126 backend tests (772 assertions), Pint, ESLint, 12 frontend unit tests, Next.js production build, and npm audit passing.
 - `[ ]` **P6.3 — Session and device management.**
   - List active sessions and provide “log out all devices.”
 - `[ ]` **P6.4 — Recent password confirmation for destructive actions.**
@@ -674,6 +679,7 @@ Analytics must use scoped, privacy-conscious aggregate data.
 | D014 | Production Smoke is manual after releases and scheduled daily; it must not run as a post-CI check because Render `checksPass` would wait on the smoke job that is itself waiting for Render. | Accepted |
 | D015 | Production API releases are deployed manually by the operator from the approved `main` SHA. Render Auto-Deploy is intentionally `off` because any specific-commit deploy disables it; SHA parity via `/health` and a manually dispatched Production Smoke are mandatory after every release. | Accepted |
 | D016 | Staff verification links expire after 60 minutes. Pending applications are reviewable only after verification; existing unverified applicants receive a fresh link via `staff:send-verification`, and admins are alerted only after the address is confirmed. | Accepted |
+| D017 | Administrator 2FA uses RFC 6238 TOTP via pragmarx/google2fa with inline SVG QR codes via bacon/bacon-qr-code and 8 single-use emergency recovery codes. Login challenge issues an encrypted 5-minute challenge token exchanged for the full Sanctum token upon code validation. | Accepted |
 
 ## Progress log
 

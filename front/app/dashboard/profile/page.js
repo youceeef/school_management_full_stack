@@ -27,6 +27,7 @@ import {
   getStorageImageUrl,
 } from "../../services/userProfileService";
 import { useAuth } from "../../context/AuthContext";
+import TwoFactorSection from "./TwoFactorSection";
 
 export default function Profile() {
   const router = useRouter();
@@ -76,6 +77,7 @@ export default function Profile() {
           role: profile.roles && profile.roles.length > 0 ? profile.roles[0] : "",
           joinDate: new Date(profile.created_at).toLocaleDateString("fr-FR"),
           profileImage: profile.picture ? getStorageImageUrl(profile.picture) : null,
+          twoFactorEnabled: Boolean(profile.two_factor_enabled),
         };
 
         setUserData(mappedData);
@@ -518,6 +520,15 @@ export default function Profile() {
           )}
         </div>
       </Card>
+
+      {!loading && (
+        <TwoFactorSection
+          initialEnabled={userData.twoFactorEnabled}
+          onStatusChange={(newStatus) =>
+            setUserData((prev) => ({ ...prev, twoFactorEnabled: newStatus }))
+          }
+        />
+      )}
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">

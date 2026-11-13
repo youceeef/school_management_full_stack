@@ -40,6 +40,8 @@ class UserResource extends JsonResource
             'requested_role' => $this->requested_role,
             'reviewed_at' => $this->reviewed_at,
             'suspended_at' => $this->suspended_at,
+            'two_factor_enabled' => $this->hasEnabledTwoFactorAuthentication(),
+            'two_factor_confirmed' => ! is_null($this->two_factor_confirmed_at),
         ];
     }
 
