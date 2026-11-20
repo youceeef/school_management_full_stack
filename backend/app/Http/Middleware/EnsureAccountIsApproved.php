@@ -39,6 +39,17 @@ class EnsureAccountIsApproved
             ], 403);
         }
 
+        $token = $user?->currentAccessToken();
+        if ($user && $user->hasRole('admin') && $user->hasEnabledTwoFactorAuthentication()
+            && (! $token || ! str_starts_with((string) $token->name, 'two-factor-verified:'))) {
+            $token?->delete();
+
+            return response()->json([
+                'message' => 'Reconnectez-vous et validez votre code de sécurité.',
+                'code' => 'TWO_FACTOR_REQUIRED',
+            ], 401);
+        }
+
         return $next($request);
     }
 }

@@ -38,6 +38,28 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('registration', fn (Request $request) => Limit::perMinute(5)->by($request->ip())
         );
 
+        RateLimiter::for('two-factor-challenge', function (Request $request) {
+            $limits = [Limit::perMinute(5)->by('two-factor-ip:'.$request->ip())];
+            $challengeToken = $request->input('challenge_token');
+            if (! is_string($challengeToken) || strlen($challengeToken) > 2048) {
+                return $limits;
+            }
+
+            try {
+                $payload = decrypt($challengeToken);
+            } catch (\Throwable) {
+                return $limits;
+            }
+
+            if (is_array($payload) && isset($payload['user_id'], $payload['expires_at']) && $payload['expires_at'] > now()->timestamp) {
+                $limits[] = Limit::perMinute(5)->by('two-factor-user:'.$payload['user_id']);
+            }
+
+            return $limits;
+        });
+
+        RateLimiter::for('two-factor-settings', fn (Request $request) => Limit::perMinute(5)->by($request->user()->id));
+
         RateLimiter::for('password-reset', function (Request $request) {
             return Limit::perMinute(5)->by(
                 Str::lower((string) $request->input('email')).'|'.$request->ip()

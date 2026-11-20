@@ -7,6 +7,7 @@ use App\Services\TwoFactorAuthenticationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class TwoFactorAuthenticationController extends Controller
 {
@@ -18,8 +19,16 @@ class TwoFactorAuthenticationController extends Controller
     {
         $user = $request->user();
 
-        // If not already generating or confirmed, generate a new secret
-        if (! $user->two_factor_secret || is_null($user->two_factor_confirmed_at)) {
+        $validated = $request->validate(['password' => ['required', 'string']]);
+        if (! Hash::check($validated['password'], $user->password)) {
+            return response()->json(['errors' => ['password' => ['Mot de passe incorrect.']]], 422);
+        }
+
+        if ($user->hasEnabledTwoFactorAuthentication()) {
+            return response()->json(['message' => 'L’authentification à deux facteurs est déjà activée.'], 409);
+        }
+
+        if (! $user->two_factor_secret) {
             $secret = $service->generateSecretKey();
             $recoveryCodes = $service->generateRecoveryCodes();
 
@@ -27,6 +36,7 @@ class TwoFactorAuthenticationController extends Controller
                 'two_factor_secret' => $secret,
                 'two_factor_recovery_codes' => $recoveryCodes,
                 'two_factor_confirmed_at' => null,
+                'two_factor_challenge_hash' => null,
             ])->save();
         } else {
             $secret = (string) $user->two_factor_secret;
@@ -76,36 +86,23 @@ class TwoFactorAuthenticationController extends Controller
 
         $user->forceFill([
             'two_factor_confirmed_at' => now(),
+            'two_factor_challenge_hash' => null,
         ])->save();
+
+        $currentToken = $user->currentAccessToken();
+        // Sessions issued before enrollment have never completed the second factor.
+        if ($currentToken instanceof PersonalAccessToken) {
+            $currentToken->forceFill([
+                'name' => 'two-factor-verified:'.substr((string) $request->userAgent(), 0, 210),
+            ])->save();
+            $user->tokens()->whereKeyNot($currentToken->getKey())->delete();
+        } else {
+            $user->tokens()->delete();
+        }
 
         return response()->json([
             'message' => 'Authentification à deux facteurs confirmée et activée avec succès.',
             'confirmed' => true,
-        ]);
-    }
-
-    /**
-     * Get the inline SVG QR code and secret for an authenticated user.
-     */
-    public function qrCode(Request $request, TwoFactorAuthenticationService $service): JsonResponse
-    {
-        $user = $request->user();
-
-        if (! $user->two_factor_secret) {
-            return response()->json([
-                'message' => 'L’authentification à deux facteurs n’est pas configurée.',
-            ], 404);
-        }
-
-        $svg = $service->qrCodeSvg(
-            config('app.name', 'EduSpace'),
-            $user->email,
-            (string) $user->two_factor_secret
-        );
-
-        return response()->json([
-            'svg' => $svg,
-            'secret' => (string) $user->two_factor_secret,
         ]);
     }
 
@@ -202,6 +199,7 @@ class TwoFactorAuthenticationController extends Controller
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
+            'two_factor_challenge_hash' => null,
         ])->save();
 
         return response()->json([

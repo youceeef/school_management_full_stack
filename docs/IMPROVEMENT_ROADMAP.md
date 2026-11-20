@@ -539,11 +539,16 @@ Keep user administration usable as the number of accounts grows.
   - 8 single-use emergency recovery codes with copy helper.
   - Confirmation flow requiring a valid 6-digit TOTP code before activation.
   - Password confirmation required to view, regenerate, or disable recovery codes.
+  - Password reconfirmation required before showing a new setup secret or recovery codes.
   - Two-factor login challenge returning temporary encrypted challenge token.
-  - Rate-limited challenge verification supporting TOTP code or recovery code.
+  - Rate-limited, one-use login challenges supporting TOTP code or recovery code.
+  - Revoke older sessions after enrollment and require a two-factor-verified token for admin APIs.
+  - Restrict setup and recovery endpoints to admins; remove the endpoint that exposed the setup secret after enrollment.
   - Dedicated TwoFactorSection on `/dashboard/profile` for administrators.
-  - Automated feature test suite `TwoFactorAuthenticationTest` (9 tests, 58 assertions).
-  - All 126 backend tests (772 assertions), Pint, ESLint, 12 frontend unit tests, Next.js production build, and npm audit passing.
+  - Automated feature test suite `TwoFactorAuthenticationTest` (13 tests, 71 assertions).
+  - `[x]` Local validation: all 130 backend tests (789 assertions), Pint, ESLint, and all 12 frontend unit tests pass.
+  - `[ ]` Production build, Composer/npm audits, CI, preview review, approval, and release remain.
+  - Local build and dependency-audit checks were blocked because this environment cannot reach Google Fonts, Packagist, or npm; rerun them in an online CI environment.
 - `[ ]` **P6.3 — Session and device management.**
   - List active sessions and provide “log out all devices.”
 - `[ ]` **P6.4 — Recent password confirmation for destructive actions.**
@@ -556,8 +561,7 @@ Keep user administration usable as the number of accounts grows.
     credential policies.
 
 Each increment must be implemented, tested, previewed, and released separately.
-P6.1 is the only approved starting point after restoring P0.4 deployment
-automation; do not begin P6.2 or later increments early.
+P6.1 is complete. Do not begin P6.3 or later increments until P6.2 passes its release gates.
 
 ### Acceptance criteria
 
@@ -712,9 +716,10 @@ Analytics must use scoped, privacy-conscious aggregate data.
 
 ## Next action
 
-Complete the remaining **P6.1 — Email verification before admin review**
-release gates. Commit and push the validated fixes to `PROD`, confirm CI, review
-and explicitly approve the Vercel preview, then fast-forward `main`, deploy the
-approved API SHA manually (D015), run Production Smoke, complete the
+Complete the remaining **P6.2 — Administrator two-factor authentication**
+release gates. Rerun the production build and dependency audits where network
+access is available, commit and push the validated fixes to `PROD`, confirm CI,
+review and explicitly approve the Vercel preview, then fast-forward `main`,
+deploy the approved API SHA manually (D015), run Production Smoke, complete the
 authenticated production checklist, and record the release here. Do not begin
-P6.2 or any unrelated phase until those P6.1 gates are complete.
+P6.3 until P6.2 is released.

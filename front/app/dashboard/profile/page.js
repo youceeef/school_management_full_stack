@@ -521,7 +521,7 @@ export default function Profile() {
         </div>
       </Card>
 
-      {!loading && (
+      {!loading && userData.role === "admin" && (
         <TwoFactorSection
           initialEnabled={userData.twoFactorEnabled}
           onStatusChange={(newStatus) =>

@@ -54,7 +54,7 @@ class AuthenticatedSessionController extends Controller
             ], 403);
         }
 
-        if ($user->hasEnabledTwoFactorAuthentication()) {
+        if ($user->hasRole('admin') && $user->hasEnabledTwoFactorAuthentication()) {
             return response()->json([
                 'two_factor' => true,
                 'challenge_token' => $user->createTwoFactorChallengeToken(),

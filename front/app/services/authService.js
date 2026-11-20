@@ -84,9 +84,9 @@ export const twoFactorChallenge = async ({ challenge_token, code, recovery_code 
   }
 };
 
-export const enableTwoFactor = async () => {
+export const enableTwoFactor = async (password) => {
   try {
-    const response = await axios.post(`${API_URL}/api/user/two-factor-authentication`, {}, {
+    const response = await axios.post(`${API_URL}/api/user/two-factor-authentication`, { password }, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -159,4 +159,3 @@ export const disableTwoFactor = async (password) => {
     throw { ...(error.response?.data || {}), status: error.response?.status };
   }
 };
- 

@@ -36,7 +36,7 @@ Route::post('/reset-password', [NewPasswordController::class, 'store'])
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
     ->middleware('throttle:login');
 Route::post('/two-factor-challenge', [TwoFactorChallengeController::class, 'store'])
-    ->middleware('throttle:login')
+    ->middleware('throttle:two-factor-challenge')
     ->name('two-factor.challenge');
 
 Route::prefix('register')->middleware('throttle:registration')->group(function () {
@@ -145,10 +145,9 @@ Route::middleware(['auth:sanctum', 'account.approved'])->group(function () {
     });
 
     // --- Two-Factor Authentication ---
-    Route::prefix('user/two-factor-authentication')->group(function () {
+    Route::prefix('user/two-factor-authentication')->middleware(['role:admin', 'throttle:two-factor-settings'])->group(function () {
         Route::post('/', [TwoFactorAuthenticationController::class, 'enable'])->name('two-factor.enable');
         Route::post('/confirm', [TwoFactorAuthenticationController::class, 'confirm'])->name('two-factor.confirm');
-        Route::get('/qr-code', [TwoFactorAuthenticationController::class, 'qrCode'])->name('two-factor.qr-code');
         Route::post('/recovery-codes', [TwoFactorAuthenticationController::class, 'recoveryCodes'])->name('two-factor.recovery-codes');
         Route::post('/recovery-codes/regenerate', [TwoFactorAuthenticationController::class, 'regenerateRecoveryCodes'])->name('two-factor.recovery-codes.regenerate');
         Route::delete('/', [TwoFactorAuthenticationController::class, 'disable'])->name('two-factor.disable');

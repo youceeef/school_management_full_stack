@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -55,9 +56,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'reviewed_at',
         'reviewed_by',
         'suspended_at',
-        'two_factor_secret',
-        'two_factor_recovery_codes',
-        'two_factor_confirmed_at',
     ];
 
     /**
@@ -79,6 +77,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'remember_token',
         'two_factor_secret',
         'two_factor_recovery_codes',
+        'two_factor_challenge_hash',
     ];
 
     /**
@@ -136,9 +135,14 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function createTwoFactorChallengeToken(): string
     {
+        $nonce = Str::random(64);
+        $this->forceFill(['two_factor_challenge_hash' => hash('sha256', $nonce)])->save();
+
         return encrypt([
             'user_id' => $this->id,
             'expires_at' => now()->addMinutes(5)->timestamp,
+            'nonce' => $nonce,
+            'password_hash' => hash('sha256', $this->password),
         ]);
     }
 

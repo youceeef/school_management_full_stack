@@ -15,6 +15,7 @@ import {
 import toast from "../../utils/toast";
 import Button from "../../components/Button";
 import { Card } from "../../components/ui";
+import { useLanguage } from "../../context/LanguageContext";
 import {
   enableTwoFactor,
   confirmTwoFactor,
@@ -24,11 +25,15 @@ import {
 } from "../../services/authService";
 
 export default function TwoFactorSection({ initialEnabled = false, onStatusChange }) {
+  const { t } = useLanguage();
   const [enabled, setEnabled] = useState(initialEnabled);
   const [loading, setLoading] = useState(false);
 
   // Setup modal state
   const [showSetupModal, setShowSetupModal] = useState(false);
+  const [showSetupPasswordModal, setShowSetupPasswordModal] = useState(false);
+  const [passwordForSetup, setPasswordForSetup] = useState("");
+  const [setupError, setSetupError] = useState("");
   const [setupData, setSetupData] = useState(null);
   const [verificationCode, setVerificationCode] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -49,15 +54,19 @@ export default function TwoFactorSection({ initialEnabled = false, onStatusChang
   const [disableError, setDisableError] = useState("");
 
   // Start 2FA Setup
-  const handleStartSetup = async () => {
+  const handleStartSetup = async (e) => {
+    e.preventDefault();
     setLoading(true);
+    setSetupError("");
     try {
-      const data = await enableTwoFactor();
+      const data = await enableTwoFactor(passwordForSetup);
       setSetupData(data);
+      setPasswordForSetup("");
+      setShowSetupPasswordModal(false);
       setShowSetupModal(true);
       setVerificationCode("");
     } catch (err) {
-      toast.error(err.message || "Erreur lors de l’initialisation du 2FA");
+      setSetupError(err.errors?.password?.[0] || err.message || "Erreur lors de l’initialisation du 2FA");
     } finally {
       setLoading(false);
     }
@@ -77,6 +86,7 @@ export default function TwoFactorSection({ initialEnabled = false, onStatusChang
       setEnabled(true);
       setShowSetupModal(false);
       toast.success("Validation en deux étapes activée avec succès !");
+      setSetupData(null);
       if (onStatusChange) onStatusChange(true);
     } catch (err) {
       toast.error(err.errors?.code?.[0] || err.message || "Code invalide");
@@ -94,12 +104,18 @@ export default function TwoFactorSection({ initialEnabled = false, onStatusChang
     try {
       const res = await getTwoFactorRecoveryCodes(passwordForCodes);
       setRecoveryCodes(res.recovery_codes || []);
-      setPasswordForCodes("");
     } catch (err) {
       setCodesError(err.errors?.password?.[0] || err.message || "Mot de passe incorrect");
     } finally {
       setLoadingCodes(false);
     }
+  };
+
+  const closeCodesModal = () => {
+    setShowCodesModal(false);
+    setRecoveryCodes([]);
+    setPasswordForCodes("");
+    setCodesError("");
   };
 
   // Regenerate Recovery Codes
@@ -235,13 +251,47 @@ export default function TwoFactorSection({ initialEnabled = false, onStatusChang
                 variant="primary"
                 size="sm"
                 loading={loading}
-                onClick={handleStartSetup}
+                onClick={() => {
+                  setPasswordForSetup("");
+                  setSetupError("");
+                  setShowSetupPasswordModal(true);
+                }}
               >
                 Activer le 2FA
               </Button>
             )}
           </div>
         </div>
+
+        {showSetupPasswordModal && (
+          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <form onSubmit={handleStartSetup} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-2xl max-w-md w-full space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <h3 className="text-base font-display font-semibold text-slate-900 dark:text-white">{t("auth.twoFactorSetupPasswordConfirm")}</h3>
+                <button type="button" onClick={() => setShowSetupPasswordModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label={t("common.cancel")}>
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400">{t("auth.twoFactorSetupPasswordDesc")}</p>
+              <input
+                type="password"
+                autoFocus
+                autoComplete="current-password"
+                value={passwordForSetup}
+                onChange={(e) => setPasswordForSetup(e.target.value)}
+                placeholder={t("auth.passwordLabel")}
+                aria-label={t("auth.passwordLabel")}
+                className="w-full text-sm px-3.5 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
+                required
+              />
+              {setupError && <p role="alert" className="text-xs font-medium text-red-600 dark:text-red-400">{setupError}</p>}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => setShowSetupPasswordModal(false)}>{t("common.cancel")}</Button>
+                <Button type="submit" variant="primary" loading={loading}>{t("auth.twoFactorSetupContinue")}</Button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {/* Setup Modal */}
         {showSetupModal && setupData && (
@@ -400,7 +450,7 @@ export default function TwoFactorSection({ initialEnabled = false, onStatusChang
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowCodesModal(false)}
+                  onClick={closeCodesModal}
                   className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <XMarkIcon className="w-5 h-5" />
@@ -436,7 +486,7 @@ export default function TwoFactorSection({ initialEnabled = false, onStatusChang
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() => setShowCodesModal(false)}
+                      onClick={closeCodesModal}
                     >
                       Annuler
                     </Button>
@@ -496,7 +546,7 @@ export default function TwoFactorSection({ initialEnabled = false, onStatusChang
                       type="button"
                       variant="primary"
                       size="sm"
-                      onClick={() => setShowCodesModal(false)}
+                      onClick={closeCodesModal}
                     >
                       Fermer
                     </Button>

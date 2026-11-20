@@ -280,6 +280,9 @@ export const TRANSLATIONS = {
       twoFactorUseRecovery: "Utiliser un code de récupération",
       twoFactorUseTotp: "Utiliser l'application d'authentification",
       twoFactorBackToLogin: "Retour à la connexion",
+      twoFactorSetupPasswordConfirm: "Confirmez votre mot de passe",
+      twoFactorSetupPasswordDesc: "Confirmez votre identité pour afficher la clé de configuration et les codes de secours.",
+      twoFactorSetupContinue: "Continuer",
     },
     dashboard: {
       welcomeTitle: "Bonjour, {name}",
@@ -536,6 +539,9 @@ export const TRANSLATIONS = {
       twoFactorUseRecovery: "Use an emergency recovery code",
       twoFactorUseTotp: "Use authenticator app",
       twoFactorBackToLogin: "Back to login",
+      twoFactorSetupPasswordConfirm: "Confirm your password",
+      twoFactorSetupPasswordDesc: "Confirm your identity to view the setup key and recovery codes.",
+      twoFactorSetupContinue: "Continue",
     },
     dashboard: {
       welcomeTitle: "Hello, {name}",
@@ -792,6 +798,9 @@ export const TRANSLATIONS = {
       twoFactorUseRecovery: "استخدام رمز استرداد للطوارئ",
       twoFactorUseTotp: "استخدام تطبيق المصادقة",
       twoFactorBackToLogin: "العودة لتسجيل الدخول",
+      twoFactorSetupPasswordConfirm: "أكد كلمة المرور",
+      twoFactorSetupPasswordDesc: "أكد هويتك لعرض مفتاح الإعداد ورموز الاسترداد.",
+      twoFactorSetupContinue: "متابعة",
     },
     dashboard: {
       welcomeTitle: "مرحباً، {name}",

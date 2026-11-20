@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
@@ -37,7 +38,7 @@ class TwoFactorAuthenticationTest extends TestCase
         $token = $admin->createToken('test')->plainTextToken;
 
         $response = $this->withToken($token)
-            ->postJson('/api/user/two-factor-authentication');
+            ->postJson('/api/user/two-factor-authentication', ['password' => 'AdminPass123!@#']);
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -56,13 +57,32 @@ class TwoFactorAuthenticationTest extends TestCase
         $this->assertFalse($fresh->hasEnabledTwoFactorAuthentication());
     }
 
+    public function test_two_factor_settings_require_an_admin_and_recent_password(): void
+    {
+        $teacher = User::factory()->create();
+        $teacher->assignRole('enseignant');
+
+        $this->withToken($teacher->createToken('test')->plainTextToken)
+            ->postJson('/api/user/two-factor-authentication', ['password' => 'password'])
+            ->assertForbidden();
+
+        Auth::forgetGuards();
+        $admin = $this->createAdmin();
+        $this->withToken($admin->createToken('test')->plainTextToken)
+            ->postJson('/api/user/two-factor-authentication', ['password' => 'wrong-password'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['password']);
+
+        $this->assertNull($admin->fresh()->two_factor_secret);
+    }
+
     public function test_user_cannot_confirm_2fa_with_invalid_code(): void
     {
         $admin = $this->createAdmin();
         $token = $admin->createToken('test')->plainTextToken;
 
         $this->withToken($token)
-            ->postJson('/api/user/two-factor-authentication');
+            ->postJson('/api/user/two-factor-authentication', ['password' => 'AdminPass123!@#']);
 
         $response = $this->withToken($token)
             ->postJson('/api/user/two-factor-authentication/confirm', [
@@ -79,9 +99,10 @@ class TwoFactorAuthenticationTest extends TestCase
     {
         $admin = $this->createAdmin();
         $token = $admin->createToken('test')->plainTextToken;
+        $otherDeviceToken = $admin->createToken('other-device')->plainTextToken;
 
         $initResponse = $this->withToken($token)
-            ->postJson('/api/user/two-factor-authentication');
+            ->postJson('/api/user/two-factor-authentication', ['password' => 'AdminPass123!@#']);
 
         $secret = $initResponse->json('secret');
         $validCode = (new Google2FA)->getCurrentOtp($secret);
@@ -97,6 +118,13 @@ class TwoFactorAuthenticationTest extends TestCase
         $fresh = $admin->fresh();
         $this->assertNotNull($fresh->two_factor_confirmed_at);
         $this->assertTrue($fresh->hasEnabledTwoFactorAuthentication());
+        $currentToken = $fresh->tokens()->sole();
+        $this->assertStringStartsWith('two-factor-verified:', $currentToken->name);
+
+        Auth::forgetGuards();
+        $this->withToken($otherDeviceToken)->getJson('/api/user')->assertUnauthorized();
+        Auth::forgetGuards();
+        $this->withToken($token)->getJson('/api/user')->assertOk();
     }
 
     public function test_login_returns_challenge_token_when_2fa_is_confirmed(): void
@@ -148,6 +176,11 @@ class TwoFactorAuthenticationTest extends TestCase
                 'permissions',
             ])
             ->assertJsonPath('role', 'admin');
+
+        $this->postJson('/api/two-factor-challenge', [
+            'challenge_token' => $challengeToken,
+            'code' => $validCode,
+        ])->assertStatus(422);
     }
 
     public function test_two_factor_challenge_fails_with_invalid_totp_code(): void
@@ -169,6 +202,66 @@ class TwoFactorAuthenticationTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['code']);
+    }
+
+    public function test_challenge_is_invalidated_when_the_password_changes(): void
+    {
+        $admin = $this->createAdmin();
+        $google2fa = new Google2FA;
+        $secret = $google2fa->generateSecretKey(32);
+        $admin->forceFill([
+            'two_factor_secret' => $secret,
+            'two_factor_recovery_codes' => ['code1-1234'],
+            'two_factor_confirmed_at' => now(),
+        ])->save();
+
+        $challengeToken = $admin->createTwoFactorChallengeToken();
+        $admin->forceFill(['password' => 'ChangedPass123!'])->save();
+
+        $this->postJson('/api/two-factor-challenge', [
+            'challenge_token' => $challengeToken,
+            'code' => $google2fa->getCurrentOtp($secret),
+        ])->assertStatus(422);
+    }
+
+    public function test_challenge_is_rejected_after_admin_role_is_removed(): void
+    {
+        $admin = $this->createAdmin();
+        $google2fa = new Google2FA;
+        $secret = $google2fa->generateSecretKey(32);
+        $admin->forceFill([
+            'two_factor_secret' => $secret,
+            'two_factor_recovery_codes' => ['code1-1234'],
+            'two_factor_confirmed_at' => now(),
+        ])->save();
+
+        $challengeToken = $admin->createTwoFactorChallengeToken();
+        $admin->removeRole('admin');
+
+        $this->postJson('/api/two-factor-challenge', [
+            'challenge_token' => $challengeToken,
+            'code' => $google2fa->getCurrentOtp($secret),
+        ])->assertStatus(422);
+    }
+
+    public function test_challenge_attempts_are_rate_limited(): void
+    {
+        $admin = $this->createAdmin();
+        $secret = (new Google2FA)->generateSecretKey(32);
+        $admin->forceFill([
+            'two_factor_secret' => $secret,
+            'two_factor_recovery_codes' => ['code1-1234'],
+            'two_factor_confirmed_at' => now(),
+        ])->save();
+
+        $challengeToken = $admin->createTwoFactorChallengeToken();
+        $payload = ['challenge_token' => $challengeToken, 'code' => '999999'];
+
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $this->postJson('/api/two-factor-challenge', $payload)->assertStatus(422);
+        }
+
+        $this->postJson('/api/two-factor-challenge', $payload)->assertTooManyRequests();
     }
 
     public function test_two_factor_challenge_authenticates_with_recovery_code_and_consumes_it(): void
@@ -211,7 +304,7 @@ class TwoFactorAuthenticationTest extends TestCase
     public function test_user_can_view_and_regenerate_recovery_codes_with_password(): void
     {
         $admin = $this->createAdmin();
-        $token = $admin->createToken('test')->plainTextToken;
+        $token = $admin->createToken('two-factor-verified:test')->plainTextToken;
         $secret = (new Google2FA)->generateSecretKey(32);
 
         $admin->forceFill([
@@ -250,7 +343,7 @@ class TwoFactorAuthenticationTest extends TestCase
     public function test_user_can_disable_two_factor_authentication(): void
     {
         $admin = $this->createAdmin();
-        $token = $admin->createToken('test')->plainTextToken;
+        $token = $admin->createToken('two-factor-verified:test')->plainTextToken;
         $secret = (new Google2FA)->generateSecretKey(32);
 
         $admin->forceFill([
