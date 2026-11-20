@@ -547,8 +547,10 @@ Keep user administration usable as the number of accounts grows.
   - Dedicated TwoFactorSection on `/dashboard/profile` for administrators.
   - Automated feature test suite `TwoFactorAuthenticationTest` (13 tests, 71 assertions).
   - `[x]` Local validation: all 130 backend tests (789 assertions), Pint, ESLint, and all 12 frontend unit tests pass.
-  - `[ ]` Production build, Composer/npm audits, CI, preview review, approval, and release remain.
-  - Local build and dependency-audit checks were blocked because this environment cannot reach Google Fonts, Packagist, or npm; rerun them in an online CI environment.
+  - `[x]` GitHub CI run #88 passed for commit `0a922f8`, including backend tests, Pint, Composer audit, frontend unit tests, ESLint, production build, and npm audit.
+  - `[ ]` Vercel preview review and approval, production release, smoke test, and authenticated production checklist remain.
+  - Local build and dependency-audit commands could not reach Google Fonts, Packagist, or npm; CI completed the same checks successfully.
+  - Verification use case: an admin reconfirms their password, scans the setup QR, confirms a TOTP code, then logs in with a new code; verify other sessions are revoked, wrong codes fail, and a recovery code works only once.
 - `[ ]` **P6.3 — Session and device management.**
   - List active sessions and provide “log out all devices.”
 - `[ ]` **P6.4 — Recent password confirmation for destructive actions.**
@@ -717,9 +719,8 @@ Analytics must use scoped, privacy-conscious aggregate data.
 ## Next action
 
 Complete the remaining **P6.2 — Administrator two-factor authentication**
-release gates. Rerun the production build and dependency audits where network
-access is available, commit and push the validated fixes to `PROD`, confirm CI,
-review and explicitly approve the Vercel preview, then fast-forward `main`,
+release gates. Review and explicitly approve the Vercel preview for `0a922f8`,
+then fast-forward `main`,
 deploy the approved API SHA manually (D015), run Production Smoke, complete the
 authenticated production checklist, and record the release here. Do not begin
 P6.3 until P6.2 is released.
